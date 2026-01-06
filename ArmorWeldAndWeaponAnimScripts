@@ -1,0 +1,194 @@
+local HideOrShowArmor = game:GetService("ReplicatedStorage"):WaitForChild("HideOrShowArmor")
+
+game.Players.PlayerAdded:Connect(function(player)
+	player.CharacterAdded:Connect(function(character)
+
+		wait(0.1)  -- Ensure the character is fully loaded
+
+		player.GeneralInfo.SyringeActivated.Value = false
+		player.CharacterAppearance = "Classic"		
+		character:WaitForChild("Humanoid").MaxHealth = 250
+		character:WaitForChild("Humanoid").Health = 250
+		local rightArm = character:FindFirstChild("Right Arm") or character:FindFirstChild("RightHand")
+
+		local motor6dDefaultRifle = Instance.new("Motor6D")
+		motor6dDefaultRifle.Name = "DefaultRifleAttach"
+		motor6dDefaultRifle.Part0 = rightArm
+		motor6dDefaultRifle.Parent = rightArm
+
+		local motor6dLaserRifle = Instance.new("Motor6D")
+		motor6dLaserRifle.Name = "LaserRifleAttach"
+		motor6dLaserRifle.Part0 = rightArm
+		motor6dLaserRifle.Parent = rightArm
+
+		local motor6dDefaultSMG = Instance.new("Motor6D")
+		motor6dDefaultSMG.Name = "DefaultSMGAttach"
+		motor6dDefaultSMG.C0 = CFrame.new(-0.263, -0.598, -0.289) * CFrame.Angles(-math.rad(29.025), -math.rad(180), -math.rad(-90))
+		motor6dDefaultSMG.Part0 = rightArm
+		motor6dDefaultSMG.Parent = rightArm
+
+		local motor6dDefaultShotgun = Instance.new("Motor6D")
+		motor6dDefaultShotgun.Name = "DefaultShotgunAttach"
+		motor6dDefaultShotgun.Part0 = rightArm
+		motor6dDefaultShotgun.Parent = rightArm
+
+		local motor6dDefaultPistol = Instance.new("Motor6D")
+		motor6dDefaultPistol.Name = "DefaultPistolAttach"
+		motor6dDefaultPistol.Part0 = rightArm
+		motor6dDefaultPistol.Parent = rightArm
+
+		local motor6dDefaultAutoPistol = Instance.new("Motor6D")
+		motor6dDefaultAutoPistol.Name = "DefaultAutoPistolAttach"
+		motor6dDefaultAutoPistol.Part0 = rightArm
+		motor6dDefaultAutoPistol.Parent = rightArm
+
+		local motor6dDefaultRevolver = Instance.new("Motor6D")
+		motor6dDefaultRevolver.Name = "DefaultRevolverAttach"
+		motor6dDefaultRevolver.Part0 = rightArm
+		motor6dDefaultRevolver.Parent = rightArm
+
+		local motor6dLaserRevolver = Instance.new("Motor6D")
+		motor6dLaserRevolver.Name = "LaserRevolverAttach"
+		motor6dLaserRevolver.Part0 = rightArm
+		motor6dLaserRevolver.Parent = rightArm
+
+		local motor6dDefaultMelee = Instance.new("Motor6D")
+		motor6dDefaultMelee.Name = "DefaultMeleeAttach"
+		motor6dDefaultMelee.Part0 = rightArm
+		motor6dDefaultMelee.Parent = rightArm
+
+		local motor6dSaber = Instance.new("Motor6D")
+		motor6dSaber.Name = "SaberAttach"
+		motor6dSaber.Part0 = rightArm
+		motor6dSaber.Parent = rightArm
+
+		local motor6dKarambit = Instance.new("Motor6D")
+		motor6dKarambit.Name = "KarambitAttach"
+		motor6dKarambit.Part0 = rightArm
+		motor6dKarambit.Parent = rightArm
+
+		local motor6dDefaultSniper = Instance.new("Motor6D")
+		motor6dDefaultSniper.Name = "DefaultSniperAttach"
+		motor6dDefaultSniper.Part0 = rightArm
+		motor6dDefaultSniper.Parent = rightArm
+
+		local motor6dLaserSniper = Instance.new("Motor6D")
+		motor6dLaserSniper.Name = "LaserSniperAttach"
+		motor6dLaserSniper.Part0 = rightArm
+		motor6dLaserSniper.Parent = rightArm
+
+		local motor6dGrenade = Instance.new("Motor6D")
+		motor6dGrenade.Name = "GrenadeAttach"
+		motor6dGrenade.Part0 = rightArm
+		motor6dGrenade.Parent = rightArm
+
+		local motor6dBooster = Instance.new("Motor6D")
+		motor6dBooster.Name = "BoosterAttach"
+		motor6dBooster.Part0 = rightArm
+		motor6dBooster.Parent = rightArm
+
+		local motor6dLightningBomb = Instance.new("Motor6D")
+		motor6dLightningBomb.Name = "LightningBombAttach"
+		motor6dLightningBomb.Part0 = rightArm
+		motor6dLightningBomb.Parent = rightArm
+
+		local motor6dSyringe = Instance.new("Motor6D")
+		motor6dSyringe.Name = "SyringeAttach"
+		motor6dSyringe.Part0 = rightArm
+		motor6dSyringe.Parent = rightArm
+
+		local motor6dRegenPot = Instance.new("Motor6D")
+		motor6dRegenPot.Name = "RegenPotAttach"
+		motor6dRegenPot.Part0 = rightArm
+		motor6dRegenPot.Parent = rightArm
+
+		local PlayerArmor = game.ServerStorage.PlayerArmor:Clone()
+		PlayerArmor.Parent = character
+		PlayerArmor.PrimaryPart.CFrame = character.Torso.CFrame
+		PlayerArmor.Body.Part0 = character.Torso
+
+		local Helmet = game.ServerStorage.PlayerArmorHelmet:Clone()
+		Helmet.Parent = character
+		Helmet.PrimaryPart.CFrame = character.Torso.CFrame
+		Helmet.Body.Part0 = character.Head
+
+		local LebronCharacterBandPurple = game.ServerStorage.CharacterCosmetics.Lebron.LebronCharacterBandPurple:Clone()
+		LebronCharacterBandPurple.Parent = character
+		LebronCharacterBandPurple.PrimaryPart.CFrame = character.Torso.CFrame
+		LebronCharacterBandPurple.Body.Part0 = character:WaitForChild("Left Arm")
+
+		local LebronCharacterBandYellow = game.ServerStorage.CharacterCosmetics.Lebron.LebronCharacterBandYellow:Clone()
+		LebronCharacterBandYellow.Parent = character
+		LebronCharacterBandYellow.PrimaryPart.CFrame = character.Torso.CFrame
+		LebronCharacterBandYellow.Body.Part0 = character:WaitForChild("Right Arm")
+
+		for _, part in PlayerArmor:GetDescendants() do
+			if part:IsA("BasePart") or part:IsA("UnionOperation") then
+				part.Transparency = 1
+			end
+		end
+
+		for _, part in Helmet:GetDescendants() do
+			if part:IsA("BasePart") or part:IsA("UnionOperation") then
+				part.Transparency = 1
+			end
+		end
+
+		character.ChildAdded:Connect(function(child)
+			if child:IsA("Tool") and child:FindFirstChild("MainDefaultRifle") then
+				motor6dDefaultRifle.Part1 = child.MainDefaultRifle
+			end
+			if child:IsA("Tool") and child:FindFirstChild("MainDefaultShotgun") then
+				motor6dDefaultShotgun.Part1 = child.MainDefaultShotgun
+			end
+			if child:IsA("Tool") and child:FindFirstChild("MainLaserRifle") then
+				motor6dLaserRifle.Part1 = child.MainLaserRifle
+			end
+			if child:IsA("Tool") and child:FindFirstChild("MainDefaultPistol") then
+				motor6dDefaultPistol.Part1 = child.MainDefaultPistol
+			end
+			if child:IsA("Tool") and child:FindFirstChild("MainDefaultAutoPistol") then
+				motor6dDefaultAutoPistol.Part1 = child.MainDefaultAutoPistol
+			end
+			if child:IsA("Tool") and child:FindFirstChild("MainDefaultRevolver") then
+				motor6dDefaultRevolver.Part1 = child.MainDefaultRevolver
+			end
+			if child:IsA("Tool") and child:FindFirstChild("MainLaserRevolver") then
+				motor6dLaserRevolver.Part1 = child.MainLaserRevolver
+			end
+			if child:IsA("Tool") and child:FindFirstChild("MainDefaultMelee") then
+				motor6dDefaultMelee.Part1 = child.MainDefaultMelee
+			end
+			if child:IsA("Tool") and child:FindFirstChild("MainSabe") then
+				motor6dSaber.Part1 = child.MainSabe
+			end
+			if child:IsA("Tool") and child:FindFirstChild("MainK") then
+				motor6dSaber.Part1 = child.MainK
+			end
+			if child:IsA("Tool") and child:FindFirstChild("MainDefaultSMG") then
+				motor6dDefaultSMG.Part1 = child.MainDefaultSMG
+			end
+			if child:IsA("Tool") and child:FindFirstChild("MainDefaultSniper") then
+				motor6dDefaultSniper.Part1 = child.MainDefaultSniper
+			end
+			if child:IsA("Tool") and child:FindFirstChild("MainLaserSniper") then
+				motor6dLaserSniper.Part1 = child.MainLaserSniper
+			end
+			if child:IsA("Tool") and child:FindFirstChild("MainDefaultGrenade") then
+				motor6dGrenade.Part1 = child.MainDefaultGrenade
+			end
+			if child:IsA("Tool") and child:FindFirstChild("MainBooster") then
+				motor6dBooster.Part1 = child.MainBooster
+			end
+			if child:IsA("Tool") and child:FindFirstChild("MainBomb") then
+				motor6dLightningBomb.Part1 = child.MainBomb
+			end
+			if child:IsA("Tool") and child:FindFirstChild("MainSyringe") then
+				motor6dSyringe.Part1 = child.MainSyringe
+			end
+			if child:IsA("Tool") and child:FindFirstChild("MainRegenPot") then
+				motor6dRegenPot.Part1 = child.MainRegenPot
+			end
+		end)
+	end)
+end)
