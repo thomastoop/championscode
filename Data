@@ -1,0 +1,725 @@
+local DataStoreService = game:GetService("DataStoreService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RedeemCode = ReplicatedStorage:FindFirstChild("Bonuses"):FindFirstChild("RedeemCode")
+
+local myDataStore = DataStoreService:GetDataStore("myDataStore")
+
+local Codes = {
+	{"150LIKES", 75}, 
+	{"AUTOPISTOL", 75}, 
+}
+
+--//Function
+local function saveData(player) --Create out own function for saving data
+	local usedCodes = {}
+	for _, v in pairs(player.CodesFolder:GetChildren()) do
+		if v:IsA("BoolValue") and v.Value == true then
+			table.insert(usedCodes, v.Name)
+		end
+	end
+	
+	local tableToSave = { --Creates a table for our values
+		player.ADS_Sens.ADSsens.Value; --Saves the first value
+		player.leaderstats.Wins.Value; --Saves the second value
+		player.leaderstats.Kills.Value;
+		player.CrosshairData.centerDotEnabled.Value;
+		player.CrosshairData.centerDotSize.Value;
+		player.CrosshairData.linesEnabled.Value;
+		player.CrosshairData.linesLength.Value;
+		player.CrosshairData.dotOutlineEnabled.Value;
+		player.CrosshairData.dotOutlineSize.Value;
+		player.CrosshairData.linesThickness.Value;
+		player.CrosshairData.linesSpacing.Value;
+		player.CrosshairData.lineOutlinesEnabled.Value;
+		player.CrosshairData.lineOutlineSize.Value;
+		player.SelectedWeapons.selectedPrimary.Value;
+		player.SelectedWeapons.selectedSecondary.Value;
+		player.SelectedWeapons.selectedMelee.Value;
+		player.GeneralInfo.toggleADS.Value;
+		player.GeneralInfo.toggleSniperAim.Value;
+		player.GeneralInfo.toggleCrouch.Value;
+		player.Skins.RifleWeaponSkin.Value;
+		player.Skins.SniperWeaponSkin.Value;
+		player.Skins.hasLaserRifle.Value;
+		player.Skins.hasLaserSniper.Value;
+		player.Skins.RevolverWeaponSkin.Value;
+		player.Skins.MeleeWeaponSkin.Value;
+		player.Skins.hasLaserRevolver.Value;
+		player.Skins.hasSaber.Value;
+		player.Skins.PistolWeaponSkin.Value;
+		player.Currency.Gems.Value;
+		player.leaderstats.Level.Value;
+		player.Progression.Experience.Value;
+		player.Weapons.hasSniper.Value;
+		player.Weapons.hasRevolver.Value;		
+		player.GameTeam.playerTeam.Value;
+		player.Skins.LaserRifleVariant.Value;
+		player.Skins.LaserSniperVariant.Value;
+		player.Skins.LaserRevolverVariant.Value;
+		player.Skins.SaberVariant.Value;
+		player.GeneralInfo.claimedFavoriteBonus.Value;
+		player.GeneralInfo.claimedLikeBonus.Value;
+		player.GeneralInfo.claimedNotificationBonus.Value;
+		player.Weapons.hasSMG.Value;
+		player.Skins.SMGWeaponSkin.Value;
+		player.leaderstats.Winstreak.Value;
+		player.Skins.hasTopSmallGems.Value;
+		player.Skins.hasBigCenterGem.Value;
+		player.Skins.CenterArmorSkin.Value;
+		player.Skins.TopArmorSkin.Value;
+		player.Statistics.Losses.Value;
+		player.Statistics.Deaths.Value;
+		player.Skins.BoosterSkin.Value;
+		player.Weapons.hasBooster.Value;
+		player.SelectedWeapons.selectedAbility1.Value;
+		player.Weapons.hasLightningBomb.Value;
+		player.Skins.LightningBombSkin.Value;
+		player.Skins.ShotgunWeaponSkin.Value;
+		player.Weapons.hasShotgun.Value;
+		player.Rewards.claimedCode2kGems.Value;
+		player.GeneralInfo.PreRound.Value;
+		player.Skins.CharacterSkin.Value;
+		player.Skins.hasLebronCharacter.Value;
+		player.GeneralInfo.isInGame.Value;
+		player.Skins.HandSkin.Value;
+		player.GeneralInfo.SyringeActivated.Value;
+		player.Weapons.hasOverdriveVial.Value;
+		player.Skins.OverdriveVialSkin.Value;
+		player.Skins.GrenadeSkin.Value;
+		player.GeneralInfo.KillsInOneGame.Value;
+		player.CrosshairData.CenterDotColor.Value;
+		player.CrosshairData.LinesColor.Value;
+		player.GeneralInfo.toggleSprint.Value;
+		player.Weapons.hasRegenPot.Value;
+		player.Skins.RegenPotSkin.Value;
+		player.Rewards.claimedCode40Likes.Value;
+		player.GeneralInfo.Sensitivity.Value;
+		player.GeneralInfo.MusicVolume.Value;
+		player.Rewards.claimedCodeLikeGoal.Value;
+		player.GeneralInfo.ChatTag.Value;
+		player.Statistics.LastWinstreak.Value;
+		player.Statistics.WinstreakRestores.Value;
+		player.Skins.AutoPistolWeaponSkin.Value;
+		player.Weapons.hasAutoPistol.Value;
+		usedCodes;
+		
+	} --You can continue the list in the same order by adding "player.leaderstats.IntValueName.Value;"
+	local success, errorMessage = pcall(myDataStore.SetAsync, myDataStore, player.UserId, tableToSave) --Checks if datastore succeeded
+	
+	if success then --If datastore success then
+		print("Data has been saved!") --Prints success
+	else --If datastore fails then
+		print("Data has not been saved!") --Prints failure
+	end
+end
+
+
+game.Players.PlayerAdded:Connect(function(player)
+	local GeneralInfo = Instance.new("Folder")
+	GeneralInfo.Name = "GeneralInfo"
+	GeneralInfo.Parent = player
+	
+	local Skins = Instance.new("Folder")
+	Skins.Name = "Skins"
+	Skins.Parent = player
+	
+	local Currency = Instance.new("Folder")
+	Currency.Name = "Currency"
+	Currency.Parent = player
+	
+	local Progression = Instance.new("Folder")
+	Progression.Name = "Progression"
+	Progression.Parent = player
+	
+	local GameTeam = Instance.new("Folder")
+	GameTeam.Name = "GameTeam"
+	GameTeam.Parent = player
+	
+	local Weapons = Instance.new("Folder")
+	Weapons.Name = "Weapons"
+	Weapons.Parent = player
+	
+	local leaderstats = Instance.new("Folder")
+	leaderstats.Name = "leaderstats"
+	leaderstats.Parent = player
+	
+	local Statistics = Instance.new("Folder")
+	Statistics.Name = "Statistics"
+	Statistics.Parent = player
+	
+	local Rewards = Instance.new("Folder")
+	Rewards.Name = "Rewards"
+	Rewards.Parent = player
+
+	local Level = Instance.new("NumberValue", leaderstats)
+	Level.Name = "Level"
+	
+	local Winstreak = Instance.new("NumberValue", leaderstats)
+	Winstreak.Name = "Winstreak"
+
+	local Wins = Instance.new("NumberValue")
+	Wins.Name = "Wins"
+	Wins.Parent = leaderstats
+
+	local Kills = Instance.new("NumberValue")
+	Kills.Name = "Kills"
+	Kills.Parent = leaderstats
+
+	local folder = Instance.new("Folder", player)
+	folder.Name = "ADS_Sens"
+	
+	local SelectedWeapons = Instance.new("Folder", player)
+	SelectedWeapons.Name = "SelectedWeapons"
+
+	local ADSsens = Instance.new("NumberValue", folder)
+	ADSsens.Name = "ADSsens"
+
+	local crosshairData = Instance.new("Folder", player)
+	crosshairData.Name = "CrosshairData"
+
+	local centerDotEnabled = Instance.new("BoolValue", crosshairData)
+	centerDotEnabled.Name = "centerDotEnabled"
+
+	local centerDotSize = Instance.new("NumberValue", crosshairData)
+	centerDotSize.Name = "centerDotSize"
+
+	local linesEnabled = Instance.new("BoolValue", crosshairData)
+	linesEnabled.Name = "linesEnabled"
+
+	local linesLength = Instance.new("NumberValue", crosshairData)
+	linesLength.Name = "linesLength"
+
+	local dotOutlineEnabled = Instance.new("BoolValue", crosshairData)
+	dotOutlineEnabled.Name = "dotOutlineEnabled"
+
+	local dotOutlineSize = Instance.new("NumberValue", crosshairData)
+	dotOutlineSize.Name = "dotOutlineSize"
+
+	local linesThickness = Instance.new("NumberValue", crosshairData)
+	linesThickness.Name = "linesThickness"
+
+	local linesSpacing = Instance.new("NumberValue", crosshairData)
+	linesSpacing.Name = "linesSpacing"
+
+	local lineOutlinesEnabled = Instance.new("BoolValue", crosshairData)
+	lineOutlinesEnabled.Name = "lineOutlinesEnabled"
+
+	local lineOutlineSize = Instance.new("NumberValue", crosshairData)
+	lineOutlineSize.Name = "lineOutlineSize"
+
+	local selectedPrimary = Instance.new("StringValue", SelectedWeapons)
+	selectedPrimary.Name = "selectedPrimary"
+	
+	local selectedSecondary = Instance.new("StringValue", SelectedWeapons)
+	selectedSecondary.Name = "selectedSecondary"
+	
+	local selectedMelee = Instance.new("StringValue", SelectedWeapons)
+	selectedMelee.Name = "selectedMelee"
+	
+	local toggleADS = Instance.new("BoolValue", GeneralInfo)
+	toggleADS.Name = "toggleADS"
+	
+	local toggleSniperAim = Instance.new("BoolValue", GeneralInfo)
+	toggleSniperAim.Name = "toggleSniperAim"
+	
+	local toggleCrouch = Instance.new("BoolValue", GeneralInfo)
+	toggleCrouch.Name = "toggleCrouch"
+	
+	local RifleWeaponSkin = Instance.new("StringValue", Skins)
+	RifleWeaponSkin.Name = "RifleWeaponSkin"
+	
+	local SniperWeaponSkin = Instance.new("StringValue", Skins)
+	SniperWeaponSkin.Name = "SniperWeaponSkin"
+	
+	local hasLaserRifle = Instance.new("BoolValue", Skins)
+	hasLaserRifle.Name = "hasLaserRifle"
+	
+	local hasLaserSniper = Instance.new("BoolValue", Skins)
+	hasLaserSniper.Name = "hasLaserSniper"
+	
+	local RevolverWeaponSkin = Instance.new("StringValue", Skins)
+	RevolverWeaponSkin.Name = "RevolverWeaponSkin"
+
+	local MeleeWeaponSkin = Instance.new("StringValue", Skins)
+	MeleeWeaponSkin.Name = "MeleeWeaponSkin"
+	
+	local hasLaserRevolver = Instance.new("BoolValue", Skins)
+	hasLaserRevolver.Name = "hasLaserRevolver"
+	
+	local hasSaber = Instance.new("BoolValue", Skins)
+	hasSaber.Name = "hasSaber"
+	
+	local PistolWeaponSkin = Instance.new("StringValue", Skins)
+	PistolWeaponSkin.Name = "PistolWeaponSkin"
+	
+	local Gems = Instance.new("NumberValue", Currency)
+	Gems.Name = "Gems"
+	
+	local Experience = Instance.new("NumberValue", Progression)
+	Experience.Name = "Experience"
+	
+	local hasSniper = Instance.new("BoolValue", Weapons)
+	hasSniper.Name = "hasSniper"
+	
+	local hasRevolver = Instance.new("BoolValue", Weapons)
+	hasRevolver.Name = "hasRevolver"
+	
+	local playerTeam = Instance.new("StringValue", GameTeam)
+	playerTeam.Name = "playerTeam"
+	
+	local LaserRifleVariant = Instance.new("StringValue", Skins)
+	LaserRifleVariant.Name = "LaserRifleVariant"
+	
+	local LaserSniperVariant = Instance.new("StringValue", Skins)
+	LaserSniperVariant.Name = "LaserSniperVariant"
+	
+	local LaserRevolverVariant = Instance.new("StringValue", Skins)
+	LaserRevolverVariant.Name = "LaserRevolverVariant"
+	
+	local SaberVariant = Instance.new("StringValue", Skins)
+	SaberVariant.Name = "SaberVariant"
+	
+	local claimedFavoriteBonus = Instance.new("BoolValue", GeneralInfo)
+	claimedFavoriteBonus.Name = "claimedFavoriteBonus"
+	
+	local claimedLikeBonus = Instance.new("BoolValue", GeneralInfo)
+	claimedLikeBonus.Name = "claimedLikeBonus"
+	
+	local claimedNotificationBonus = Instance.new("BoolValue", GeneralInfo)
+	claimedNotificationBonus.Name = "claimedNotificationBonus"
+	
+	local hasSMG = Instance.new("BoolValue", Weapons)
+	hasSMG.Name = "hasSMG"
+
+	local SMGWeaponSkin = Instance.new("StringValue", Skins)
+	SMGWeaponSkin.Name = "SMGWeaponSkin"
+	
+	local hasTopSmallGems = Instance.new("BoolValue", Skins)
+	hasTopSmallGems.Name = "hasTopSmallGems"
+	
+	local hasBigCenterGem = Instance.new("BoolValue", Skins)
+	hasBigCenterGem.Name = "hasBigCenterGem"
+	
+	local CenterArmorSkin = Instance.new("StringValue", Skins)
+	CenterArmorSkin.Name = "CenterArmorSkin"
+
+	local TopArmorSkin = Instance.new("StringValue", Skins)
+	TopArmorSkin.Name = "TopArmorSkin"
+	
+	local Losses = Instance.new("NumberValue", Statistics)
+	Losses.Name = "Losses"
+	
+	local Deaths = Instance.new("NumberValue", Statistics)
+	Deaths.Name = "Deaths"
+	
+	local BoosterSkin = Instance.new("StringValue", Skins)
+	BoosterSkin.Name = "BoosterSkin"
+	
+	local hasBooster = Instance.new("BoolValue", Weapons)
+	hasBooster.Name = "hasBooster"
+	
+	local selectedAbility1 = Instance.new("StringValue", SelectedWeapons)
+	selectedAbility1.Name = "selectedAbility1"
+	
+	local hasLightningBomb = Instance.new("BoolValue", Weapons)
+	hasLightningBomb.Name = "hasLightningBomb"
+
+	local LightningBombSkin = Instance.new("StringValue", Skins)
+	LightningBombSkin.Name = "LightningBombSkin"
+	
+	local ShotgunWeaponSkin = Instance.new("StringValue", Skins)
+	ShotgunWeaponSkin.Name = "ShotgunWeaponSkin"
+	
+	local hasShotgun = Instance.new("BoolValue", Weapons)
+	hasShotgun.Name = "hasShotgun"
+	
+	local claimedCode2kGems = Instance.new("BoolValue", Rewards)
+	claimedCode2kGems.Name = "claimedCode2kGems"
+	
+	local PreRound = Instance.new("BoolValue", GeneralInfo)
+	PreRound.Name = "PreRound"
+	
+	local CharacterSkin = Instance.new("StringValue", Skins)
+	CharacterSkin.Name = "CharacterSkin"
+
+	local hasLebronCharacter = Instance.new("BoolValue", Skins)
+	hasLebronCharacter.Name = "hasLebronCharacter"
+	
+	local isInGame = Instance.new("BoolValue", GeneralInfo)
+	isInGame.Name = "isInGame"
+	
+	local HandSkin = Instance.new("StringValue", Skins)
+	HandSkin.Name = "HandSkin"
+	
+	local SyringeActivated = Instance.new("BoolValue", GeneralInfo)
+	SyringeActivated.Name = "SyringeActivated"
+	
+	local hasOverdriveVial = Instance.new("BoolValue", Weapons)
+	hasOverdriveVial.Name = "hasOverdriveVial"
+
+	local OverdriveVialSkin = Instance.new("StringValue", Skins)
+	OverdriveVialSkin.Name = "OverdriveVialSkin"
+
+	local GrenadeSkin = Instance.new("StringValue", Skins)
+	GrenadeSkin.Name = "GrenadeSkin"
+	
+	local KillsInOneGame = Instance.new("NumberValue", GeneralInfo)
+	KillsInOneGame.Name = "KillsInOneGame"
+	
+	local CenterDotColor = Instance.new("StringValue", crosshairData)
+	CenterDotColor.Name = "CenterDotColor"
+
+	local LinesColor = Instance.new("StringValue", crosshairData)
+	LinesColor.Name = "LinesColor"
+	
+	local toggleSprint = Instance.new("BoolValue", GeneralInfo)
+	toggleSprint.Name = "toggleSprint"
+	
+	local hasRegenPot = Instance.new("BoolValue", Weapons)
+	hasRegenPot.Name = "hasRegenPot"
+
+	local RegenPotSkin = Instance.new("StringValue", Skins)
+	RegenPotSkin.Name = "RegenPotSkin"
+	
+	local claimedCode40Likes = Instance.new("BoolValue", Rewards)
+	claimedCode40Likes.Name = "claimedCode40Likes"
+	
+	local Sensitivity = Instance.new("NumberValue", GeneralInfo)
+	Sensitivity.Name = "Sensitivity"
+	
+	local MusicVolume = Instance.new("NumberValue", GeneralInfo)
+	MusicVolume.Name = "MusicVolume"
+	
+	local claimedCodeLikeGoal = Instance.new("BoolValue", Rewards)
+	claimedCodeLikeGoal.Name = "claimedCodeLikeGoal"
+	
+	local ChatTag = Instance.new("StringValue", GeneralInfo)
+	ChatTag.Name = "ChatTag"
+	
+	local LastWinstreak = Instance.new("NumberValue", Statistics)
+	LastWinstreak.Name = "LastWinstreak"
+	
+	local WinstreakRestores = Instance.new("NumberValue", Statistics)
+	WinstreakRestores.Name = "WinstreakRestores"
+	
+	local AutoPistolWeaponSkin = Instance.new("StringValue", Skins)
+	AutoPistolWeaponSkin.Name = "AutoPistolWeaponSkin"
+	
+	local hasAutoPistol = Instance.new("BoolValue", Weapons)
+	hasAutoPistol.Name = "hasAutoPistol"
+
+	local CodesFolder = Instance.new("Folder", player)
+	CodesFolder.Name = "CodesFolder"
+	
+	local isPrimary = Instance.new("BoolValue")
+	isPrimary.Name = "IsPrimary"
+	isPrimary.Value = true
+	isPrimary.Parent = Level
+
+	local priority2 = Instance.new("NumberValue")
+	priority2.Name = "Priority"
+	priority2.Value = 3
+	priority2.Parent = Winstreak
+	
+	local priority3 = Instance.new("NumberValue")
+	priority3.Name = "Priority"
+	priority3.Value = 2
+	priority3.Parent = Wins
+	
+	local priority4 = Instance.new("NumberValue")
+	priority4.Name = "Priority"
+	priority4.Value = 1
+	priority4.Parent = Kills
+	
+	for i, v in pairs(Codes) do 
+		local newV = Instance.new("BoolValue")
+		newV.Parent = CodesFolder
+		newV.Value = false
+		newV.Name = v[1]
+	end
+	
+	if player.GeneralInfo.claimedFavoriteBonus.Value then
+		player.Skins.hasTopSmallGems.Value = true
+	end
+	
+	if player.GeneralInfo.claimedLikeBonus.Value then
+		player.Skins.hasBigCenterGem.Value = true
+	end
+	
+	if SyringeActivated.Value then
+		SyringeActivated.Value = false
+		hasOverdriveVial.Value = false
+		OverdriveVialSkin.Value = "Default"
+		GrenadeSkin.Value = "Default"
+		KillsInOneGame.Value = 0
+		CenterDotColor.Value = "#ffffff"
+		LinesColor.Value = "#ffffff"
+	end
+	
+	local data
+
+	local success, errormessage = pcall(function()
+		data = myDataStore:GetAsync(player.UserId)
+	end)
+
+	if success and data then
+		ADSsens.Value = data[1] or 0.5
+		Wins.Value = data[2] or 0
+		Kills.Value = data[3] or 0
+		centerDotEnabled.Value = data[4] or false
+		centerDotSize.Value = data[5] or 0
+		linesEnabled.Value = data[6] or true
+		linesLength.Value = data[7] or 2
+		dotOutlineEnabled.Value = data[8] or false
+		dotOutlineSize.Value = data[9] or 1
+		linesThickness.Value = data[10] or 2
+		linesSpacing.Value = data[11] or 1
+		lineOutlinesEnabled.Value = data[12] or false
+		lineOutlineSize.Value = data[13] or 1
+		selectedPrimary.Value = data[14] or "Rifle"
+		selectedSecondary.Value = data[15] or "Pistol"
+		selectedMelee.Value = data[16] or "Saber"
+		toggleADS.Value = data[17] or false
+		toggleSniperAim.Value = data[18] or false
+		toggleCrouch.Value = data[19] or false
+		RifleWeaponSkin.Value = data[20] or "Default"
+		SniperWeaponSkin.Value = data[21] or "Default"
+		hasLaserRifle.Value = data[22] or false
+		hasLaserSniper.Value = data[23] or false
+		RevolverWeaponSkin.Value = data[24] or "Default"
+		MeleeWeaponSkin.Value = data[25] or "Default"
+		hasLaserRevolver.Value = data[26] or false
+		hasSaber.Value = data[27] or false
+		PistolWeaponSkin.Value = data[28] or "Default"
+		Gems.Value = data[29] or 0
+		Level.Value = data[30] or 1
+		Experience.Value = data[31] or 0
+		hasSniper.Value = data[32] or false
+		hasRevolver.Value = data[33] or false
+		playerTeam.Value = "None"
+		LaserRifleVariant.Value = data[35] or "Blue"
+		LaserSniperVariant.Value = data[36] or "Blue"
+		LaserRevolverVariant.Value = data[37] or "Blue"
+		SaberVariant.Value = data[38] or "Blue"
+		claimedFavoriteBonus.Value = data[39] or false
+		claimedLikeBonus.Value = data[40] or false
+		claimedNotificationBonus.Value = data[41] or false
+		hasSMG.Value = data[42] or false
+		SMGWeaponSkin.Value = data[43] or "Default"
+		Winstreak.Value = data[44] or 0
+		hasTopSmallGems.Value = data[45] or false
+		hasBigCenterGem.Value = data[46] or false
+		CenterArmorSkin.Value = data[47] or "None"
+		TopArmorSkin.Value = data[48] or "None"
+		Losses.Value = data[49] or 0
+		Deaths.Value = data[50] or 0
+		BoosterSkin.Value = data[51] or "Default"
+		hasBooster.Value = data[52] or false
+		selectedAbility1.Value = data[53] or "Grenade"
+		hasLightningBomb.Value = data[54] or false
+		LightningBombSkin.Value = data[55] or "Default"
+		ShotgunWeaponSkin.Value = data[56] or "Default"
+		hasShotgun.Value = data[57] or false
+		claimedCode2kGems.Value = data[58] or false
+		PreRound.Value = data[59] or false
+		CharacterSkin.Value = data[60] or "Default"
+		hasLebronCharacter.Value = data[61] or false
+		isInGame.Value = data[62] or false
+		HandSkin.Value = data[63] or "Default"
+		SyringeActivated.Value = (data[64] ~= nil) and data[64] or false
+		hasOverdriveVial.Value = (data[65] ~= nil) and data[65] or false
+		OverdriveVialSkin.Value = (data[66] and data[66] ~= "") and data[66] or "Default"
+		GrenadeSkin.Value = (data[67] and data[67] ~= "") and data[67] or "Default"
+		KillsInOneGame.Value = (data[68] ~= nil) and data[68] or 0
+		CenterDotColor.Value = (data[69] and data[69] ~= "") and data[69] or "#ffffff"
+		LinesColor.Value = (data[70] and data[70] ~= "") and data[70] or "#ffffff"
+		if data[71] ~= nil then
+			toggleSprint.Value = data[71]
+		else
+			toggleSprint.Value = true -- default value if nothing was saved
+		end
+		--toggleSprint.Value = data[71] or true
+		hasRegenPot.Value = data[72] or false
+		RegenPotSkin.Value = data[73] or "Default"
+		claimedCode40Likes.Value = data[74] or false
+		Sensitivity.Value = data[75] or 1
+		MusicVolume.Value = data[76] or 0.5
+		claimedCodeLikeGoal.Value = data[77] or false
+		ChatTag.Value = data[78] or "None"
+		LastWinstreak.Value = data[79] or 0
+		WinstreakRestores.Value = data[80] or 0
+		AutoPistolWeaponSkin.Value = data[81] or "Default"
+		hasAutoPistol.Value = data[82] or false
+		
+		local usedCodes = data[83]
+		if type(usedCodes) == "table" then
+			for _, codeName in ipairs(usedCodes) do
+				if CodesFolder:FindFirstChild(codeName) then
+					CodesFolder[codeName].Value = true
+				end
+			end
+		end
+	else
+		-- Assign default values if data does not exist
+		ADSsens.Value = 0.5
+		Wins.Value = 0
+		Kills.Value = 0
+		centerDotEnabled.Value = false
+		centerDotSize.Value = 0
+		linesEnabled.Value = true
+		linesLength.Value = 2
+		dotOutlineEnabled.Value = false
+		dotOutlineSize.Value = 1
+		linesThickness.Value = 2
+		linesSpacing.Value = 1
+		lineOutlinesEnabled.Value = false
+		lineOutlineSize.Value = 1
+		selectedPrimary.Value = "Rifle"
+		selectedSecondary.Value = "Pistol"
+		selectedMelee.Value = "Saber"
+		toggleADS.Value = false
+		toggleSniperAim.Value = false
+		toggleCrouch.Value = false
+		RifleWeaponSkin.Value = "Default"
+		SniperWeaponSkin.Value = "Default"
+		hasLaserRifle.Value = false
+		hasLaserSniper.Value = false
+		RevolverWeaponSkin.Value = "Default"
+		MeleeWeaponSkin.Value = "Default"
+		hasLaserRevolver.Value = false
+		hasSaber.Value = false
+		PistolWeaponSkin.Value = "Default"
+		Gems.Value = 0
+		Level.Value = 1
+		Experience.Value = 0
+		hasSniper.Value = false
+		hasRevolver.Value = false
+		playerTeam.Value = "None"
+		LaserRifleVariant.Value = "Blue"
+		LaserSniperVariant.Value = "Blue"
+		LaserRevolverVariant.Value = "Blue"
+		SaberVariant.Value = "Blue"
+		claimedFavoriteBonus.Value = false
+		claimedLikeBonus.Value = false
+		claimedNotificationBonus.Value = false
+		hasSMG.Value = false
+		SMGWeaponSkin.Value = "Default"
+		Winstreak.Value = 0
+		hasTopSmallGems.Value = false
+		hasBigCenterGem.Value = false
+		CenterArmorSkin.Value = "None"
+		TopArmorSkin.Value = "None"
+		Losses.Value = 0
+		Deaths.Value = 0
+		BoosterSkin.Value = "Default"
+		hasBooster.Value = false
+		selectedAbility1.Value = "Grenade"
+		hasLightningBomb.Value = false
+		LightningBombSkin.Value = "Default"
+		ShotgunWeaponSkin.Value = "Default"
+		hasShotgun.Value = false
+		claimedCode2kGems.Value = false
+		PreRound.Value = false
+		CharacterSkin.Value = "Default"
+		hasLebronCharacter.Value = false
+		isInGame.Value = false
+		HandSkin.Value = "Default"
+		SyringeActivated.Value = false
+		hasOverdriveVial.Value = false
+		OverdriveVialSkin.Value = "Default"
+		GrenadeSkin.Value = "Default"
+		KillsInOneGame.Value = 0
+		CenterDotColor.Value = "#ffffff"
+		LinesColor.Value = "#ffffff"
+		toggleSprint.Value = true
+		hasRegenPot.Value = false
+		RegenPotSkin.Value = "Default"
+		claimedCode40Likes.Value = false
+		Sensitivity.Value = 1
+		MusicVolume.Value = 0.5
+		claimedCodeLikeGoal.Value = false
+		ChatTag.Value = "None"
+		LastWinstreak.Value = 0 
+		WinstreakRestores.Value = 0
+		AutoPistolWeaponSkin.Value = "Default"
+		hasAutoPistol.Value = false
+		print("There was an error whilst getting your data")
+		warn(errormessage)
+	end
+	local team = player:FindFirstChild("GameTeam") and player.GameTeam:FindFirstChild("playerTeam")
+	if team and (team.Value == "None" or team.Value == "ShootingRange") then
+		player.RespawnLocation = workspace:WaitForChild("LobbySpawn")
+	end
+	
+	local chatTag = player:FindFirstChild("GeneralInfo") and player.GeneralInfo:FindFirstChild("ChatTag")
+	if chatTag then
+		if player.GeneralInfo.ChatTag.Value == "None" then
+			player:SetAttribute("ChatTag", "None")
+		elseif player.GeneralInfo.ChatTag.Value == "Tester" then
+			player:SetAttribute("ChatTag", "Tester")
+		end
+	end
+
+
+end)
+
+RedeemCode.OnServerEvent:Connect(function(player, enteredCode)
+	local folder = player:FindFirstChild("CodesFolder")
+	if not folder then return end
+
+	local codeValue = folder:FindFirstChild(enteredCode)
+	if codeValue then
+		if not codeValue.Value then
+			for _, codeInfo in ipairs(Codes) do
+				if codeInfo[1] == enteredCode then
+					codeValue.Value = true
+					player.Currency.Gems.Value += codeInfo[2]
+					RedeemCode:FireClient(player, codeInfo[2])
+					break
+				end
+			end
+		else
+			RedeemCode:FireClient(player, "AlreadyRedeemed")
+
+		end
+	else
+		RedeemCode:FireClient(player, "Invalid")
+	end
+end)
+
+
+game.Players.PlayerRemoving:Connect(function(player)
+	if player.GeneralInfo.isInGame.Value and player.GameTeam.playerTeam.Value ~= "Deathmatch" and player.GameTeam.playerTeam.Value ~= "ShootingRange" then
+		player.Statistics.LastWinstreak.Value = player.leaderstats.Winstreak.Value
+		player.leaderstats.Winstreak.Value = 0
+		player.Statistics.Losses.Value = player.Statistics.Losses.Value + 1
+	end
+	if player.leaderstats.Winstreak.Value > 0 then
+		player.Statistics.LastWinstreak.Value = 0
+	end
+	player.SelectedWeapons.selectedPrimary.Value = "Rifle"
+	player.SelectedWeapons.selectedSecondary.Value = "Pistol"
+	player.SelectedWeapons.selectedMelee.Value = "Saber"
+	player.SelectedWeapons.selectedAbility1.Value = "Grenade"
+	player.GeneralInfo.PreRound.Value = false
+	player.GeneralInfo.isInGame.Value = false
+	player.GeneralInfo.SyringeActivated.Value = false
+	player.GameTeam.playerTeam.Value = "None"
+	player.GeneralInfo.KillsInOneGame.Value = 0
+
+	saveData(player)
+
+	--if success then
+	--	print("Player data successfully saved!")
+	--else
+	--	print("There was an error when saving data")
+	--	warn(errormessage)
+	--end
+
+end)
+
+game:BindToClose(function() --When the game's servers are shutting down
+	for _, player in ipairs(game.Players:GetPlayers()) do --loop through all the players in the server
+		task.spawn(saveData, player) --save all the player's data
+	end
+end)
