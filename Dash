@@ -1,0 +1,73 @@
+local replicatedStorage = game:GetService("ReplicatedStorage")
+local players = game:GetService("Players")
+
+local dashRemote = replicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("Dash")
+
+local debounceTime = 1
+local trailTime = 0.45
+local velocityDuration = 0.1
+local dashPower = 100
+
+local debounceTable = {}
+
+local function CharacterAdded(character)
+	task.wait(1)
+	local hrp = character:WaitForChild("HumanoidRootPart")
+
+	local trailAttachment0 = Instance.new("Attachment")
+	trailAttachment0.Name = "TrailAttachment0"
+	trailAttachment0.Parent = hrp
+
+	local trailAttachment1 = Instance.new("Attachment")
+	trailAttachment1.Name = "TrailAttachment1"
+	trailAttachment1.Position = trailAttachment0.Position + Vector3.new(0, 0.75, 0)
+	trailAttachment1.Parent = hrp
+end
+
+local function Dash(player, direction)
+	local character = player.Character
+	if not character then return end
+
+	local hrp = character:FindFirstChild("HumanoidRootPart")
+	local humanoid = character:FindFirstChild("Humanoid")
+	if not hrp or not humanoid or humanoid.Health <= 0 then return end
+	if debounceTable[player] then return end
+
+	debounceTable[player] = true
+
+	local dashDir = direction or hrp.CFrame.LookVector
+	if dashDir.Magnitude < 0.1 then
+		dashDir = hrp.CFrame.LookVector
+	end
+	dashDir = dashDir.Unit
+
+	local trail = script.Trail:Clone()
+	trail.Attachment0 = hrp.TrailAttachment0
+	trail.Attachment1 = hrp.TrailAttachment1
+	trail.Parent = hrp
+	
+	--[[
+		local linearVelocity = Instance.new("LinearVelocity")
+	linearVelocity.Attachment0 = hrp.RootAttachment
+	linearVelocity.MaxForce = 100000
+	linearVelocity.RelativeTo = Enum.ActuatorRelativeTo.World
+	linearVelocity.VectorVelocity = dashDir * dashPower
+	linearVelocity.Parent = hrp
+
+	]]
+
+
+	--task.wait(velocityDuration)
+	--linearVelocity:Destroy()
+	task.wait(trailTime)
+	trail:Destroy()
+
+	task.wait(debounceTime - velocityDuration - trailTime)
+	debounceTable[player] = nil
+end
+
+dashRemote.OnServerEvent:Connect(Dash)
+
+players.PlayerAdded:Connect(function(player)
+	player.CharacterAdded:Connect(CharacterAdded)
+end)
