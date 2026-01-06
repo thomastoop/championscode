@@ -1,0 +1,77 @@
+local character = game.Players.LocalPlayer.Character or game.Players.LocalPlayer.CharacterAdded:Wait()
+local player = game.Players.LocalPlayer
+local root = character:WaitForChild("HumanoidRootPart")
+local run = game:GetService("RunService")
+local cam = workspace.CurrentCamera
+local torso = character:FindFirstChild("Torso")
+local neck = torso:WaitForChild("Neck")
+local right = torso:WaitForChild("Right Shoulder")
+local left = torso:WaitForChild("Left Shoulder")
+local helmet = character:FindFirstChild("PlayerArmorHelmet")
+local helmetMotor = helmet and helmet:FindFirstChild("Body") -- Motor6D connecting the helmet
+local SetWeaponPictures = game:GetService("ReplicatedStorage"):WaitForChild("SetWeaponPictures")
+local Scoreboard = player.PlayerGui.Scoreboard
+local Camera = workspace:WaitForChild("Camera")
+
+Camera.FieldOfView = 70
+
+SetWeaponPictures.OnClientEvent:Connect(function()
+	character = game.Players.LocalPlayer.Character or game.Players.LocalPlayer.CharacterAdded:Wait()
+	root = character:WaitForChild("HumanoidRootPart")
+	run = game:GetService("RunService")
+	cam = workspace.CurrentCamera
+	torso = character:FindFirstChild("Torso")
+	neck = torso:WaitForChild("Neck")
+	right = torso:WaitForChild("Right Shoulder")
+	left = torso:WaitForChild("Left Shoulder")
+end)
+
+local y = neck.C0.Y
+local z = right.C0.X
+
+local originalNeckC0 = neck.C0
+local originalRightC0 = right.C0
+local originalLeftC0 = left.C0
+
+run.RenderStepped:Connect(function()
+	if player.GeneralInfo.isInGame.Value then
+		local camdirec = root.CFrame:ToObjectSpace(cam.CFrame).LookVector
+		-- Calculate the vertical angle (pitch) of the camera
+		local pitch = math.asin(camdirec.Y) -- Camera's vertical angle in radians
+
+		-- Limit the pitch angle to extreme up and down positions
+		pitch = math.clamp(pitch, math.rad(-90), math.rad(90)) -- Limits the pitch to straight up/down
+
+		if neck then
+			-- Update neck and arm positions
+			neck.C0 = CFrame.new(0, y, 0) 
+				* CFrame.Angles(0, math.rad(180), 0) -- Base rotation
+				* CFrame.Angles(0, -camdirec.X, 0) -- Horizontal rotation
+				* CFrame.Angles(-pitch, 0, 0) -- Vertical rotation (using pitch)
+				* CFrame.Angles(math.rad(-90), 0, 0) -- Adjust for Roblox neck rotation offset
+
+			right.C0 = CFrame.new(z, 0.5, 0) * CFrame.Angles(0, math.rad(180), 0) * CFrame.Angles(0, -camdirec.X, 0) * CFrame.Angles(-camdirec.Y, 0, 0)
+			right.C0 = neck.C0 * CFrame.Angles(0, math.rad(-90), math.rad(-90)) + Vector3.new(1, -0.5, 0)
+
+			left.C0 = CFrame.new(z, 0.5, 0) * CFrame.Angles(0, math.rad(180), 0) * CFrame.Angles(0, -camdirec.X, 0) * CFrame.Angles(-camdirec.Y, 0, 0)
+			left.C0 = neck.C0 * CFrame.Angles(0, math.rad(90), math.rad(90)) + Vector3.new(-1, -0.5, 0)
+
+			game:GetService("ReplicatedStorage").head:FireServer(neck.C0, right.C0, left.C0)
+
+			-- Update the helmet Motor6D position
+			if helmetMotor then
+				helmetMotor.C0 = neck.C0 -- Align the helmet's C0 with the neck's C0
+			end
+		end
+	else
+		if neck then
+			-- Update neck and arm positions
+			if neck and right and left then
+				neck.C0 = CFrame.new(0, 1, 0) * CFrame.Angles(-math.rad(-90), -math.rad(-180), 0)
+				right.C0 = CFrame.new(1, 0.5, 0) * CFrame.Angles(0, math.rad(90), 0)
+				left.C0 = CFrame.new(-1, 0.5, 0) * CFrame.Angles(0, math.rad(-90), 0)
+			end
+			game:GetService("ReplicatedStorage").head:FireServer(neck.C0, right.C0, left.C0)
+		end
+	end
+end)
