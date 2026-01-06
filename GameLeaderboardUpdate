@@ -1,0 +1,35 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+local ImageSize = Enum.ThumbnailSize.Size420x420 -- Thumbnail Size
+local ImageType = Enum.ThumbnailType.HeadShot -- Thumbnail Type
+
+local DealtDamage = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("DealtDamage")
+local UpdateDamage = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("UpdateDamage")
+local UpdateDeath = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("UpdateDeath")
+local addKill = ReplicatedStorage:WaitForChild("AddKill")
+
+DealtDamage.OnServerEvent:Connect(function(player, damage)
+	-- Notify all clients about the damage dealt
+	for _, plr in Players:GetPlayers() do
+		UpdateDamage:FireClient(plr, player.UserId, damage)
+	end
+end)
+
+addKill.OnServerEvent:Connect(function(player, victim)
+	for _, plr in Players:GetPlayers() do
+		addKill:FireClient(plr, player.UserId)
+	end
+end)
+
+Players.PlayerAdded:Connect(function(player)
+	player.CharacterAdded:Connect(function(character)
+		local humanoid = character:WaitForChild("Humanoid")
+		humanoid.Died:Connect(function()
+			for _, plr in Players:GetPlayers() do
+				UpdateDeath:FireClient(plr, player.UserId)
+			end
+		end)
+	end)
+end)
+
