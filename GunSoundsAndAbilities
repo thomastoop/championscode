@@ -1,0 +1,155 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local sniperFireRemote = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("SniperFireSound")
+local sniperReloadRemote = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("SniperReloadSound")
+
+local pistolShootRemote = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("PistolFireSound")
+local pistolReloadRemote = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("PistolReloadSound")
+
+local revolverSoundRemote = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("RevolverFireSound")
+local revolverReloadRemote = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("RevolverReloadSound")
+
+local autoPistolShootRemote = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("AutoPistolFireSound")
+local autoPistolReloadRemote = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("AutoPistolReloadSound")
+
+
+local meleeLeftHitSoundRemote = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("MeleeLeftHitSound")
+local meleeRightHitSoundRemote = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("MeleeRightHitSound")
+
+local rifleShootRemote = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("RifleFireSound")
+local rifleReloadRemote = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("RifleReloadSound")
+
+local SMGShootRemote = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("SMGFireSound")
+local SMGReloadRemote = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("SMGReloadSound")
+
+local ShotgunShootSound = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("ShotgunFireSound")
+local ShotgunShellIn = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("ShotgunReloadSound")
+
+local LightningBombZap = ReplicatedStorage:WaitForChild("AbilityActions"):WaitForChild("LightningBombZap")
+local activateSyringeSoundRemote = ReplicatedStorage:WaitForChild("AbilityActions"):WaitForChild("SyringeSound")
+local activateRegenSoundRemote = ReplicatedStorage:WaitForChild("AbilityActions"):WaitForChild("RegenPotSound")
+
+local GrenadeThrowSound = ReplicatedStorage:WaitForChild("AbilityActions"):WaitForChild("GrenadeSound")
+
+local SlideSound = ReplicatedStorage:WaitForChild("SlideSound")
+
+local function playSoundAtPosition(soundId, position, excludePlayer)
+	local soundPart = Instance.new("Part")
+	soundPart.Position = position
+	soundPart.Anchored = true
+	soundPart.CanCollide = false
+	soundPart.Transparency = 1
+	soundPart.Parent = workspace
+
+	local sound = Instance.new("Sound")
+	sound.SoundId = soundId
+	sound.Volume = 2
+	sound.Parent = soundPart
+	sound:Play()
+
+	sound.Ended:Connect(function()
+		sound:Destroy()
+		soundPart:Destroy()
+	end)
+end
+
+sniperFireRemote.OnServerEvent:Connect(function(player, position)
+	sniperFireRemote:FireAllClients(position, player)  -- Play sound for other players
+end)
+
+sniperReloadRemote.OnServerEvent:Connect(function(player, position)
+	sniperReloadRemote:FireAllClients(position, player)  -- Play sound for other players
+
+end)
+
+pistolShootRemote.OnServerEvent:Connect(function(player, position)
+	pistolShootRemote:FireAllClients(position, player)  -- Play sound for other players
+
+end)
+
+pistolReloadRemote.OnServerEvent:Connect(function(player, position)
+	pistolReloadRemote:FireAllClients(position, player)  -- Play sound for other players
+
+end)
+
+revolverSoundRemote.OnServerEvent:Connect(function(player, position)
+	revolverSoundRemote:FireAllClients(position, player)  -- Play sound for other players
+
+end)
+
+revolverReloadRemote.OnServerEvent:Connect(function(player, position)
+	revolverReloadRemote:FireAllClients(position, player)  -- Play sound for other players
+
+end)
+
+autoPistolShootRemote.OnServerEvent:Connect(function(player, position)
+	autoPistolShootRemote:FireAllClients(position, player)  -- Play sound for other players
+
+end)
+
+autoPistolReloadRemote.OnServerEvent:Connect(function(player, position)
+	autoPistolReloadRemote:FireAllClients(position, player)  -- Play sound for other players
+
+end)
+
+meleeLeftHitSoundRemote.OnServerEvent:Connect(function(player, position)
+	meleeLeftHitSoundRemote:FireAllClients(position, player)  -- Play sound for other players
+
+end)
+
+meleeRightHitSoundRemote.OnServerEvent:Connect(function(player, position)
+	meleeRightHitSoundRemote:FireAllClients(position, player)  -- Play sound for other players
+
+end)
+
+rifleShootRemote.OnServerEvent:Connect(function(player, position)
+	rifleShootRemote:FireAllClients(position, player)  -- Play sound for other players
+end)
+
+rifleReloadRemote.OnServerEvent:Connect(function(player, position)
+	rifleReloadRemote:FireAllClients(position, player)  -- Play sound for other players
+end)
+
+SMGShootRemote.OnServerEvent:Connect(function(player, position)
+	SMGShootRemote:FireAllClients(position, player)  -- Play sound for other players
+
+end)
+
+SMGReloadRemote.OnServerEvent:Connect(function(player, position)
+	SMGReloadRemote:FireAllClients(position, player)  -- Play sound for other players
+
+end)
+
+ShotgunShootSound.OnServerEvent:Connect(function(player, position)
+	ShotgunShootSound:FireAllClients(position, player)  -- Play sound for other players
+
+end)
+
+ShotgunShellIn.OnServerEvent:Connect(function(player, position)
+	ShotgunShellIn:FireAllClients(position, player)  -- Play sound for other players
+
+end)
+
+
+LightningBombZap.OnServerEvent:Connect(function(player, position)
+	LightningBombZap:FireAllClients(position, player)  -- Play sound for other players
+
+end)
+
+activateSyringeSoundRemote.OnServerEvent:Connect(function(player, position)
+	activateSyringeSoundRemote:FireAllClients(position, player)  -- Play sound for other players
+end)
+
+activateRegenSoundRemote.OnServerEvent:Connect(function(player, position)
+	activateRegenSoundRemote:FireAllClients(position, player)  -- Play sound for other players
+end)
+
+GrenadeThrowSound.OnServerEvent:Connect(function(player, position)
+	GrenadeThrowSound:FireAllClients(position, player)  -- Play sound for other players
+
+end)
+
+SlideSound.OnServerEvent:Connect(function(player, position)
+	SlideSound:FireAllClients(position, player)  -- Play sound for other players
+
+end)
