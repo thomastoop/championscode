@@ -1,0 +1,2006 @@
+--!strict
+-- GunCore.lua
+-- One client-side controller to run ANY gun described by a config table.
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local SoundService = game:GetService("SoundService")
+local Camera = workspace.CurrentCamera
+local uis = game:GetService("UserInputService")
+
+local SpringModule = require(ReplicatedStorage:WaitForChild("SpringModule"))
+local Bullet = require(ReplicatedStorage:WaitForChild("BulletBeams"):WaitForChild("BulletBeam"))
+
+local player = Players.LocalPlayer
+
+local GunCore = {}
+
+type AnimSpeeds = {
+	Idle: number?,
+	Fire: number?,
+	Pullout: number?,
+	Reload: number?,
+	Inspect: number?,
+	ScopeIn: number?,
+	ScopeIdle: number?,
+	ScopedFire: number?,
+	-- Optional: character-track overrides
+	CharFire: number?,
+	CharReload: number?,
+	CharPullout: number?,
+	CharScope: number?,
+}
+
+type Bobbing = {
+	speed: number,        -- like Constants.VIEW_MODEL_BOBBING_SPEED (e.g. 0.67)
+	amount: number,       -- like VIEW_MODEL_BOBBING_AMOUNT (e.g. 0.112)
+	transition: number,   -- like VIEW_MODEL_BOBBING_TRANSITION_SPEED (e.g. 5)
+	scopedAmount: number?,-- optional reduced bobbing while scoped (e.g. 0.025)
+}
+
+type ADS = {
+	enabled: boolean,
+	fov: number?,             -- default 58
+	respectToggleFlag: boolean?, -- if true, read player.GeneralInfo.toggleADS.Value (true=toggle, false=hold)
+	scopeOverlayPath: string?, -- GUI path to enable while scoped
+	hidePartsOnScope: {string}?,-- list of instance paths under VM to hide when scoped (rifle use-case)
+}
+
+type RecoilPattern = { {min: number, max: number} }
+
+type ringLayout = {
+	layer1: number,
+	layer2: number,
+	layer3: number,
+}
+
+type ShotgunSpec = {
+	pattern: string,      -- enables custom system
+	baseSpread: number,            -- degrees
+	scopedSpread: number,
+	airbornePenalty: number,
+	rings: ringLayout?,        -- center + rings              
+
+	extraSpread: number?,          
+	
+	getVMReloadAnimations: (vm: Instance) -> {
+		vmReloadBackForth: Animation,
+		vmReloadGunBack: Animation,
+		vmReloadMoveGun: Animation,
+	},
+	
+	vmReloadBackForthSpeed: number,
+	vmReloadGunBackSpeed: number,
+	vmReloadMoveGunSpeed: number,
+	charReloadBackForthSpeed: number,
+	charReloadGunBackSpeed: number,
+	charReloadMoveGunSpeed: number,
+}
+
+type Special = {
+	sniper: boolean?,
+	movingInaccuracyHuge: boolean?,   -- sniper: add large inaccuracy if moving at all
+	shotgun: ShotgunSpec?,
+}
+
+type SprintOffsetSettings = {
+	leftAmount: number,
+	downAmount: number,
+	forwardAmount: number,
+	xAngle: number,
+	yAngle: number,
+	zAngle: number
+}
+
+type SlideOffsetSettings = {
+	leftAmount: number,
+	downAmount: number,
+	forwardAmount: number,
+	xAngle: number,
+	yAngle: number,
+	zAngle: number
+}
+
+type GunConfig = {
+	-- Identity / assets
+	name: string,
+	weaponViewmodel: Instance,
+	getAnimations: (vm: Instance) -> {
+		Idle: Animation, Fire: Animation, Pullout: Animation, Reload: Animation,
+		Inspect: Animation?, ScopeIn: Animation?, ScopeIdle: Animation?, ScopedFire: Animation?,
+	},
+
+	-- Tool wiring
+	remoteName: string,
+	shootSoundsFolderName: string,
+	keyframeSfx: { [string]: string },
+	actionSfx: { [string]: string }?, -- e.g. { ReloadStart="Reload" }
+
+	-- Sprint / slide speed settings
+	SPRINT_TRANSITION: number, -- Time to fully transition to sprint pose
+	SPRINT_IN_SPEED: number,   -- 0.2s into sprint
+	SPRINT_OUT_SPEED: number,  -- faster exit feels better
+
+	SLIDE_IN_SPEED: number,  -- fast snap into slide
+	SLIDE_OUT_SPEED: number,  -- slightly slower exit
+	
+	bobbingMultiplierNum: number,
+
+	getSprintOffsetSettings: SprintOffsetSettings,
+	getSlideOffsetSettings: SlideOffsetSettings,
+	
+	adsClickInSound: Sound,
+	adsClickOutSound: Sound,
+
+	-- Shared remotes
+	shootSoundRemote: RemoteEvent?,
+	reloadSoundRemote: RemoteEvent?,
+	
+	-- Shared bindable events
+	clientCrouchBindable: BindableEvent,
+	sprintChangeBindable: BindableEvent,
+	changeScopingStateBindable: BindableEvent,
+	reloadWeaponBindable: BindableEvent,
+	shootingWeaponBindable: BindableEvent,
+	inSlideBindable: BindableEvent,
+	stopSlideBindable: BindableEvent,
+	
+	-- Bullet FX
+	bulletHoleRemote: RemoteEvent,
+	bulletHoleLocal: BindableEvent,
+	bulletBeamEvent: RemoteEvent,
+	
+	sniperGlareEvent: RemoteEvent,
+	sniperShootEvent: RemoteEvent,
+
+	-- VM hooks
+	getBarrelWorldPos: (vm: Instance) -> Vector3,
+	playMuzzle: (vm: Instance) -> (),
+	
+	localBulletColor: Color3,
+
+	-- Ammo
+	maxAmmo: number,
+	reserveAmmo: number,
+
+	-- Spread / recoil
+	inaccuracyStanding: number,
+	inaccuracyCrouchBonus: number,
+	inaccuracyScopedBonus: number,
+	inaccuracyBothBonus: number,
+	inaccuracyAir: number,
+	gunSpringSpeed: number, 
+	gunSpringDamper: number, 
+	recoilSpringSpeed: number, 
+	recoilSpringDamper: number,
+	recoilKick: Vector3,
+	recoilBase: Vector3,
+	recoilPattern: RecoilPattern,
+	recoilResetDelay: number,
+	recoilDampeners: { crouch: number, scope: number, both: number, none: number },
+
+	-- Firing
+	fireMode: "semi" | "auto",
+	fireCooldown: number,      -- seconds between shots
+	fireCooldownADS: number,
+	rightClickBurst: number?,  -- classic pistol burst
+	rightClickExtraSpread: number?,
+
+	-- Viewmodel bobbing
+	bobbing: Bobbing,
+
+	-- ADS/scoping
+	ads: ADS,
+
+	-- UI
+	ammoGuiPath: string,
+	mobileGuiPath: string,
+
+	-- Animation speeds
+	animSpeeds: AnimSpeeds,
+
+	-- Specials (shotgun/sniper/etc)
+	special: Special?,
+}
+
+-- ===== helpers =====
+
+local function getPath(root: Instance, dot: string?): Instance?
+	if not dot or #dot == 0 then return nil end
+	local cur: Instance? = root
+	for token in string.gmatch(dot, "[^%.]+") do
+		if not cur then return nil end
+		cur = cur:FindFirstChild(token)
+	end
+	return cur
+end
+
+local function weightedPick(folder: Instance): Sound?
+	local sounds, total = {}, 0
+	for _,s in ipairs(folder:GetChildren()) do
+		if s:IsA("Sound") then
+			local w = 20
+			if s.Name == "Shoot1" then w = 60 end
+			total += w
+			table.insert(sounds, {sound=s, w=w})
+		end
+	end
+	if total == 0 then return nil end
+	local r, acc = math.random(1,total), 0
+	for _,e in ipairs(sounds) do
+		acc += e.w
+		if r <= acc then return e.sound end
+	end
+	return nil
+end
+
+local function setTransparencyPaths(vm: Instance, paths: {string}, alpha: number)
+	
+	for _, p in ipairs(paths) do
+		local inst = getPath(vm, p)
+		if inst then
+			for _, d in ipairs(vm:GetDescendants()) do
+				if inst.Name == d.Name then
+					if d:IsA("BasePart") or d:IsA("MeshPart") or d:IsA("UnionOperation") then
+						d.Transparency = alpha
+					end
+				end
+			end
+		end
+	end
+end
+
+local function recoilMinMax(entry: any): (number, number)
+	if typeof(entry) == "table" then
+		-- named?
+		local nmin = (entry :: any).min
+		local nmax = (entry :: any).max
+		if typeof(nmin) == "number" and typeof(nmax) == "number" then
+			return nmin, nmax
+		end
+		-- tuple?
+		if entry[1] and entry[2] then
+			return entry[1], entry[2]
+		end
+	end
+	return -1, 1
+end
+
+local function playToolSfx(tool: Tool, name: string)
+	local snd = tool:FindFirstChild(name, true)
+	if snd and snd:IsA("Sound") then snd:Play() end
+end
+
+local function stopToolSfx(tool: Tool, name: string)
+	local snd = tool:FindFirstChild(name, true)
+	if snd and snd:IsA("Sound") and snd.IsPlaying then snd:Stop() end
+end
+
+local function createFadeTween(part)
+	local tweenInfo = TweenInfo.new(
+		0.5, -- Duration (adjust to control how fast it fades)
+		Enum.EasingStyle.Linear, -- Easing style
+		Enum.EasingDirection.Out -- Easing direction
+	)
+	local tweenGoal = { Transparency = 1 } -- Set transparency to 1 (fully transparent)
+	return TweenService:Create(part, tweenInfo, tweenGoal)
+end
+
+-- ===== Core attach =====
+function GunCore.attach(tool: Tool, cfg: GunConfig)
+	local state = {
+		cfg = cfg,
+		tool = tool,
+		char = player.Character or player.CharacterAdded:Wait(),
+		hum = nil :: Humanoid?,
+		currentVM = nil :: Instance?,
+		equipped = false,
+		animLock = false,
+		reloading = false,
+		scoped = false,
+		scopePlaying = false,
+		currentAmmo = cfg.maxAmmo,
+		reserveAmmo = cfg.reserveAmmo,
+		shots = 0,
+		firing = false, -- for auto
+		GunSpring = SpringModule.new(Vector3.new()),
+		RecoilSpring = SpringModule.new(Vector3.new()),
+		swaycf = CFrame.new(),
+		lastCam = CFrame.new(),
+		ammoLabel = nil :: TextLabel?,
+		scopeOverlay = nil :: GuiObject?,
+		mobileGui = nil :: ScreenGui?,
+		remoteHit = nil :: RemoteEvent?,
+		shootSoundsFolder = nil :: Instance?,
+		toggleADSFlag = nil :: BoolValue?,
+		si = false,
+		
+		lastFireTime = 0,
+		noAmmoPlayed = false,
+		
+		inCrouch = false,
+		
+		pulloutAnimPlaying = false,
+		
+		-- sprinting states
+		sprintAnimationPlaying = false,
+		sprintTransitionSpeed = 10,
+		sprintTransition = 0, -- 0 = idle, 1 = full sprint
+		sprintInput = false,      -- raw input / server sprint state
+		sprintPose = 0,           -- 0 → 1 (viewmodel pose progress)
+		isSprintLocked = false,   -- blocks shooting
+		sprintVisualError = 0,
+
+		-- sliding states
+		inSlide = false,
+		slidePose = 0, -- 0 → 1 visual slide progress
+		
+		charFireTrack = nil :: Animation?,
+		charIdleTrack = nil :: Animation?,
+		charReloadTrack = nil :: Animation?,
+		charPulloutTrack = nil :: Animation?,
+		charScopeTrack = nil :: Animation?,
+		charScopeIdleTrack = nil :: Animation?,
+
+		vmReloadBackForth = nil :: Animation?,    
+		vmReloadGunBack = nil :: Animation?,
+		vmReloadMoveGun = nil :: Animation?,
+		
+		glareGui = nil :: ScreenGui?
+
+
+	}
+	
+	state.hum = state.char:WaitForChild("Humanoid") :: Humanoid
+	state.GunSpring.Speed, state.GunSpring.Damper = cfg.gunSpringSpeed, cfg.gunSpringDamper
+	state.RecoilSpring.Speed, state.RecoilSpring.Damper = cfg.recoilSpringSpeed, cfg.recoilSpringDamper
+	
+	if cfg.special and cfg.special.sniper then
+		state.glareGui = tool:FindFirstChild("GlareGui", true)
+		if state.glareGui then 
+			state.glareGui.PlayerToHideFrom = player
+		end
+	end
+
+	-- bind tool children
+	state.remoteHit   = tool:WaitForChild(cfg.remoteName) :: RemoteEvent
+	state.shootSoundsFolder = tool:WaitForChild(cfg.shootSoundsFolderName)
+	
+	if cfg.clientCrouchBindable then
+		cfg.clientCrouchBindable.Event:Connect(function(crouchStatus)
+			state.inCrouch = crouchStatus
+		end)
+	end
+	
+	-- Connect Sprint
+	if cfg.sprintChangeBindable then
+		cfg.sprintChangeBindable.Event:Connect(function(isSprinting)
+			state.sprintInput = isSprinting
+			if isSprinting and state.currentVM then
+				for i,v in state.currentVM:WaitForChild("Humanoid"):GetPlayingAnimationTracks() do
+					if v.Name == "Inspect" then
+						v:Stop() 
+					end
+				end
+			end
+		end)
+	end
+
+	-- Connect Slide Enter
+	if cfg.inSlideBindable then
+		cfg.inSlideBindable.Event:Connect(function()
+			state.inSlide = true
+		end)
+	end
+
+	-- Connect Slide Exit
+	if cfg.stopSlideBindable then
+		cfg.stopSlideBindable.Event:Connect(function()
+			state.inSlide = false
+		end)
+	end
+	
+	local function getSprintOffset()
+		if state.sprintPose <= 0 then
+			return CFrame.new()
+		end
+
+		return CFrame.new(
+			cfg.getSprintOffsetSettings.leftAmount * state.sprintPose,   -- left
+			cfg.getSprintOffsetSettings.downAmount * state.sprintPose,   -- down
+			cfg.getSprintOffsetSettings.forwardAmount * state.sprintPose   -- forward
+		) * CFrame.Angles(
+			math.rad(cfg.getSprintOffsetSettings.xAngle * state.sprintPose),
+			math.rad(cfg.getSprintOffsetSettings.yAngle * state.sprintPose),
+			math.rad(cfg.getSprintOffsetSettings.zAngle * state.sprintPose)
+		)
+	end
+
+	local function getSlideOffset()
+		if state.slidePose <= 0 then
+			return CFrame.new()
+		end
+
+		return CFrame.new(
+			cfg.getSlideOffsetSettings.leftAmount * state.slidePose,   -- right
+			cfg.getSlideOffsetSettings.downAmount * state.slidePose,  -- down
+			cfg.getSlideOffsetSettings.forwardAmount * state.slidePose   -- slightly forward
+		) * CFrame.Angles(
+			math.rad(cfg.getSlideOffsetSettings.xAngle * state.slidePose),  -- tilt down
+			math.rad(cfg.getSlideOffsetSettings.yAngle),                -- no yaw
+			math.rad(cfg.getSlideOffsetSettings.zAngle * state.slidePose)    -- roll right (RIVALS look)
+		)
+	end
+
+	local fireAnim
+	local idleAnim
+	local reloadAnim
+	local pulloutAnim
+	local scopeAnim
+	local scopeIdleAnim
+
+	for _, inst in ipairs(state.tool:GetDescendants()) do
+		if inst:IsA("Animation") and inst.Name == "Fire" then
+			fireAnim = inst
+		elseif inst:IsA("Animation") and inst.Name == "Idle" then
+			idleAnim = inst
+		elseif inst:IsA("Animation") and inst.Name == "Reload" then
+			reloadAnim = inst
+		elseif inst:IsA("Animation") and inst.Name == "Pullout" then
+			pulloutAnim = inst
+		elseif inst:IsA("Animation") and inst.Name == "Scope" then
+			scopeAnim = inst
+		elseif inst:IsA("Animation") and inst.Name == "ScopeIdle" then
+			scopeIdleAnim = inst
+		end
+	end
+
+	state.charFireTrack = (state.hum and fireAnim)
+		and state.hum.Animator:LoadAnimation(fireAnim)
+		or nil
+	
+	state.charIdleTrack = (state.hum and idleAnim)
+		and state.hum.Animator:LoadAnimation(idleAnim)
+		or nil
+	
+	state.charReloadTrack = (state.hum and reloadAnim)
+		and state.hum.Animator:LoadAnimation(reloadAnim)
+		or nil
+	
+	state.charPulloutTrack = (state.hum and pulloutAnim)
+		and state.hum.Animator:LoadAnimation(pulloutAnim)
+		or nil
+	
+	state.charScopeTrack = (state.hum and scopeAnim)
+		and state.hum.Animator:LoadAnimation(scopeAnim)
+		or nil
+
+	state.charScopeIdleTrack = (state.hum and scopeIdleAnim)
+		and state.hum.Animator:LoadAnimation(scopeIdleAnim)
+		or nil
+
+	-- UI
+	state.mobileGui = getPath(player, cfg.mobileGuiPath) :: ScreenGui
+	local ammoGui = getPath(player, cfg.ammoGuiPath)
+	if not ammoGui then error("Ammo GUI not found: "..cfg.ammoGuiPath) end
+	state.ammoLabel = ammoGui:FindFirstChildWhichIsA("TextLabel", true) or ammoGui:FindFirstChild("Ammo", true)
+	if cfg.ads and cfg.ads.scopeOverlayPath then
+		state.scopeOverlay = getPath(player, cfg.ads.scopeOverlayPath) :: GuiObject
+	end
+
+	-- animations (loaded when VM spawns)
+	local vmIdle, vmFire, vmPullout, vmReload, vmInspect, vmScopeIn, vmScopeIdle, vmScopedFire
+
+	local function updateAmmoUI()
+		if state.ammoLabel then
+			if state.currentAmmo <= math.floor(cfg.maxAmmo/5) then
+				state.ammoLabel.Text = string.format("<font color='#ff0000'>%d</font> | %d", state.currentAmmo, state.reserveAmmo)
+			else
+				state.ammoLabel.Text = tostring(state.currentAmmo.." | ".. state.reserveAmmo)
+			end
+		end	
+	end
+
+	local function hideVM()
+		if state.currentVM then state.currentVM:Destroy(); state.currentVM=nil end
+		for _,vm in ipairs(Camera:GetChildren()) do
+			if vm.Name == cfg.weaponViewmodel.Name then vm:Destroy() end
+		end
+	end
+
+	local function applyAnimSpeeds()
+		local s = cfg.animSpeeds
+		if vmIdle and s.Idle then vmIdle:AdjustSpeed(s.Idle) end
+		if vmFire and s.Fire then vmFire:AdjustSpeed(s.Fire) end
+		if vmPullout and s.Pullout then vmPullout:AdjustSpeed(s.Pullout) end
+		if vmReload and s.Reload then vmReload:AdjustSpeed(s.Reload) end
+		if vmInspect and s.Inspect then vmInspect:AdjustSpeed(s.Inspect) end
+		if vmScopeIn and s.ScopeIn then vmScopeIn:AdjustSpeed(s.ScopeIn) end
+		if vmScopeIdle and s.ScopeIdle then vmScopeIdle:AdjustSpeed(s.ScopeIdle) end
+		if vmScopedFire and s.ScopedFire then vmScopedFire:AdjustSpeed(s.ScopedFire) end
+	end
+
+	local function loadVM()
+		if Camera:FindFirstChild(cfg.weaponViewmodel.Name) then return end
+		local vm = cfg.weaponViewmodel:Clone(); vm.Parent = Camera
+		state.currentVM = vm
+
+		-- hide hand cosmetics by default; re-skin if needed
+		local handCos = vm:FindFirstChild("HandCosmetics")
+		for _,p in ipairs(tool:GetDescendants()) do
+			if p:IsA("BasePart") or p:IsA("MeshPart") or p:IsA("UnionOperation") then
+				p.Transparency = 1
+			end
+		end
+		if tool.Name == "LaserRevolver" or tool.Name == "LaserRifle" or tool.Name == "LaserSniper" then
+			for _, part in ipairs(vm:GetDescendants()) do
+				if part:IsA("BasePart") or part:IsA("UnionOperation") or part:IsA("MeshPart") then
+					part.Transparency = 1
+				end
+			end
+		end
+		if handCos then
+			for _,p in ipairs(handCos:GetDescendants()) do
+				if p:IsA("BasePart") or p:IsA("MeshPart") or p:IsA("UnionOperation") then
+					p.Transparency = 1
+				end
+			end
+			for _,p in ipairs(tool:GetDescendants()) do
+				if p:IsA("BasePart") or p:IsA("MeshPart") or p:IsA("UnionOperation") then
+					p.Transparency = 1
+				end
+			end
+			if player:FindFirstChild("Skins") and player.Skins:FindFirstChild("HandSkin") and player.Skins.HandSkin.Value == "Lebron" then
+				local le = handCos:FindFirstChild("Lebron")
+				if le then
+					for _,p in ipairs(le:GetDescendants()) do
+						if p:IsA("BasePart") or p:IsA("MeshPart") or p:IsA("UnionOperation") then
+							p.Transparency = 0
+						end
+					end
+				end
+				if vm:FindFirstChild("LeftArm") then vm.LeftArm.Color = Color3.fromRGB(105,64,40) end
+				if vm:FindFirstChild("RightArm") then vm.RightArm.Color = Color3.fromRGB(105,64,40) end
+			else
+				if vm:FindFirstChild("LeftArm") then vm.LeftArm.Color = Color3.new(1,1,1) end
+				if vm:FindFirstChild("RightArm") then vm.RightArm.Color = Color3.new(1,1,1) end
+			end
+		end
+
+		-- load tracks
+		local A = cfg.getAnimations(vm)
+		local hum = vm:WaitForChild("Humanoid") :: Humanoid
+		vmIdle       = hum:LoadAnimation(A.Idle);       vmIdle.Looped = true
+		vmFire       = hum:LoadAnimation(A.Fire)
+		vmPullout    = hum:LoadAnimation(A.Pullout)
+		vmReload     = hum:LoadAnimation(A.Reload)
+		vmInspect    = A.Inspect and hum:LoadAnimation(A.Inspect) or nil
+		vmScopeIn    = A.ScopeIn and hum:LoadAnimation(A.ScopeIn) or nil
+		vmScopeIdle  = A.ScopeIdle and hum:LoadAnimation(A.ScopeIdle) or nil
+		vmScopedFire = A.ScopedFire and hum:LoadAnimation(A.ScopedFire) or nil
+		
+		if cfg.special and cfg.special.shotgun then
+			local shotgunA = cfg.special.shotgun.getVMReloadAnimations(vm)
+			state.vmReloadBackForth    = shotgunA.vmReloadBackForth and hum:LoadAnimation(shotgunA.vmReloadBackForth) or nil
+			state.vmReloadGunBack  = shotgunA.vmReloadGunBack and hum:LoadAnimation(shotgunA.vmReloadGunBack) or nil
+			state.vmReloadMoveGun = shotgunA.vmReloadMoveGun and hum:LoadAnimation(shotgunA.vmReloadMoveGun) or nil
+			
+			local function handleShellIn()
+				if state.equipped and not state.animLock and state.reserveAmmo > 0 then
+					state.currentAmmo += 1
+					state.reserveAmmo = state.reserveAmmo - 1
+					updateAmmoUI()
+					if cfg.reloadSoundRemote then cfg.reloadSoundRemote:FireServer(player.Character.PrimaryPart.Position) end
+				end
+			end
+
+			state.vmReloadMoveGun.KeyframeReached:Connect(function(keyframeName)
+				local sfxName = cfg.keyframeSfx[keyframeName]
+				if sfxName then
+					local snd = state.tool:FindFirstChild(sfxName, true)
+					if snd and snd:IsA("Sound") then snd:Play() end
+				end
+			end)
+
+
+			state.vmReloadBackForth.KeyframeReached:Connect(function(keyframeName)
+				if keyframeName == "ShellIn" then
+					handleShellIn()
+				end
+				local sfxName = cfg.keyframeSfx[keyframeName]
+				if sfxName then
+					local snd = state.tool:FindFirstChild(sfxName, true)
+					if snd and snd:IsA("Sound") then snd:Play() end
+				end
+			end)
+
+			state.vmReloadGunBack.KeyframeReached:Connect(function(keyframeName)
+				if keyframeName == "ShellIn" then
+					handleShellIn()
+				end
+				local sfxName = cfg.keyframeSfx[keyframeName]
+				if sfxName then
+					local snd = state.tool:FindFirstChild(sfxName, true)
+					if snd and snd:IsA("Sound") then snd:Play() end
+				end
+			end)
+		end
+
+		
+		if vmScopeIdle then vmScopeIdle.Looped = true end
+
+		applyAnimSpeeds()
+	
+
+		-- pullout -> idle / auto-reload if empty
+		if vmPullout then
+			if cfg.actionSfx and cfg.actionSfx.PulloutStart then
+				playToolSfx(tool, cfg.actionSfx.PulloutStart)
+			end
+			vmPullout.KeyframeReached:Connect(function(kf)
+				local sfxName = cfg.keyframeSfx[kf]
+				if sfxName then
+					local snd = tool:FindFirstChild(sfxName, true)
+					if snd and snd:IsA("Sound") then snd:Play() end
+				end
+				if kf == "Load" then
+					if tool.Name == "LaserRevolver" then
+						for _, part in ipairs(state.currentVM:GetDescendants()) do
+							if part:IsA("BasePart") or part:IsA("UnionOperation") or part:IsA("MeshPart") then
+
+								part.Transparency = 0
+
+								if part.Name == "OuterNeon" or part.Name == "NeonC1" or part.Name == "NeonC2" or part.Name == "NeonC3" or part.Name == "NeonC4" or part.Name == "NeonC5" or part.Name == "NeonC6" or part.Name == "NeonC7" or part.Name == "NeonC8" then
+									part.Transparency = 0.1
+								end
+								if part.Name == "Glass" then
+									part.Transparency = 0.75
+								end
+								if part.Name == "Main" or part.Name == "Barrel" or part.Name == "MuzzleFlash" or part.Name == "LightPart" then
+									part.Transparency = 1
+								end
+							end
+						end
+						for _, part in state.currentVM.HandCosmetics:GetDescendants() do
+							if part:IsA("MeshPart") or part:IsA("BasePart") or part:IsA("Part") or part:IsA("UnionOperation") then
+								part.Transparency = 1
+							end
+						end
+
+						if player.Skins.HandSkin.Value == "Lebron" then
+							for _, part in state.currentVM.HandCosmetics.Lebron:GetDescendants() do
+								if part:IsA("MeshPart") or part:IsA("BasePart") or part:IsA("Part") or part:IsA("UnionOperation") then
+									part.Transparency = 0
+								end
+							end
+						end
+					elseif tool.Name == "LaserRifle" then
+						for _, part in ipairs(state.currentVM:GetDescendants()) do
+							if part:IsA("BasePart") or part:IsA("UnionOperation") or part:IsA("MeshPart") then
+								if part.Name ~= "MainRifle" or part.Name ~= "ScopePosition" or part.Name ~= "Barrel" or part.Name ~= "LightPart" or part.Name ~= "MuzzleFlash" then
+									part.Transparency = 0
+								end
+								if part.Name == "Union10" or part.Name == "Union12" then
+									part.Transparency = 0.7
+								end
+								if part.Name == "OuterEnergySphere" then
+									part.Transparency = 0.167
+								end
+								if part.Name == "Part16" or part.Name == "Part23" then
+									part.Transparency = 0.6
+								end
+								if part.Name == "Part21" or part.Name == "Part22" then
+									part.Transparency = 0.3
+								end
+								if part.Name == "MainRifle" or part.Name == "ScopePosition" or part.Name == "Barrel" or part.Name == "LightPart" or part.Name == "MuzzleFlash" then
+									part.Transparency = 1
+								end
+							end
+						end
+						for _, part in state.currentVM.HandCosmetics:GetDescendants() do
+							if part:IsA("MeshPart") or part:IsA("BasePart") or part:IsA("Part") or part:IsA("UnionOperation") then
+								part.Transparency = 1
+							end
+						end
+
+						if player.Skins.HandSkin.Value == "Lebron" then
+							for _, part in state.currentVM.HandCosmetics.Lebron:GetDescendants() do
+								if part:IsA("MeshPart") or part:IsA("BasePart") or part:IsA("Part") or part:IsA("UnionOperation") then
+									part.Transparency = 0
+								end
+							end
+						end
+					elseif tool.Name == "LaserSniper" then
+						for _, part in ipairs(state.currentVM:GetDescendants()) do
+							if part:IsA("BasePart") or part:IsA("UnionOperation") or part:IsA("MeshPart") then
+
+								part.Transparency = 0
+
+								if part.Name == "Part93" or part.Name == "Part94" then
+									part.Transparency = 0.5
+								end
+								if part.Name == "Big" then
+									part.Transparency = 0.2
+								end
+								if part.Name == "Medium" then
+									part.Transparency = 0.5
+								end
+								if part.Name == "Shield"then
+									part.Transparency = 0.75
+								end
+								if part.Name == "Union11" or part.Name == "Union7" or part.Name == "GlassCylinder" then
+									part.Transparency = 0.6
+								end
+								if part.Name == "LightPart" or part.Name == "MuzzleFlash" or part.Name == "Barrel" or part.Name == "ScopePosition" or part.Name == "ShootingBarrel" or part.Name == "MainLaserSniper" then
+									part.Transparency = 1
+								end
+							end
+						end
+						for _, part in state.currentVM.HandCosmetics:GetDescendants() do
+							if part:IsA("MeshPart") or part:IsA("BasePart") or part:IsA("Part") or part:IsA("UnionOperation") then
+								part.Transparency = 1
+							end
+						end
+
+						if player.Skins.HandSkin.Value == "Lebron" then
+							for _, part in state.currentVM.HandCosmetics.Lebron:GetDescendants() do
+								if part:IsA("MeshPart") or part:IsA("BasePart") or part:IsA("Part") or part:IsA("UnionOperation") then
+									part.Transparency = 0
+								end
+							end
+						end
+					end
+				end
+
+			end)
+			vmPullout.Stopped:Connect(function()
+				if not state.equipped then return end
+				state.pulloutAnimPlaying = false
+				if vmIdle then vmIdle:Play() end
+				
+				if state.charIdleTrack then
+					state.charIdleTrack.Looped = true
+					state.charIdleTrack:Play()
+					if (cfg.animSpeeds.CharIdle) then state.charIdleTrack:AdjustSpeed(cfg.animSpeeds.CharIdle) end
+				end
+				
+				if state.currentAmmo <= 0 and state.reserveAmmo > 0 then
+					task.defer(function()
+						if state.equipped then state.reloading=false; GunCore._reload(state, cfg, vmIdle, vmFire, vmScopeIn, vmScopeIdle, vmPullout, vmReload, updateAmmoUI) end
+					end)
+				end
+			end)
+		end
+	end
+
+	-- Viewbob + recoil cam, per-gun constants
+	local stride, bobbing = 0, 0
+	RunService.RenderStepped:Connect(function(dt)
+		if not state.equipped or not state.currentVM or (state.hum and state.hum.Health <= 0) then return end
+
+		
+		if state.sprintInput then
+			state.sprintPose = math.clamp(state.sprintPose + cfg.SPRINT_IN_SPEED * dt, 0, 1)
+		else
+			state.sprintPose = math.clamp(state.sprintPose - cfg.SPRINT_OUT_SPEED * dt, 0, 1)
+		end
+		
+		if state.inSlide then
+			state.slidePose = math.clamp(state.slidePose + cfg.SLIDE_IN_SPEED * dt, 0, 1)
+		else
+			state.slidePose = math.clamp(state.slidePose - cfg.SLIDE_OUT_SPEED * dt, 0, 1)
+		end
+
+		-- camera recoil
+		local adj = state.RecoilSpring.Position * dt * 60
+		Camera.CFrame *= CFrame.Angles(math.rad(adj.X), math.rad(adj.Y), math.rad(adj.Z))
+
+		-- bobbing
+		local bobAmount = cfg.bobbing.amount
+		if state.scoped and cfg.bobbing.scopedAmount then
+			bobAmount = cfg.bobbing.scopedAmount
+		end
+		
+		local sprintOffset = getSprintOffset()
+		local slideOffset = getSlideOffset()
+
+		-- Slide should dominate sprint
+		local movementOffset = sprintOffset:Lerp(slideOffset, state.slidePose)
+
+		local pp = player.Character and player.Character.PrimaryPart
+		if pp then
+			local move = (pp.Velocity * Vector3.new(1,0,1)).Magnitude
+			
+			local bobbingMultiplier = state.isSprintLocked and cfg.bobbingMultiplierNum or 1 
+
+			if state.slidePose > 0 then
+				bobbingMultiplier *= 0.3
+			end
+			
+			if move > 0.01 then
+				local bobbingSpeed = move * cfg.bobbing.speed
+				bobbing = math.min(bobbingSpeed, 1)
+				stride = (stride + bobbingSpeed * dt * bobbingMultiplier) % (math.pi * 2)
+				local x = math.sin(stride); local y = math.sin(stride*2)
+				local bobbingOffset = Vector3.new(x,y,0) * bobAmount * bobbing * bobbingMultiplier
+								
+				if state.isSprintLocked then
+					bobbingOffset = Vector3.new(x, y, 0) * cfg.bobbing.amount * 2 * bobbing * bobbingMultiplier
+				end
+
+				-- Combine sprint offset with bobbing
+				local combinedOffset = CFrame.new(bobbingOffset) * movementOffset
+				-- Measure how far the viewmodel still is from neutral
+				state.sprintVisualError =
+					combinedOffset.Position.Magnitude +
+					math.abs(select(2, combinedOffset:ToEulerAnglesXYZ()))
+				state.isSprintLocked = state.sprintVisualError > 0.2
+				
+				state.swaycf = state.swaycf:Lerp(combinedOffset, math.min(dt * cfg.bobbing.transition, 1))
+			else
+				local rot = Camera.CFrame:ToObjectSpace(state.lastCam)
+				local rx, ry, _ = rot:ToOrientation()
+				state.swaycf = state.swaycf:Lerp(CFrame.Angles(math.sin(rx)*0.7, math.sin(ry)*0.7, 0), 0.042)
+			end
+			state.lastCam = Camera.CFrame
+			state.currentVM:SetPrimaryPartCFrame(Camera.CFrame * state.swaycf)
+		end
+	end)
+
+	-- equip/unequip
+	local function onEquipped()
+		state.equipped=true; state.animLock=false; state.reloading=false; state.scoped=false; state.shots=0
+		player.EquippedTool.Value = cfg.name
+
+		if state.ammoLabel then
+			local sg = state.ammoLabel:FindFirstAncestorOfClass("ScreenGui")
+			if sg then sg.Enabled = true end
+		end
+		loadVM()
+		updateAmmoUI()
+		if state.scopeOverlay then state.scopeOverlay.Enabled=false end
+		if state.currentVM and vmPullout then state.pulloutAnimPlaying = true vmPullout:Play() applyAnimSpeeds() end
+		
+		if state.charPulloutTrack then
+			state.charPulloutTrack:Play()
+			if (cfg.animSpeeds.CharPullout) then state.charPulloutTrack:AdjustSpeed(cfg.animSpeeds.CharPullout) end
+		end
+		
+	end
+	local function onUnequipped()
+		if state.ammoLabel then
+			local sg = state.ammoLabel:FindFirstAncestorOfClass("ScreenGui")
+			if sg then sg.Enabled = false end
+		end
+		
+		cfg.shootingWeaponBindable:Fire(false)
+		uis.MouseDeltaSensitivity = player.GeneralInfo.Sensitivity.Value
+
+		state.equipped=false; state.animLock=false; state.reloading=false; state.firing=false
+		if state.scopeOverlay then state.scopeOverlay.Enabled=false end
+		GunCore._tweenFov(70, 0.1)
+		hideVM()
+		if cfg.actionSfx then
+			if cfg.actionSfx.PulloutStart then
+				stopToolSfx(state.tool, cfg.actionSfx.PulloutStart)
+			end
+			if cfg.actionSfx.ReloadStart then
+				stopToolSfx(state.tool, cfg.actionSfx.ReloadStart)
+			end
+			for _, sound in tool:GetDescendants() do
+				if sound:IsA("Sound") and not string.match(sound.Parent.Name, "Shoot") then
+					if sound.IsPlaying then sound:Stop() end
+				end
+			end
+
+		end
+	end
+	tool.Equipped:Connect(onEquipped)
+	tool.Unequipped:Connect(onUnequipped)
+
+	-- ========= INPUT =========
+
+	-- helper to actually fire once
+	local function fireOnce(scopedAllowed: boolean?)
+		GunCore._primaryFire(state, cfg, vmIdle, vmPullout, vmReload, vmFire, vmScopedFire, vmScopeIn, vmScopeIdle, vmReload, updateAmmoUI, scopedAllowed)
+	end
+
+	-- Auto loop
+	local function startAutoLoop()
+		if state.firing then return end
+		state.firing = true
+		task.spawn(function()
+			while state.firing and state.equipped do
+				local fired = fireOnce(true)
+				if fired then
+					local cd = state.scoped and cfg.fireCooldownADS or cfg.fireCooldown
+					task.wait(cd)
+				else
+					task.wait() -- retry next frame
+				end
+			end
+
+		end)
+	end
+
+	UserInputService.InputBegan:Connect(function(input, gp)
+		if gp or not state.equipped then return end
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			if cfg.fireMode == "auto" then
+				startAutoLoop()
+				cfg.sprintChangeBindable:Fire(false, true)	
+				cfg.shootingWeaponBindable:Fire(true)
+			else
+				fireOnce(true)
+			end
+			
+		elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
+			-- ADS vs right-click burst
+			if cfg.ads and cfg.ads.enabled then
+				if vmReload.IsPlaying or vmPullout.IsPlaying then return end
+
+				for i,v in state.currentVM:WaitForChild("Humanoid"):GetPlayingAnimationTracks() do
+					if v.Name == "Inspect" then
+						v:Stop() 
+					end
+				end
+				
+				if cfg.special and cfg.special.sniper then
+					if state.animLock then return end
+					
+					if getPath(player, "GeneralInfo.toggleSniperAim").Value then
+						GunCore._toggleADS(state, cfg, vmIdle, vmFire, vmScopeIn, vmScopeIdle, vmPullout, vmReload, vmScopedFire, false)
+					else
+						if not state.si then
+
+							for i,v in state.currentVM:WaitForChild("Humanoid"):GetPlayingAnimationTracks() do
+								if v.Name == "Inspect" or v.Name == "Idle" or v.Name == "Fire" then
+									v:Stop() 
+								end
+							end
+							
+							if vmFire.IsPlaying then
+								vmFire:Stop()
+							end
+
+							
+							state.si = true
+							cfg.changeScopingStateBindable:Fire(true)
+							cfg.sprintChangeBindable:Fire(false, false)
+
+							if vmScopeIn then
+								vmScopeIn:Play()
+								if cfg.animSpeeds.ScopeIn then vmScopeIn:AdjustSpeed(cfg.animSpeeds.ScopeIn) end
+								if state.charScopeTrack then
+									state.charScopeTrack:Play()
+									if (cfg.animSpeeds.CharScope) then state.charScopeTrack:AdjustSpeed(cfg.animSpeeds.CharScope) end
+									state.charScopeTrack.Stopped:Connect(function()
+										if not state.equipped then return end
+
+										if state.si then
+											if state.charScopeIdleTrack then
+												state.charScopeIdleTrack.Looped = true
+												state.charScopeIdleTrack:Play()
+											end
+										end
+									end)
+								end
+
+								vmScopeIn.Stopped:Connect(function()
+									if not state.equipped then return end
+
+									if state.si then
+
+										if vmScopeIdle then
+											state.scoped = true
+											vmScopeIdle.Looped = true; vmScopeIdle:Play()
+											state.scopePlaying = false
+											if state.scopeOverlay then state.scopeOverlay.Enabled = true end
+
+										end
+										cfg.sniperGlareEvent:FireServer(state.glareGui, true)
+										cfg.adsClickInSound:Play()
+
+										uis.MouseDeltaSensitivity = player.GeneralInfo.Sensitivity.Value * (player.ADS_Sens.ADSsens.Value)
+										Camera.FieldOfView = 20
+										for _, part in ipairs(state.currentVM:GetDescendants()) do
+											if part:IsA("BasePart") or part:IsA("Decal") or part:IsA("MeshPart") and part.Name ~= "CameraBone" and part.Name ~= "HumanoidRootPart" and part.Name ~= "LeftArm" and part.Name ~= "RightArm" then
+												part.LocalTransparencyModifier = 1
+											end
+										end
+										player.PlayerGui.Crosshair.Enabled = false
+										player.PlayerGui.Crosshair.Lines.Enabled = false
+
+									end
+								end)
+							end
+						end
+					end
+				else
+					if getPath(player, "GeneralInfo.toggleADS").Value then
+						GunCore._toggleADS(state, cfg, vmIdle, vmFire, vmScopeIn, vmScopeIdle, vmPullout, vmReload, vmScopedFire, false)
+					else
+						-- hold-to-ADS: only enable on press; disable on release
+						if not state.si then
+							
+							for i,v in state.currentVM:WaitForChild("Humanoid"):GetPlayingAnimationTracks() do
+								if v.Name == "Inspect" or v.Name == "Idle" then
+									v:Stop() 
+								end
+							end
+							
+							state.si = true
+							cfg.changeScopingStateBindable:Fire(true)
+							cfg.sprintChangeBindable:Fire(false, false)
+							if cfg.special == nil or not cfg.special.sniper then
+								GunCore._tweenFov(cfg.ads.fov or 58, 0.12)
+							end
+							if vmScopeIn then
+								if vmFire.IsPlaying then
+									vmFire:Stop()
+								end
+								vmScopeIn:Play()
+								if cfg.animSpeeds.ScopeIn then vmScopeIn:AdjustSpeed(cfg.animSpeeds.ScopeIn) end
+								if state.charScopeTrack then
+									state.charScopeTrack:Play()
+									if (cfg.animSpeeds.CharScope) then state.charScopeTrack:AdjustSpeed(cfg.animSpeeds.CharScope) end
+									state.charScopeTrack.Stopped:Connect(function()
+										if not state.equipped then return end
+
+										if state.si then
+											if state.charScopeIdleTrack then
+												state.charScopeIdleTrack.Looped = true
+												state.charScopeIdleTrack:Play()
+											end
+										end
+									end)
+								end
+								-- rifle: hide parts when scoped
+								if cfg.ads.hidePartsOnScope and state.currentVM then
+									setTransparencyPaths(state.currentVM, cfg.ads.hidePartsOnScope, 0.9)
+								end
+
+								vmScopeIn.Stopped:Connect(function()
+									if not state.equipped then return end
+
+									if state.si then
+										cfg.adsClickInSound:Play()
+
+										if cfg.special and cfg.special.sniper then
+											uis.MouseDeltaSensitivity = player.GeneralInfo.Sensitivity.Value * (player.ADS_Sens.ADSsens.Value)
+											Camera.FieldOfView = 20
+											for _, part in ipairs(state.currentVM:GetDescendants()) do
+												if part:IsA("BasePart") or part:IsA("Decal") or part:IsA("MeshPart") and part.Name ~= "CameraBone" and part.Name ~= "HumanoidRootPart" and part.Name ~= "LeftArm" and part.Name ~= "RightArm" then
+													part.LocalTransparencyModifier = 1
+												end
+											end
+											player.PlayerGui.Crosshair.Enabled = false
+											player.PlayerGui.Crosshair.Lines.Enabled = false
+										end
+
+										if vmScopeIdle then
+											vmScopeIdle.Looped = true; vmScopeIdle:Play()
+											state.scoped = true
+											state.scopePlaying = false
+											if state.scopeOverlay then state.scopeOverlay.Enabled = true end
+
+										end
+									end
+								end)
+							end
+						end
+
+						--GunCore._toggleADS(state, cfg, vmIdle, vmFire, vmScopeIn, vmScopeIdle, vmPullout, vmReload, vmScopedFire, false)
+					end
+				end
+
+			elseif cfg.rightClickBurst and cfg.rightClickBurst > 1 then
+				GunCore._burstFire(state, cfg, vmIdle, vmFire, vmScopeIn, vmScopeIdle, vmPullout, vmReload, updateAmmoUI)
+			end
+		elseif input.KeyCode == Enum.KeyCode.R then
+			if state.currentAmmo < cfg.maxAmmo then GunCore._reload(state, cfg, vmIdle, vmFire, vmScopeIn, vmScopeIdle, vmPullout, vmReload, updateAmmoUI) end
+		elseif input.KeyCode == Enum.KeyCode.Y then
+			if vmInspect and not state.animLock and not state.reloading and state.currentVM and not state.sprintInput then
+				for i,v in state.currentVM:WaitForChild("Humanoid"):GetPlayingAnimationTracks() do
+					if v.Name == "Inspect" then
+						v:Stop() 
+					end
+				end
+				vmInspect:Play()
+				if cfg.animSpeeds.Inspect then vmInspect:AdjustSpeed(cfg.animSpeeds.Inspect) end
+			end
+		end
+	end)
+
+	UserInputService.InputEnded:Connect(function(input, gp)
+		if gp or not state.equipped then return end
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			state.firing = false
+			state.noAmmoPlayed = false
+			cfg.shootingWeaponBindable:Fire(false)
+		elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
+			-- if ADS is hold-type, release it
+			if cfg.special and cfg.special.sniper then
+				if not getPath(player, "GeneralInfo.toggleSniperAim").Value then
+					cfg.sniperGlareEvent:FireServer(state.glareGui, false)
+					if state.charScopeIdleTrack then
+						state.charScopeIdleTrack:Stop()
+					end
+					if state.scopeOverlay then state.scopeOverlay.Enabled = false end
+					Camera.FieldOfView = 70
+					if player.CrosshairData.linesEnabled.Value then
+						player.PlayerGui.Crosshair.Lines.Enabled = true
+					end
+					player.PlayerGui.Crosshair.Enabled = true
+					uis.MouseDeltaSensitivity = player.GeneralInfo.Sensitivity.Value
+					
+					for _, part in ipairs(state.currentVM:GetDescendants()) do
+						if part:IsA("BasePart") or part:IsA("Decal") or part:IsA("MeshPart") and part.Name ~= "CameraBone" and part.Name ~= "HumanoidRootPart" and part.Name ~= "LeftArm" and part.Name ~= "RightArm" then
+							part.LocalTransparencyModifier = 0
+						end
+					end
+					
+					state.scoped = false
+					state.si = false
+					cfg.changeScopingStateBindable:Fire(false)
+
+					if vmScopeIn then
+						if vmScopeIn.IsPlaying then
+							vmScopeIn:Stop()
+						end
+					end
+					if vmScopeIdle then
+						if vmScopeIdle.IsPlaying then
+							vmScopeIdle:Stop()
+							cfg.adsClickOutSound:Play()
+						end
+					end
+					
+					if vmIdle then vmIdle:Play() end
+
+				end
+			else
+				if not getPath(player, "GeneralInfo.toggleADS").Value then
+					if state.scopeOverlay then state.scopeOverlay.Enabled = false end
+					GunCore._tweenFov(70, 0.12)
+
+					state.scoped = false
+					state.si = false
+					cfg.changeScopingStateBindable:Fire(false)
+					if cfg.ads.hidePartsOnScope and state.currentVM then
+						setTransparencyPaths(state.currentVM, cfg.ads.hidePartsOnScope, 0)
+					end
+
+					if vmScopeIn then
+						if vmScopeIn.IsPlaying then
+							vmScopeIn:Stop()
+						end
+					end
+					if vmScopeIdle then
+						if vmScopeIdle.IsPlaying then
+							vmScopeIdle:Stop()
+							cfg.adsClickOutSound:Play()
+						end
+					end
+					
+					if vmIdle then vmIdle:Play() end
+
+					--GunCore._toggleADS(state, cfg, vmIdle, vmFire, vmScopeIn, vmScopeIdle, vmPullout, vmReload, vmScopedFire, true) -- force off
+				end
+			end
+
+		end
+	end)
+
+	-- mobile buttons (optional)
+	if state.mobileGui then
+		local shootBtn = state.mobileGui:FindFirstChild("ShootButton", true)
+		local aimBtn   = state.mobileGui:FindFirstChild("AimButton", true)
+		local reloadBtn = state.mobileGui:FindFirstChild("ReloadButton", true)
+		local inspectBtn = state.mobileGui:FindFirstChild("InspectButton", true)
+
+		if shootBtn then
+			shootBtn.MouseButton1Down:Connect(function()
+				if cfg.fireMode == "auto" then 
+					startAutoLoop() 
+					cfg.sprintChangeBindable:Fire(false, true)	
+					cfg.shootingWeaponBindable:Fire(true)
+				else 
+					fireOnce(true) 
+				
+				end
+			end)
+			shootBtn.MouseButton1Up:Connect(function() 
+				state.noAmmoPlayed = false
+				state.firing = false 
+				cfg.shootingWeaponBindable:Fire(false)
+
+			end)
+		end
+		if aimBtn then
+			aimBtn.Activated:Connect(function()
+				if cfg.ads and cfg.ads.enabled then
+					local toggle = true
+					if cfg.ads.respectToggleFlag and getPath(player, "GeneralInfo.toggleADS") then toggle = getPath(player, "GeneralInfo.toggleADS").Value end
+					if toggle then
+						GunCore._toggleADS(state, cfg, vmIdle, vmFire, vmScopeIn, vmScopeIdle, vmPullout, vmReload, vmScopedFire, false)
+					else
+						-- tap = hold? we’ll just toggle on tap for mobile (adjust if you prefer press/hold logic)
+						GunCore._toggleADS(state, cfg, vmIdle, vmFire, vmScopeIn, vmScopeIdle, vmPullout, vmReload, vmScopedFire, false)
+					end
+				elseif cfg.rightClickBurst and cfg.rightClickBurst > 1 then
+					GunCore._burstFire(state, cfg, vmIdle, vmFire, vmScopeIn, vmScopeIdle, vmPullout, vmReload, updateAmmoUI)
+				end
+			end)
+		end
+		if reloadBtn then
+			reloadBtn.Activated:Connect(function()
+				if state.currentAmmo < cfg.maxAmmo then 
+					GunCore._reload(state, cfg, vmIdle, vmFire, vmScopeIn, vmScopeIdle, vmPullout, vmReload, updateAmmoUI) 
+				end
+			end)
+		end
+		if inspectBtn and vmInspect then
+			inspectBtn.Activated:Connect(function()
+				if not state.animLock and not state.reloading and state.currentVM and not state.sprintInput then
+					for i,v in state.currentVM:WaitForChild("Humanoid"):GetPlayingAnimationTracks() do
+						if v.Name == "Inspect" then
+							v:Stop() 
+						end
+					end
+					vmInspect:Play()
+					if cfg.animSpeeds.Inspect then 
+						vmInspect:AdjustSpeed(cfg.animSpeeds.Inspect) 
+					end
+				end
+			end)
+		end
+	end
+
+	-- expose a few stateful helpers if needed
+	return state
+end
+
+-- ===== internals =====
+
+function GunCore._tweenFov(target: number, dur: number)
+	local ti = TweenInfo.new(dur, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	TweenService:Create(Camera, ti, {FieldOfView = target}):Play()
+end
+
+local function isAirborne(state, hum: Humanoid): boolean
+	return hum.FloorMaterial == Enum.Material.Air or state.inSlide == true
+end
+
+local function computeScreenRayWithSpread(center: Vector2, spread: number)
+	local offset = Vector2.new(math.random(-spread, spread), math.random(-spread, spread))
+	local p = center + offset
+	local ray = Camera:ViewportPointToRay(p.X, p.Y)
+	return ray.Origin, ray.Direction
+end
+
+local function playWeightedShootSound(folder: Instance, tool: Tool)
+	local chosen = weightedPick(folder)
+	if not chosen then return end
+	local clone = chosen:Clone()
+	clone.Parent = tool
+	SoundService:PlayLocalSound(clone)
+	clone.Ended:Connect(function() clone:Destroy() end)
+end
+
+local function applyRecoilSniper(state, cfg: GunConfig)
+	state.GunSpring.Velocity += cfg.recoilKick
+	local recoil = cfg.recoilBase
+	local x = 200
+	local y = 0
+	local z = 0
+	recoil += Vector3.new(x, y, z)
+
+	state.RecoilSpring.Velocity += recoil
+	task.delay(cfg.recoilResetDelay, function()
+		state.RecoilSpring.Velocity -= recoil
+	end)
+end
+
+local function applyRecoil(state, cfg: GunConfig)
+	if cfg.special and cfg.special.sniper then
+		applyRecoilSniper(state, cfg)
+		return
+	end
+	
+	if state.shots < #cfg.recoilPattern then
+		state.shots += 1
+	end
+	state.GunSpring.Velocity += cfg.recoilKick
+
+	local recoil = cfg.recoilBase
+	local minmax = cfg.recoilPattern[state.shots]
+	local x = math.random(minmax[1]*0.5, minmax[2]) / 1.5 - minmax[1]
+	local y = math.random(minmax[1]*0.6, minmax[2]*5) / 10
+
+	recoil += Vector3.new(x, y, 0)
+
+	local hum = state.hum
+	local crouch = state.inCrouch
+	local damp
+	if state.scoped and crouch then damp = cfg.recoilDampeners.both
+	elseif state.scoped then      damp = cfg.recoilDampeners.scope
+	elseif crouch then            damp = cfg.recoilDampeners.crouch
+	else                           damp = cfg.recoilDampeners.none end
+
+	recoil /= damp
+	state.RecoilSpring.Velocity += recoil
+	task.delay(cfg.recoilResetDelay, function()
+		state.RecoilSpring.Velocity -= recoil
+	end)
+end
+
+local function doRaycastIgnoreChar(origin: Vector3, dir: Vector3, character: Model)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = {character}
+	params.IgnoreWater = true
+	return workspace:Raycast(origin, dir * 1023, params)
+end
+
+local function fireShotgunPattern(state, cfg)
+	local shotgun = cfg.special.shotgun
+	if not shotgun then return end
+
+	-- determine spread angle
+	local spreadDeg =
+		state.scoped and shotgun.scopedSpread or shotgun.baseSpread
+	local SPREAD_ANGLE = math.rad(spreadDeg)
+
+	local screenCenter = Vector2.new(
+		Camera.ViewportSize.X / 2,
+		Camera.ViewportSize.Y / 2
+	)
+
+	local screenRay = Camera:ViewportPointToRay(screenCenter.X, screenCenter.Y)
+	local baseDir = screenRay.Direction
+	local startPos = screenRay.Origin
+
+	local rayParams = RaycastParams.new()
+	rayParams.FilterType = Enum.RaycastFilterType.Exclude
+	rayParams.FilterDescendantsInstances = { player.Character }
+	rayParams.IgnoreWater = true
+
+	-- movement penalty
+	if isAirborne(state, state.hum) then
+		local off = shotgun.airbornePenalty
+		local offset = Vector2.new(
+			math.random(-off, off),
+			math.random(-off, off)
+		)
+		local r = Camera:ViewportPointToRay(
+			screenCenter.X + offset.X,
+			screenCenter.Y + offset.Y
+		)
+		startPos = r.Origin
+		baseDir = r.Direction
+	end
+
+	local barrel = cfg.getBarrelWorldPos(state.currentVM)
+
+	local function shootDir(dir)
+		local hit = workspace:Raycast(startPos, dir * 1023, rayParams)
+		if not hit then return end
+
+		state.remoteHit:FireServer(
+			hit.Instance,
+			(barrel - hit.Position).Magnitude
+		)
+		cfg.bulletHoleRemote:FireServer(hit.Instance, hit.Normal, hit.Position)
+		cfg.bulletHoleLocal:Fire(hit.Instance, hit.Normal, hit.Position)
+
+		local dist = (hit.Position - barrel).Magnitude
+		Bullet(barrel, hit.Position, dir, dist, {
+			Color = ColorSequence.new(Color3.fromRGB(255,170,0))
+		})
+		cfg.bulletBeamEvent:FireServer(barrel, hit.Position, dir, dist)
+	end
+
+	-- center pellet
+	shootDir(baseDir)
+
+	-- rings
+	for ringIndex, count in ipairs(shotgun.rings) do
+		if ringIndex == 1 then continue end -- skip center
+		local radius = SPREAD_ANGLE * (ringIndex - 1)
+		for i = 1, count do
+			local theta = (2 * math.pi / count) * i
+			local x = math.cos(theta) * radius
+			local y = math.sin(theta) * radius
+			local dir =
+				(CFrame.new(Vector3.zero, baseDir)
+					* CFrame.Angles(x, y, 0)).LookVector
+			shootDir(dir)
+		end
+	end
+end
+
+function GunCore._primaryFire(state, cfg: GunConfig, vmIdle, vmPullout, vmReload, vmFire, vmScopedFire, vmScopeIn, vmScopeIdle, vmReload, updateAmmoUI, scopedAllowed: boolean?)
+	if not state.equipped or state.animLock or state.reloading or state.pulloutAnimPlaying then return end
+	
+	local now = os.clock()
+	local cd = state.scoped and cfg.fireCooldownADS or cfg.fireCooldown
+
+	if now - state.lastFireTime < cd then
+		return false
+	end
+
+	state.lastFireTime = now
+
+	if state.currentAmmo <= 0 then
+		if not state.noAmmoPlayed then
+			state.noAmmoPlayed = true
+			local na = state.tool:FindFirstChild("noAmmo")
+			if na then (na :: Sound):Play() end
+		end
+		return
+	end
+
+	if vmReload and vmReload.IsPlaying then return end
+
+	cfg.sprintChangeBindable:Fire(false, true)
+	-- special: sniper moving = huge inaccuracy (or block)
+	local pp = player.Character and player.Character.PrimaryPart
+	local moving = false
+	if pp then
+		moving = (pp.Velocity * Vector3.new(1,0,1)).Magnitude > 0.01
+	end
+	if cfg.special and cfg.special.movingInaccuracyHuge and moving then
+		-- emulate "inaccurate while moving" by boosting spread a lot
+	end
+
+	-- sound + muzzle
+	playWeightedShootSound(state.shootSoundsFolder, state.tool)
+	if cfg.shootSoundRemote then cfg.shootSoundRemote:FireServer(player.Character.PrimaryPart.Position) end
+	if state.currentVM then cfg.playMuzzle(state.currentVM) end
+
+	-- compute how many projectiles (1 or pellets)
+	local pellets = (cfg.special and cfg.special.pellets) or 1
+	local extraPerPellet = (cfg.special and cfg.special.extraSpread) or 0
+
+	local screenC = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+	
+	if cfg.special and cfg.special.shotgun then
+		fireShotgunPattern(state, cfg)
+	else
+		for i = 1, pellets do
+			local spread = 0
+			if state.scoped and state.inCrouch then spread += cfg.inaccuracyBothBonus 
+			elseif state.scoped then spread += cfg.inaccuracyScopedBonus
+			elseif state.inCrouch then spread += cfg.inaccuracyCrouchBonus
+			else spread += cfg.inaccuracyStanding 
+			end
+
+			if isAirborne(state, state.hum) then spread += cfg.inaccuracyAir end
+
+			if pellets > 1 then spread += extraPerPellet end
+			if cfg.special and cfg.special.movingInaccuracyHuge and moving then
+				spread += 150 -- crank up while moving for sniper feel
+			end
+
+			local o, d = computeScreenRayWithSpread(screenC, spread)
+			local hit = doRaycastIgnoreChar(o, d, player.Character)
+			if hit then
+				state.remoteHit:FireServer(hit.Instance)
+				cfg.bulletHoleRemote:FireServer(hit.Instance, hit.Normal, hit.Position)
+				cfg.bulletHoleLocal:Fire(hit.Instance, hit.Normal, hit.Position)
+
+				local barrel = cfg.getBarrelWorldPos(state.currentVM)
+				local dir = (hit.Position - barrel).Unit
+				local distance = (hit.Position - barrel).Magnitude
+				
+				if cfg.special and cfg.special.sniper then
+
+					local laserBeam = Instance.new("Part")
+					laserBeam.Name = "LaserBeam"
+					laserBeam.Shape = Enum.PartType.Cylinder
+					laserBeam.Anchored = true
+					laserBeam.CanCollide = false
+					laserBeam.CanQuery = false
+					laserBeam.CanTouch = false
+					laserBeam.Transparency = 0.15 -- 0.15
+					laserBeam.Color = cfg.localBulletColor
+					laserBeam.Material = Enum.Material.Neon
+					laserBeam.Size = Vector3.new(distance, 0.07, 0.07)
+					local midpoint = (barrel + hit.Position) / 2
+					laserBeam.CFrame = CFrame.new(midpoint, hit.Position) * CFrame.Angles(0, math.rad(90), 0)  -- Rotate 90 degrees on Z-axis
+					laserBeam.Parent = workspace
+
+					local laserBeam1 = Instance.new("Part")
+					laserBeam1.Name = "LaserBeam"
+					laserBeam1.Shape = Enum.PartType.Cylinder
+					laserBeam1.Anchored = true
+					laserBeam1.CanCollide = false
+					laserBeam1.CanQuery = false
+					laserBeam1.CanTouch = false
+					laserBeam1.Transparency = 0.15 -- 0.15
+					laserBeam1.Color = cfg.localBulletColor
+					laserBeam1.Material = Enum.Material.Neon
+					laserBeam1.Size = Vector3.new(distance, 0.116, 0.116)
+					laserBeam1.CFrame = CFrame.new(midpoint, hit.Position) * CFrame.Angles(0, math.rad(90), 0)  -- Rotate 90 degrees on Z-axis
+					laserBeam1.Parent = workspace
+
+					local tween1 = createFadeTween(laserBeam)
+					local tween2 = createFadeTween(laserBeam1)
+
+					tween1:Play()
+					tween2:Play()
+
+					-- Wait for the fade-out duration, then destroy parts and lights
+					task.delay(0.5, function()
+						laserBeam:Destroy()
+						laserBeam1:Destroy()
+					end)
+					
+					cfg.sniperShootEvent:FireServer(laserBeam.Size, laserBeam.CFrame, laserBeam1.Size, laserBeam1.CFrame)
+				else
+					Bullet(barrel, hit.Position, dir, distance, { Color = ColorSequence.new(cfg.localBulletColor or Color3.fromRGB(255,170,0)) })
+					cfg.bulletBeamEvent:FireServer(barrel, hit.Position, dir, distance)
+				end
+
+			end
+		end
+	end
+
+	if cfg.special and cfg.special.sniper then
+		if state.scoped then
+			GunCore._toggleADS(state, cfg, vmIdle, vmFire, vmScopeIn, vmScopeIdle, vmPullout, vmReload, vmScopedFire, true)
+		end
+	end
+
+
+	-- recoil & animations
+	applyRecoil(state, cfg)
+	state.animLock = true
+	state.currentAmmo -= 1
+	updateAmmoUI()
+
+	if state.scoped and vmScopedFire and vmScopeIdle and vmScopeIdle.IsPlaying and (scopedAllowed ~= false) then 
+		vmScopedFire.KeyframeReached:Connect(function(kf)
+			local sfxName = cfg.keyframeSfx[kf]
+			if sfxName then
+				local snd = state.tool:FindFirstChild(sfxName, true)
+				if snd and snd:IsA("Sound") then snd:Play() end
+			end
+		end)
+		vmScopedFire:Play()
+		if cfg.animSpeeds.ScopedFire then vmScopedFire:AdjustSpeed(cfg.animSpeeds.ScopedFire) end
+
+	elseif vmFire then 
+		
+		vmFire.KeyframeReached:Connect(function(kf)
+			local sfxName = cfg.keyframeSfx[kf]
+			if sfxName then
+				local snd = state.tool:FindFirstChild(sfxName, true)
+				if snd and snd:IsA("Sound") then snd:Play() end
+			end
+		end)
+		if vmScopeIn then
+			if vmScopeIn.IsPlaying == false then
+				vmFire:Play()
+
+			end
+		else
+			vmFire:Play()
+
+		end
+		--vmFire:Play()
+		if cfg.animSpeeds.Fire then vmFire:AdjustSpeed(cfg.animSpeeds.Fire) end
+
+	end
+	
+	for i,v in state.currentVM:WaitForChild("Humanoid"):GetPlayingAnimationTracks() do
+		if v.Name == "Inspect" then
+			v:Stop() 
+		end
+	end
+	
+	if state.charFireTrack then
+		state.charFireTrack:Play()
+		if (cfg.animSpeeds.CharFire) then state.charFireTrack:AdjustSpeed(cfg.animSpeeds.CharFire) end
+	end
+	
+	if cfg.fireMode == "semi" then
+		task.delay(cfg.fireCooldown, function()
+			if not state.equipped then return end
+			state.animLock = false
+			if state.currentAmmo == 0 and state.reserveAmmo > 0 then
+				GunCore._reload(state, cfg, vmIdle, vmFire, vmScopeIn, vmScopeIdle, vmPullout, vmReload, updateAmmoUI)
+			end
+		end)
+	elseif cfg.fireMode == "auto" then
+		task.spawn(function()
+	
+			state.animLock = false
+			if state.currentAmmo == 0 and state.reserveAmmo > 0 then
+				GunCore._reload(state, cfg, vmIdle, vmFire, vmScopeIn, vmScopeIdle, vmPullout, vmReload, updateAmmoUI)
+			end
+		end)
+	end
+	return true
+end
+
+function GunCore._burstFire(state, cfg: GunConfig, vmIdle, vmFire, vmScopeIn, vmScopeIdle, vmPullout, vmReload, updateAmmoUI)
+	if not cfg.rightClickBurst or cfg.rightClickBurst <= 1 then return end
+	if not state.equipped or state.animLock or state.reloading then return end
+	if state.currentAmmo <= 0 then
+		local na = state.tool:FindFirstChild("noAmmo"); if na then (na :: Sound):Play() end
+		return
+	end
+	if vmReload and vmReload.IsPlaying then return end
+
+	cfg.sprintChangeBindable:Fire(false, true)
+
+	-- play sound & muzzle once
+	playWeightedShootSound(state.shootSoundsFolder, state.tool)
+	if cfg.shootSoundRemote then cfg.shootSoundRemote:FireServer(player.Character.PrimaryPart.Position) end
+	if state.currentVM then cfg.playMuzzle(state.currentVM) end
+
+	local bullets = math.min(cfg.rightClickBurst, state.currentAmmo)
+	local extraSpread = cfg.rightClickExtraSpread or 0
+	local screenC = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+
+	for i = 1, bullets do
+		local spread = cfg.inaccuracyStanding + extraSpread
+		local o, d = computeScreenRayWithSpread(screenC, spread)
+		local hit = doRaycastIgnoreChar(o, d, player.Character)
+		if hit then
+			state.remoteHit:FireServer(hit.Instance)
+			cfg.bulletHoleRemote:FireServer(hit.Instance, hit.Normal, hit.Position)
+			cfg.bulletHoleLocal:Fire(hit.Instance, hit.Normal, hit.Position)
+			local barrel = cfg.getBarrelWorldPos(state.currentVM)
+			local dir = (hit.Position - barrel).Unit
+			local distance = (hit.Position - barrel).Magnitude
+			Bullet(barrel, hit.Position, dir, distance, { Color = ColorSequence.new(cfg.localBulletColor or Color3.fromRGB(255,170,0)) })
+			cfg.bulletBeamEvent:FireServer(barrel, hit.Position, dir, distance)
+		end
+	end
+
+	applyRecoil(state, cfg)
+	state.animLock = true
+	state.currentAmmo -= bullets
+	updateAmmoUI()
+	if vmFire then vmFire:Play() if cfg.animSpeeds.Fire then vmFire:AdjustSpeed(cfg.animSpeeds.Fire) end
+	end
+	
+	for i,v in state.currentVM:WaitForChild("Humanoid"):GetPlayingAnimationTracks() do
+		if v.Name == "Inspect" then
+			v:Stop() 
+		end
+	end
+	
+	if state.charFireTrack then
+		state.charFireTrack:Play()
+		if (cfg.animSpeeds.CharFire) then state.charFireTrack:AdjustSpeed(cfg.animSpeeds.CharFire) end
+	end
+
+	task.delay(cfg.fireCooldown * 4, function()
+		if not state.equipped then return end
+		state.animLock = false
+		if state.currentAmmo == 0 and state.reserveAmmo > 0 then
+			GunCore._reload(state, cfg, vmIdle, vmFire, vmScopeIn, vmScopeIdle, vmPullout, vmReload, updateAmmoUI)
+		end
+	end)
+end
+
+function GunCore._toggleADS(state, cfg: GunConfig, vmIdle, vmFire, vmScopeIn, vmScopeIdle, vmPullout, vmReload, vmScopedFire, forceOff: boolean?)
+	if not cfg.ads or not cfg.ads.enabled or not vmScopeIn or not vmScopeIdle then return end
+	if vmScopeIn.IsPlaying or vmReload.IsPlaying or vmPullout.IsPlaying then return end
+	if state.reloading then return end
+	if cfg.special and cfg.special.sniper and state.animLock then return end
+	local turnOn = (not state.scoped)
+	if forceOff then turnOn = false end
+	if state.currentAmmo <= 0 and turnOn then return end
+	
+	if vmFire.IsPlaying then
+		vmFire:Stop()
+	end
+	
+	for i,v in state.currentVM:WaitForChild("Humanoid"):GetPlayingAnimationTracks() do
+		if v.Name == "Inspect" or v.Name == "Idle" or v.Name == "Fire" then
+			v:Stop() 
+		end
+	end
+
+	if turnOn then
+		if vmIdle and vmIdle.IsPlaying then vmIdle:Stop() end
+		
+		cfg.changeScopingStateBindable:Fire(true)
+		cfg.sprintChangeBindable:Fire(false, false)
+		
+		state.scopePlaying = true
+		vmScopeIn:Play()
+
+		if cfg.animSpeeds.ScopeIn then vmScopeIn:AdjustSpeed(cfg.animSpeeds.ScopeIn) end
+		if state.charScopeTrack then
+			state.charScopeTrack:Play()
+			if (cfg.animSpeeds.CharScope) then state.charScopeTrack:AdjustSpeed(cfg.animSpeeds.CharScope) end
+			state.charScopeTrack.Stopped:Connect(function()
+				if not state.equipped then return end
+				
+				if state.charScopeIdleTrack then
+					state.charScopeIdleTrack.Looped = true
+					state.charScopeIdleTrack:Play()
+				end
+			end)
+		end
+		
+		if cfg.special == nil or not cfg.special.sniper then
+			GunCore._tweenFov(cfg.ads.fov or 58, 0.12)
+		end
+
+		-- rifle: hide parts when scoped
+		if cfg.ads.hidePartsOnScope and state.currentVM then
+			setTransparencyPaths(state.currentVM, cfg.ads.hidePartsOnScope, 0.9)
+		end
+
+		vmScopeIn.Stopped:Connect(function()
+			if not state.equipped then return end
+
+			cfg.adsClickInSound:Play()
+
+			if cfg.special and cfg.special.sniper then
+				cfg.sniperGlareEvent:FireServer(state.glareGui, true)
+
+				uis.MouseDeltaSensitivity = player.GeneralInfo.Sensitivity.Value * (player.ADS_Sens.ADSsens.Value)
+				Camera.FieldOfView = 20
+				for _, part in ipairs(state.currentVM:GetDescendants()) do
+					if part:IsA("BasePart") or part:IsA("Decal") or part:IsA("MeshPart") and part.Name ~= "CameraBone" and part.Name ~= "HumanoidRootPart" and part.Name ~= "LeftArm" and part.Name ~= "RightArm" then
+						part.LocalTransparencyModifier = 1
+					end
+				end
+				player.PlayerGui.Crosshair.Enabled = false
+				player.PlayerGui.Crosshair.Lines.Enabled = false
+			end
+
+			if vmScopeIdle then
+				vmScopeIdle.Looped = true; vmScopeIdle:Play()
+				state.scoped = true
+				state.scopePlaying = false
+				if state.scopeOverlay then state.scopeOverlay.Enabled = true end
+
+			end
+		end)
+		
+	else
+		if state.scopeOverlay then state.scopeOverlay.Enabled = false end
+		if cfg.special and cfg.special.sniper then
+			cfg.sniperGlareEvent:FireServer(state.glareGui, false)
+			if state.charScopeIdleTrack then
+				state.charScopeIdleTrack:Stop()
+			end
+			if player.CrosshairData.linesEnabled.Value then
+				player.PlayerGui.Crosshair.Lines.Enabled = true
+			end
+			player.PlayerGui.Crosshair.Enabled = true
+			uis.MouseDeltaSensitivity = player.GeneralInfo.Sensitivity.Value
+
+		end
+		
+		cfg.changeScopingStateBindable:Fire(false)
+		cfg.adsClickOutSound:Play()
+		
+		if cfg.special == nil or not cfg.special.sniper then
+			GunCore._tweenFov(70, 0.12)
+
+		end
+		if vmScopeIn and vmScopeIn.IsPlaying then vmScopeIn:Stop() end
+		if vmScopeIdle and vmScopeIdle.IsPlaying then vmScopeIdle:Stop() end
+		if vmIdle then vmIdle:Play() end
+		state.scoped = false
+
+		-- rifle: restore parts
+		if cfg.ads.hidePartsOnScope and state.currentVM then
+			setTransparencyPaths(state.currentVM, cfg.ads.hidePartsOnScope, 0)
+			if cfg.special and cfg.special.sniper then
+				Camera.FieldOfView = 70
+
+				for _, part in ipairs(state.currentVM:GetDescendants()) do
+					if part:IsA("BasePart") or part:IsA("Decal") or part:IsA("MeshPart") and part.Name ~= "CameraBone" and part.Name ~= "HumanoidRootPart" and part.Name ~= "LeftArm" and part.Name ~= "RightArm" then
+						part.LocalTransparencyModifier = 0
+					end
+				end
+			end
+		end
+	end
+end
+
+function GunCore._reload(state, cfg: GunConfig, vmIdle, vmFire, vmScopeIn, vmScopeIdle, vmPullout, vmReload, updateAmmoUI)
+	if state.reloading or state.animLock or state.reserveAmmo <= 0 then return end
+	
+	if cfg.special and cfg.special.shotgun then
+		GunCore._shotgunReload(state, cfg, vmIdle, vmReload, updateAmmoUI)
+		return
+	end
+	
+	if cfg.ads and cfg.ads.enabled and state.scoped then
+		GunCore._toggleADS(state, cfg, vmIdle, vmFire, vmScopeIn, vmScopeIdle, vmPullout, vmReload, vmScopedFire, true)
+	end
+	
+	for i,v in state.currentVM:WaitForChild("Humanoid"):GetPlayingAnimationTracks() do
+		if v.Name == "Inspect" then
+			v:Stop() 
+		end
+	end
+	
+	state.noAmmoPlayed = false
+	state.reloading = true
+	
+	cfg.reloadWeaponBindable:Fire(true)
+	cfg.sprintChangeBindable:Fire(false, false)
+	
+	if cfg.actionSfx and cfg.actionSfx.ReloadStart then
+		playToolSfx(state.tool, cfg.actionSfx.ReloadStart)
+	end
+
+	if vmReload then
+		vmReload.Stopped:Connect(function()
+			cfg.reloadWeaponBindable:Fire(false)
+		end)
+		vmReload.KeyframeReached:Connect(function(kf)
+			local sfxName = cfg.keyframeSfx[kf]
+			if sfxName then
+				local snd = state.tool:FindFirstChild(sfxName, true)
+				if snd and snd:IsA("Sound") then snd:Play() end
+			end
+			if kf == "Reloaded" then
+				local need = cfg.maxAmmo - state.currentAmmo
+				if state.reserveAmmo > need then
+					state.currentAmmo = cfg.maxAmmo
+					state.reserveAmmo -= need
+				else
+					state.currentAmmo += state.reserveAmmo
+					state.reserveAmmo = 0
+				end
+				updateAmmoUI()
+				state.reloading = false
+			end
+		end)
+		vmReload:Play()
+		
+		if cfg.animSpeeds.Reload then vmReload:AdjustSpeed(cfg.animSpeeds.Reload) end
+	end
+	if vmReload then
+		if cfg.reloadSoundRemote then cfg.reloadSoundRemote:FireServer(player.Character.PrimaryPart.Position) end
+		if state.charReloadTrack then
+			state.charReloadTrack:Play()
+			if (cfg.animSpeeds.CharReload) then state.charReloadTrack:AdjustSpeed(cfg.animSpeeds.CharReload) end
+		end
+	else
+		-- fallback instant reload
+		local need = cfg.maxAmmo - state.currentAmmo
+		local give = math.min(need, state.reserveAmmo)
+		state.currentAmmo += give
+		state.reserveAmmo -= give
+		updateAmmoUI()
+		state.reloading = false
+	end
+end
+
+function GunCore._shotgunReload(state, cfg: GunConfig, vmIdle, vmReload, updateAmmoUI)
+	if state.reloading or state.reserveAmmo <= 0 then return end
+	
+	if cfg.ads and cfg.ads.enabled and state.scoped then
+		GunCore._toggleADS(state, cfg, vmIdle, vmFire, vmScopeIn, vmScopeIdle, vmPullout, vmReload, vmScopedFire, true)
+	end
+
+	for i,v in state.currentVM:WaitForChild("Humanoid"):GetPlayingAnimationTracks() do
+		if v.Name == "Inspect" then
+			v:Stop() 
+		end
+	end
+
+	state.reloading = true
+	state.noAmmoPlayed = false
+	
+	cfg.reloadWeaponBindable:Fire(true)
+	cfg.sprintChangeBindable:Fire(false, false)
+
+	local reloadMoveGun
+	local reloadBackForth
+	local reloadGunBack
+
+	for _, inst in ipairs(state.tool:GetDescendants()) do
+		if inst:IsA("Animation") and inst.Name == "ReloadMoveGun" then
+			reloadMoveGun = inst
+		elseif inst:IsA("Animation") and inst.Name == "ReloadBackForth" then
+			reloadBackForth = inst
+		elseif inst:IsA("Animation") and inst.Name == "ReloadGunBack" then
+			reloadGunBack = inst
+		end
+	end
+
+	local charReloadMoveGunTrack = (state.hum and reloadMoveGun)
+		and state.hum.Animator:LoadAnimation(reloadMoveGun)
+		or nil
+
+	local charReloadBackForthTrack = (state.hum and reloadBackForth)
+		and state.hum.Animator:LoadAnimation(reloadBackForth)
+		or nil
+
+	local charReloadGunBackTrack = (state.hum and reloadGunBack)
+		and state.hum.Animator:LoadAnimation(reloadGunBack)
+		or nil
+	
+	local A = cfg.special.shotgun.getVMReloadAnimations(state.currentVM)
+	local hum = state.currentVM:WaitForChild("Humanoid") :: Humanoid
+	local vmReloadBackForth = state.vmReloadBackForth
+	local vmReloadGunBack = state.vmReloadGunBack
+	local vmReloadMoveGun = state.vmReloadMoveGun
+
+	if vmReloadBackForth and vmReloadGunBack and vmReloadMoveGun then
+		if vmReloadBackForth.IsPlaying and vmReloadGunBack.IsPlaying and vmReloadMoveGun.IsPlaying then return end
+	end
+		
+	vmReloadMoveGun:Play()
+	vmReloadMoveGun:AdjustSpeed(cfg.special.shotgun.vmReloadMoveGunSpeed)
+	charReloadMoveGunTrack:Play()
+	charReloadMoveGunTrack:AdjustSpeed(cfg.special.shotgun.charReloadMoveGunSpeed)
+
+	
+	vmReloadMoveGun.Stopped:Connect(function()
+		if not state.equipped or state.animLock then
+			state.reloading = false
+			cfg.reloadWeaponBindable:Fire(false)
+			return
+		end
+
+		if state.currentAmmo < cfg.maxAmmo and state.reserveAmmo > 0 then
+			if state.currentAmmo == (4) then
+				vmReloadGunBack:Play()
+				vmReloadGunBack:AdjustSpeed(cfg.special.shotgun.vmReloadGunBackSpeed)
+				charReloadGunBackTrack:Play()
+				charReloadGunBackTrack:AdjustSpeed(cfg.special.shotgun.charReloadGunBackSpeed)
+			else
+				vmReloadBackForth:Play()
+				vmReloadBackForth:AdjustSpeed(cfg.special.shotgun.vmReloadBackForthSpeed)
+				charReloadBackForthTrack:Play()
+				charReloadBackForthTrack:AdjustSpeed(cfg.special.shotgun.charReloadBackForthSpeed)
+			end
+		end
+	end)
+	
+	vmReloadBackForth.Stopped:Connect(function()
+		if not state.equipped or state.animLock then
+			state.reloading = false
+			cfg.reloadWeaponBindable:Fire(false)
+			return
+		end
+
+		if state.currentAmmo < cfg.maxAmmo and state.reserveAmmo > 0  then
+			if state.currentAmmo == (4) then
+				vmReloadGunBack:Play()
+				vmReloadGunBack:AdjustSpeed(cfg.special.shotgun.vmReloadGunBackSpeed)
+				charReloadGunBackTrack:Play()
+				charReloadGunBackTrack:AdjustSpeed(cfg.special.shotgun.charReloadGunBackSpeed)
+			else
+				vmReloadBackForth:Play()
+				vmReloadBackForth:AdjustSpeed(cfg.special.shotgun.vmReloadBackForthSpeed)
+				charReloadBackForthTrack:Play()
+				charReloadBackForthTrack:AdjustSpeed(cfg.special.shotgun.charReloadBackForthSpeed)
+			end
+		end
+	end)
+
+	vmReloadGunBack.Stopped:Connect(function()
+		state.reloading = false
+		cfg.reloadWeaponBindable:Fire(false)
+	end)
+	
+	if not state.equipped or state.animLock then
+		state.reloading = false
+		cfg.reloadWeaponBindable:Fire(false)
+	end
+
+end
+
+
+return GunCore
