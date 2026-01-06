@@ -1,0 +1,726 @@
+local player = game.Players.LocalPlayer
+local players = game:GetService("Players")
+--local character = player.Character or player.CharacterAdded:Wait()
+--player.CameraMinZoomDistance = 4
+local Camera = workspace.CurrentCamera
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local enableScoreboard = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("EnableScoreboard")
+local otherPlayer = ReplicatedStorage:WaitForChild("OtherPlayer")
+local nextRound = ReplicatedStorage:WaitForChild("NextRound")
+local nextRound2v2 = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("NextRound2v2")
+--local Humanoid = character:WaitForChild("Humanoid")
+local character
+local Humanoid
+local SetWeaponPictures = ReplicatedStorage:WaitForChild("SetWeaponPictures")
+local PingNumbers2v2 = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("PingNumbers2v2")
+local Lighting = game:GetService("Lighting")
+local LightingParts = ReplicatedStorage:WaitForChild("LightingParts")
+local uis = game:GetService("UserInputService")
+
+local gameEnded = ReplicatedStorage:WaitForChild("GameEnded")
+local postRoundRE = ReplicatedStorage:WaitForChild("PostRound")
+local disableScoreboard = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("DisableScoreboard")
+local HideOrShowArmor = ReplicatedStorage:WaitForChild("HideOrShowArmor")
+local playerDied = game:GetService("ReplicatedStorage").Died
+local TwoVsTwoSetIcons = ReplicatedStorage:WaitForChild("TwoVsTwoSetIcons") 
+local enableScoreboard2v2 = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("EnableScoreboard2v2")
+local DealtDamage = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("DealtDamage")
+local AssignBoosterFloor = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("AssignBoosterFloor")
+local SyringeActivated = game:GetService("ReplicatedStorage"):WaitForChild("AbilityActions"):WaitForChild("SyringeActivated")
+local RegenPotActivated = game:GetService("ReplicatedStorage"):WaitForChild("AbilityActions"):WaitForChild("RegenPotActivated")
+
+playerDied.OnClientEvent:Connect(function()
+	uis.MouseDeltaSensitivity = player.GeneralInfo.Sensitivity.Value
+	Camera.FieldOfView = 70
+	for _, ScopeOverlay in player.PlayerGui:WaitForChild("Scopes"):GetChildren() do
+		if ScopeOverlay:IsA("ScreenGui") then
+			ScopeOverlay.Enabled = false
+		end
+	end
+	local Humanoid = player.Character:WaitForChild("Humanoid")
+	Humanoid:UnequipTools()
+	for _, part in Camera:GetChildren() do
+		part:Destroy()
+	end
+	for i,v in Humanoid:GetPlayingAnimationTracks() do
+		if v.Looped and v.Name == "Idle" then
+			v:Stop()
+		end
+	end
+end)
+
+local GameLeaderboard1v1 = player:WaitForChild("PlayerGui"):WaitForChild("GameLeaderboard"):WaitForChild("TwoPlayerLeaderboard"):WaitForChild("Background")
+local GameLeaderboard2v2 = player:WaitForChild("PlayerGui"):WaitForChild("GameLeaderboard"):WaitForChild("FourPlayerLeaderboard"):WaitForChild("Background")
+
+local gameStarted = false
+local postRound = false
+
+local player2Score = player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("Player2Frame"):WaitForChild("Score2")
+local player2ScoreText = player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("Player2Frame"):WaitForChild("Player2Score")
+local p2Icon = player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("Player2Frame"):WaitForChild("Icon")
+local timerTextLabel = player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("TimerFrame"):WaitForChild("Timer")
+
+local team1Score = player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("Team2Players2Frame"):WaitForChild("Score2")
+local p1Icon = player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("Player1Frame"):WaitForChild("Icon")
+local Team1P1Icon = player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("Team1Players2Frame"):WaitForChild("Player1Icon")
+local Team1P2Icon = player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("Team1Players2Frame"):WaitForChild("Player2Icon")
+local Team2P1Icon = player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("Team2Players2Frame"):WaitForChild("Player1Icon")
+local Team2P2Icon = player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("Team2Players2Frame"):WaitForChild("Player2Icon")
+
+local CreateEnemyHighlight = ReplicatedStorage:WaitForChild("CreateEnemyHighlight")
+local CreateAllyHighlight = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("CreateAllyHighlight")
+
+local ImageSize = Enum.ThumbnailSize.Size420x420 -- Thumbnail Size
+local ImageType = Enum.ThumbnailType.HeadShot -- Thumbnail Type'
+
+local currentMap = "None"
+local currentGameNumber
+
+local ChangePlayerIcon = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("ChangePlayerIcon")
+
+local content = game.Players:GetUserThumbnailAsync(player.UserId, ImageType, ImageSize) -- Gets Image from UserId
+local BarrierChange = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("BarrierChange")
+
+local OasisMapFolder = workspace:WaitForChild("OasisMaps")
+local IntensityMapFolder = workspace:WaitForChild("IntensityMaps")
+local HyperiaMapFolder = workspace:WaitForChild("HyperiaMaps")
+local CryofrostMapFolder = workspace:WaitForChild("CryofrostMaps")
+local EtherionMapFolder = workspace:WaitForChild("EtherionMaps")
+
+local OasisMap1 = OasisMapFolder:WaitForChild("Oasis1")
+local OasisMap2 = OasisMapFolder:WaitForChild("Oasis2")
+local OasisMap3 = OasisMapFolder:WaitForChild("Oasis3")
+local OasisMap4 = OasisMapFolder:WaitForChild("Oasis4")
+local OasisMap5 = OasisMapFolder:WaitForChild("Oasis5")
+local OasisMap6 = OasisMapFolder:WaitForChild("Oasis6")
+local OasisMap7 = OasisMapFolder:WaitForChild("Oasis7")
+local OasisMap8 = OasisMapFolder:WaitForChild("Oasis8")
+local OasisMap9 = OasisMapFolder:WaitForChild("Oasis9")
+local OasisMap10 = OasisMapFolder:WaitForChild("Oasis10")
+
+local IntensityMap1 = IntensityMapFolder:WaitForChild("Intensity1")
+local IntensityMap2 = IntensityMapFolder:WaitForChild("Intensity2")
+local IntensityMap3 = IntensityMapFolder:WaitForChild("Intensity3")
+local IntensityMap4 = IntensityMapFolder:WaitForChild("Intensity4")
+local IntensityMap5 = IntensityMapFolder:WaitForChild("Intensity5")
+local IntensityMap6 = IntensityMapFolder:WaitForChild("Intensity6")
+local IntensityMap7 = IntensityMapFolder:WaitForChild("Intensity7")
+local IntensityMap8 = IntensityMapFolder:WaitForChild("Intensity8")
+local IntensityMap9 = IntensityMapFolder:WaitForChild("Intensity9")
+local IntensityMap10 = IntensityMapFolder:WaitForChild("Intensity10")
+
+local HyperiaMap1 = HyperiaMapFolder:WaitForChild("Hyperia1")
+local HyperiaMap2 = HyperiaMapFolder:WaitForChild("Hyperia2")
+local HyperiaMap3 = HyperiaMapFolder:WaitForChild("Hyperia3")
+local HyperiaMap4 = HyperiaMapFolder:WaitForChild("Hyperia4")
+local HyperiaMap5 = HyperiaMapFolder:WaitForChild("Hyperia5")
+local HyperiaMap6 = HyperiaMapFolder:WaitForChild("Hyperia6")
+local HyperiaMap7 = HyperiaMapFolder:WaitForChild("Hyperia7")
+local HyperiaMap8 = HyperiaMapFolder:WaitForChild("Hyperia8")
+local HyperiaMap9 = HyperiaMapFolder:WaitForChild("Hyperia9")
+local HyperiaMap10 = HyperiaMapFolder:WaitForChild("Hyperia10")
+
+local CryofrostMap1 = CryofrostMapFolder:WaitForChild("Cryofrost1")
+local CryofrostMap2 = CryofrostMapFolder:WaitForChild("Cryofrost2")
+local CryofrostMap3 = CryofrostMapFolder:WaitForChild("Cryofrost3")
+local CryofrostMap4 = CryofrostMapFolder:WaitForChild("Cryofrost4")
+local CryofrostMap5 = CryofrostMapFolder:WaitForChild("Cryofrost5")
+local CryofrostMap6 = CryofrostMapFolder:WaitForChild("Cryofrost6")
+local CryofrostMap7 = CryofrostMapFolder:WaitForChild("Cryofrost7")
+local CryofrostMap8 = CryofrostMapFolder:WaitForChild("Cryofrost8")
+local CryofrostMap9 = CryofrostMapFolder:WaitForChild("Cryofrost9")
+local CryofrostMap10 = CryofrostMapFolder:WaitForChild("Cryofrost10")
+
+local EtherionMap1 = EtherionMapFolder:WaitForChild("Etherion1")
+local EtherionMap2 = EtherionMapFolder:WaitForChild("Etherion2")
+local EtherionMap3 = EtherionMapFolder:WaitForChild("Etherion3")
+local EtherionMap4 = EtherionMapFolder:WaitForChild("Etherion4")
+local EtherionMap5 = EtherionMapFolder:WaitForChild("Etherion5")
+local EtherionMap6 = EtherionMapFolder:WaitForChild("Etherion6")
+local EtherionMap7 = EtherionMapFolder:WaitForChild("Etherion7")
+local EtherionMap8 = EtherionMapFolder:WaitForChild("Etherion8")
+local EtherionMap9 = EtherionMapFolder:WaitForChild("Etherion9")
+local EtherionMap10 = EtherionMapFolder:WaitForChild("Etherion10")
+
+local Maps = {
+	Intensity = {
+		[1] = IntensityMap1,
+		[2] = IntensityMap2,
+		[3] = IntensityMap3,
+		[4] = IntensityMap4,
+		[5] = IntensityMap5,
+		[6] = IntensityMap6,
+		[7] = IntensityMap7,
+		[8] = IntensityMap8,
+		[9] = IntensityMap9,
+		[10] = IntensityMap10
+	},
+	Oasis = {
+		[1] = OasisMap1,
+		[2] = OasisMap2,
+		[3] = OasisMap3,
+		[4] = OasisMap4,
+		[5] = OasisMap5,
+		[6] = OasisMap6,
+		[7] = OasisMap7,
+		[8] = OasisMap8,
+		[9] = OasisMap9,
+		[10] = OasisMap10
+	},
+	Hyperia = {
+		[1] = HyperiaMap1,
+		[2] = HyperiaMap2,
+		[3] = HyperiaMap3,
+		[4] = HyperiaMap4,
+		[5] = HyperiaMap5,
+		[6] = HyperiaMap6,
+		[7] = HyperiaMap7,
+		[8] = HyperiaMap8,
+		[9] = HyperiaMap9,
+		[10] = HyperiaMap10
+	},
+	Cryofrost = {
+		[1] = CryofrostMap1,
+		[2] = CryofrostMap2,
+		[3] = CryofrostMap3,
+		[4] = CryofrostMap4,
+		[5] = CryofrostMap5,
+		[6] = CryofrostMap6,
+		[7] = CryofrostMap7,
+		[8] = CryofrostMap8,
+		[9] = CryofrostMap9,
+		[10] = CryofrostMap10
+	},
+	Etherion = {
+		[1] = EtherionMap1,
+		[2] = EtherionMap2,
+		[3] = EtherionMap3,
+		[4] = EtherionMap4,
+		[5] = EtherionMap5,
+		[6] = EtherionMap6,
+		[7] = EtherionMap7,
+		[8] = EtherionMap8,
+		[9] = EtherionMap9,
+		[10] = EtherionMap10
+	}
+}
+
+
+local setWeapons = game:GetService("ReplicatedStorage"):WaitForChild("SetWeapons")
+
+local wall1 = Instance.new("Part")
+wall1.Name = "Wall1"
+wall1.Color = Color3.fromRGB(110, 151, 190)
+wall1.Material = Enum.Material.SmoothPlastic
+wall1.Size = Vector3.new(3.922, 61.714, 130.2)
+wall1.Position = Vector3.new(-51.935, 30.357, -1205.809)
+wall1.Orientation = Vector3.new(0, 0, 0)
+wall1.CastShadow = false
+wall1.Anchored = true
+wall1.CanCollide = false
+wall1.CanQuery = false
+wall1.CanTouch = false
+wall1.Transparency = 1
+wall1.Parent = workspace
+
+local wall2 = Instance.new("Part")
+wall2.Name = "Wall2"
+wall2.Color = Color3.fromRGB(110, 151, 190)
+wall2.Material = Enum.Material.SmoothPlastic
+wall2.Size = Vector3.new(3.834, 61.714, 130.2)
+wall2.Position = Vector3.new(-0.683, 30.357, -1205.809)
+wall2.Orientation = Vector3.new(0, 180, 0)
+wall2.CastShadow = false
+wall2.Anchored = true
+wall2.CanCollide = false
+wall2.CanQuery = false
+wall2.CanTouch = false
+wall2.Transparency = 1
+wall2.Parent = workspace
+
+local coreCall do
+	local MAX_RETRIES = 8
+
+	local StarterGui = game:GetService('StarterGui')
+	local RunService = game:GetService('RunService')
+
+	function coreCall(method, ...)
+		local result = {}
+		for retries = 1, MAX_RETRIES do
+			result = {pcall(StarterGui[method], StarterGui, ...)}
+			if result[1] then
+				break
+			end
+			RunService.Stepped:Wait()
+		end
+		return unpack(result)
+	end
+end
+
+local function ChangeSky(map)
+	if map ~= currentMap then
+		for _, item in Lighting:GetDescendants() do
+			if item.Name ~= "Blur" and item.Name ~= "ColorCorrection" then
+				item:Destroy()
+			end
+		end
+		if map == "Intensity" then
+			Lighting.Ambient = Color3.fromRGB(70, 70, 70)
+			Lighting.Brightness = 0.5
+			Lighting.ColorShift_Bottom = Color3.fromRGB(0, 0, 0)
+			Lighting.ColorShift_Top = Color3.fromRGB(0, 0, 0)
+			Lighting.EnvironmentDiffuseScale = 0.811
+			Lighting.EnvironmentSpecularScale = 0.799
+			Lighting.GlobalShadows = true
+			Lighting.OutdoorAmbient = Color3.fromRGB(70, 70, 70)
+			Lighting.ShadowSoftness = 0.2
+			Lighting.ClockTime = 12
+			Lighting.GeographicLatitude = 0
+			for _, part in LightingParts:WaitForChild("Default"):GetChildren() do
+				local PartClone = part:Clone()
+				PartClone.Parent = Lighting
+			end
+		elseif map == "Oasis" then
+			Lighting.Ambient = Color3.fromRGB(70, 70, 70)
+			Lighting.Brightness = 1.7
+			Lighting.ColorShift_Bottom = Color3.fromRGB(0, 0, 0)
+			Lighting.ColorShift_Top = Color3.fromRGB(0, 0, 0)
+			Lighting.EnvironmentDiffuseScale = 1
+			Lighting.EnvironmentSpecularScale = 1
+			Lighting.GlobalShadows = true
+			Lighting.OutdoorAmbient = Color3.fromRGB(70, 70, 70)
+			Lighting.ShadowSoftness = 0.2
+			Lighting.ClockTime = 17.5
+			Lighting.GeographicLatitude = 0
+			for _, part in LightingParts:WaitForChild("OasisSunset"):GetChildren() do
+				local PartClone = part:Clone()
+				PartClone.Parent = game.Lighting
+			end
+		elseif map == "Hyperia" then
+			Lighting.Ambient = Color3.fromRGB(70, 70, 70)
+			Lighting.Brightness = 0.5
+			Lighting.ColorShift_Bottom = Color3.fromRGB(0, 0, 0)
+			Lighting.ColorShift_Top = Color3.fromRGB(0, 0, 0)
+			Lighting.EnvironmentDiffuseScale = 0.811
+			Lighting.EnvironmentSpecularScale = 0.799
+			Lighting.GlobalShadows = true
+			Lighting.OutdoorAmbient = Color3.fromRGB(70, 70, 70)
+			Lighting.ShadowSoftness = 0.2
+			Lighting.ClockTime = 23
+			Lighting.GeographicLatitude = 0
+			for _, part in LightingParts:WaitForChild("Default"):GetChildren() do
+				local PartClone = part:Clone()
+				PartClone.Parent = Lighting
+			end
+		elseif map == "Cryofrost" then
+			Lighting.Ambient = Color3.fromRGB(70, 70, 70)
+			Lighting.Brightness = 0.5
+			Lighting.ColorShift_Bottom = Color3.fromRGB(0, 0, 0)
+			Lighting.ColorShift_Top = Color3.fromRGB(0, 0, 0)
+			Lighting.EnvironmentDiffuseScale = 0.811
+			Lighting.EnvironmentSpecularScale = 0.799
+			Lighting.GlobalShadows = true
+			Lighting.OutdoorAmbient = Color3.fromRGB(70, 70, 70)
+			Lighting.ShadowSoftness = 0.2
+			Lighting.ClockTime = 20.2
+			Lighting.GeographicLatitude = 0
+			for _, part in LightingParts:WaitForChild("Cryofrost"):GetChildren() do
+				local PartClone = part:Clone()
+				PartClone.Parent = Lighting
+			end
+		elseif map == "Etherion" then
+			Lighting.Ambient = Color3.fromRGB(70, 70, 70)
+			Lighting.Brightness = 0.5
+			Lighting.ColorShift_Bottom = Color3.fromRGB(0, 0, 0)
+			Lighting.ColorShift_Top = Color3.fromRGB(0, 0, 0)
+			Lighting.EnvironmentDiffuseScale = 0.811
+			Lighting.EnvironmentSpecularScale = 0.799
+			Lighting.GlobalShadows = true
+			Lighting.OutdoorAmbient = Color3.fromRGB(70, 70, 70)
+			Lighting.ShadowSoftness = 0.2
+			Lighting.ClockTime = 6.5
+			Lighting.GeographicLatitude = 0
+			for _, part in LightingParts:WaitForChild("Etherion"):GetChildren() do
+				local PartClone = part:Clone()
+				PartClone.Parent = Lighting
+			end
+		else
+			Lighting.Ambient = Color3.fromRGB(70, 70, 70)
+			Lighting.Brightness = 0.5
+			Lighting.ColorShift_Bottom = Color3.fromRGB(0, 0, 0)
+			Lighting.ColorShift_Top = Color3.fromRGB(0, 0, 0)
+			Lighting.EnvironmentDiffuseScale = 0.811
+			Lighting.EnvironmentSpecularScale = 0.799
+			Lighting.GlobalShadows = true
+			Lighting.OutdoorAmbient = Color3.fromRGB(70, 70, 70)
+			Lighting.ShadowSoftness = 0.2
+			Lighting.ClockTime = 12
+			Lighting.GeographicLatitude = 0
+			for _, part in LightingParts:WaitForChild("Default"):GetChildren() do
+				local PartClone = part:Clone()
+				PartClone.Parent = Lighting
+			end
+		end
+	end
+
+end
+
+
+CreateEnemyHighlight.OnClientEvent:Connect(function(enemyPlayer)
+	local Highlight = Instance.new("Highlight")
+	Highlight.Name = "EnemyHighlight"
+	Highlight.DepthMode = "Occluded"
+	Highlight.FillTransparency = 1
+	Highlight.OutlineTransparency = 0
+	Highlight.OutlineColor = Color3.fromRGB(255, 51, 51)
+	if enemyPlayer:IsA("Model") then
+		Highlight.Parent = enemyPlayer
+	else
+		Highlight.Parent = enemyPlayer.Character
+	end
+end)
+
+CreateAllyHighlight.OnClientEvent:Connect(function(allyPlayer)
+	local character = allyPlayer.Character or allyPlayer.CharacterAdded:Wait()
+	local head = character:FindFirstChild("Head")
+
+	if not head then
+		-- Wait for the Head to appear if it doesn't exist immediately
+		head = character:WaitForChild("Head", 5) -- Wait up to 5 seconds
+		if not head then
+			warn("Head not found for ally: " .. allyPlayer.Name)
+			return
+		end
+	end
+
+	local Highlight = Instance.new("Highlight")
+	Highlight.Name = "AllyHighlight"
+	Highlight.DepthMode = "AlwaysOnTop"
+	Highlight.FillTransparency = 1
+	Highlight.OutlineTransparency = 0
+	Highlight.OutlineColor = Color3.fromRGB(71, 255, 58)
+	Highlight.Parent = character
+
+	-- Check if a BillboardGui already exists for the name tag, and if so, destroy it
+	if head:FindFirstChild("NameTag") then
+		head:FindFirstChild("NameTag"):Destroy()
+	end
+
+	-- Create a new BillboardGui for the name tag
+	local billboardGui = Instance.new("BillboardGui")
+	billboardGui.Name = "NameTag"
+	billboardGui.Size = UDim2.new(0, 75, 0, 22.5)
+	billboardGui.StudsOffset = Vector3.new(0, -5.0, 0) -- Adjust as needed
+	billboardGui.Adornee = head
+	billboardGui.AlwaysOnTop = true
+
+	-- Create a TextLabel for the player's name
+	local textLabel = Instance.new("TextLabel")
+	textLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+	textLabel.Position = UDim2.new(0.5, 0, 0.5, 0)
+	textLabel.Size = UDim2.new(1.5, 0, 1.5, 0)
+	textLabel.BackgroundTransparency = 1
+	textLabel.Text = allyPlayer.DisplayName
+	textLabel.TextColor3 = Color3.new(1, 1, 1)
+	textLabel.TextStrokeTransparency = 1
+	textLabel.TextScaled = true
+	textLabel.Font = Enum.Font.Nunito
+	textLabel.FontFace.Weight = Enum.FontWeight.ExtraBold
+	textLabel.Parent = billboardGui
+
+	-- Parent the BillboardGui to the head
+	billboardGui.Parent = head
+end)
+
+
+local function copyWallData(sourceWall, targetWall)
+	targetWall.Size = sourceWall.Size
+	targetWall.Position = sourceWall.Position
+	targetWall.Orientation = sourceWall.Orientation
+end
+
+
+BarrierChange.OnClientEvent:Connect(function(enable, player1Side, map, gameNumber)
+	local mapFolder = Maps[map] and Maps[map][gameNumber]
+	if not mapFolder then return end
+
+	local wall1Source
+	local wall2Source
+
+	if map == "Oasis" then
+		local barriers = mapFolder:WaitForChild("Barriers")
+		wall1Source = barriers:WaitForChild("Wall1")
+		wall2Source = barriers:WaitForChild("Wall2")
+	elseif map == "Intensity" then
+		wall1Source = mapFolder:WaitForChild("IntensityWall1")
+		wall2Source = mapFolder:WaitForChild("IntensityWall2")
+	elseif map == "Hyperia" then
+		wall1Source = mapFolder:WaitForChild("Wall1")
+		wall2Source = mapFolder:WaitForChild("Wall2")
+	elseif map == "Cryofrost" then
+		wall1Source = mapFolder:WaitForChild("Wall1")
+		wall2Source = mapFolder:WaitForChild("Wall2")
+	elseif map == "Etherion" then
+		wall1Source = mapFolder:WaitForChild("Wall1")
+		wall2Source = mapFolder:WaitForChild("Wall2")
+	end
+
+	if wall1Source and wall2Source then
+		copyWallData(wall1Source, wall1)
+		copyWallData(wall2Source, wall2)
+	end
+
+	ChangeSky(map)
+
+	currentMap = map
+	currentGameNumber = gameNumber
+
+	if enable then
+		if player1Side then
+			wall2.Transparency = 0
+			wall1.Transparency = 0.5
+		else
+			wall2.Transparency = 0.5
+			wall1.Transparency = 0
+		end
+	else
+		wall1.Transparency = 1
+		wall2.Transparency = 1
+	end
+end)
+
+
+setWeapons.OnClientEvent:Connect(function()
+	AssignBoosterFloor:Fire(currentMap, currentGameNumber)
+end)
+
+PingNumbers2v2.OnClientEvent:Connect(function(player1, player2, player3, player4, player1Ping, player2Ping, player3Ping, player4Ping)
+	for _, stat in GameLeaderboard2v2:GetDescendants() do
+		if stat:IsA("TextLabel") and stat.Name == "RealName" then
+			if stat.Text == player1.Name then
+				stat.Parent.Ping.Text = player1Ping
+			elseif stat.Text == player2.Name then
+				stat.Parent.Ping.Text = player2Ping
+			elseif stat.Text == player3.Name then
+				stat.Parent.Ping.Text = player3Ping
+			elseif stat.Text == player4.Name then
+				stat.Parent.Ping.Text = player4Ping
+			end
+		end
+	end
+end)
+
+
+
+enableScoreboard.OnClientEvent:Connect(function(plr)
+	Camera.CameraType = Enum.CameraType.Custom
+	player.CameraMode = Enum.CameraMode.LockFirstPerson -- forces first person
+	player.Character.Humanoid.WalkSpeed = 16
+	player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("Victory").Visible = false
+	player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("Defeat").Visible = false
+	player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("RoundLost").Visible = false
+	player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("RoundWon").Visible = false
+	player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("RoundDraw").Visible = false
+	game.StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+	player:WaitForChild("PlayerGui"):WaitForChild("CoreElements").Enabled = false
+	coreCall('SetCore', 'ResetButtonCallback', false)
+	p1Icon.Image = game.Players:GetUserThumbnailAsync(player.UserId, ImageType, ImageSize)
+	GameLeaderboard1v1:WaitForChild("Player1"):WaitForChild("Icon").Image = content
+	GameLeaderboard1v1:WaitForChild("Player1"):WaitForChild("DisplayName").Text = player.DisplayName
+	GameLeaderboard1v1:WaitForChild("Player1"):WaitForChild("RealName").Text = "@".. player.Name
+	player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard").Enabled = true
+	gameStarted = true
+	player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("Player1Frame").Visible = true
+	player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("Player2Frame").Visible = true
+	player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("Team1Players2Frame").Visible = false
+	player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("Team2Players2Frame").Visible = false
+	for _, image in player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):GetDescendants() do
+		if image:IsA("ImageLabel") then
+			if image.Parent.Name == "Player1Frame" or image.Parent.Name == "Player2Frame" then
+				image.ImageTransparency = 0
+				image.Visible = true
+			end
+		end
+	end
+end)
+
+enableScoreboard2v2.OnClientEvent:Connect(function()
+	Camera.CameraType = Enum.CameraType.Custom
+	player.CameraMode = Enum.CameraMode.LockFirstPerson -- forces first person
+	game.StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+	coreCall('SetCore', 'ResetButtonCallback', false)
+	player:WaitForChild("PlayerGui"):WaitForChild("CoreElements").Enabled = false
+	Team1P1Icon.Image = game.Players:GetUserThumbnailAsync(player.UserId, ImageType, ImageSize)
+	GameLeaderboard2v2:WaitForChild("Team1Player1"):WaitForChild("Icon").Image = content
+	GameLeaderboard2v2:WaitForChild("Team1Player1"):WaitForChild("DisplayName").Text = player.DisplayName
+	GameLeaderboard2v2:WaitForChild("Team1Player1"):WaitForChild("RealName").Text = "@".. player.Name
+	player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard").Enabled = true
+	gameStarted = true
+	player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("Player1Frame").Visible = false
+	player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("Player2Frame").Visible = false
+	player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("Team1Players2Frame").Visible = true
+	player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("Team2Players2Frame").Visible = true
+	for _, image in player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):GetDescendants() do
+		if image:IsA("ImageLabel") then
+			if image.Parent.Name == "Team1Players2Frame" or image.Parent.Name == "Team2Players2Frame" then
+				image.ImageTransparency = 0
+				image.Visible = true
+			end
+		end
+	end
+end)
+
+disableScoreboard.OnClientEvent:Connect(function(plr)
+	game.StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, true)
+	for _, icon in player.PlayerGui:WaitForChild("Scoreboard"):GetDescendants() do
+		if icon:IsA("ImageLabel") and string.match(icon.Name, "Icon") then
+			icon.Image = "rbxassetid://91217805096675"
+		end
+	end
+	ChangeSky("Default")
+	player.CameraMinZoomDistance = 4
+	coreCall('SetCore', 'ResetButtonCallback', true)
+	currentMap = nil
+	--HideOrShowArmor:FireServer(true)
+	player.CameraMode = Enum.CameraMode.Classic
+	player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("Player1Frame"):WaitForChild("Score1").Value = 0
+	player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("Player1Frame"):WaitForChild("Player1Score").Text = "0"
+	player2Score.Value = 0
+	player2ScoreText.Text = tostring(player2Score.Value)
+	player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard").Enabled = false
+end)
+
+nextRound.OnClientEvent:Connect(function(gameNumber, player1, player2)
+	--Camera.FieldOfView = 70  -- Reset FOV to normal
+	if player2Score.Value ~= 5 then
+		nextRound:FireServer(gameNumber, player1, player2, currentMap)
+	end
+end)
+
+nextRound2v2.OnClientEvent:Connect(function(gameNumber, team1player1, team1player2, team2player1, team2player2, losingTeamPlayer1, losingTeamPlayer2)
+	if team1Score.Value ~= 5 then
+		nextRound2v2:FireServer(gameNumber, team1player1, team1player2, team2player1, team2player2, losingTeamPlayer1, losingTeamPlayer2, currentMap)
+	end
+end)
+
+SetWeaponPictures.OnClientEvent:Connect(function()
+	character = player.Character or player.CharacterAdded:Wait()
+	Humanoid = character:WaitForChild("Humanoid")
+end)
+
+otherPlayer.OnClientEvent:Connect(function(otherPlayerUserId, otherPlayer)
+	for _, Stat in player:WaitForChild("PlayerGui"):WaitForChild("GameLeaderboard"):WaitForChild("TwoPlayerLeaderboard"):GetDescendants() do 
+		if Stat:IsA("TextLabel") and Stat.Name ~= "TextLabel" then
+			Stat.Text = "0"
+		end
+	end
+
+	local content2 = game.Players:GetUserThumbnailAsync(otherPlayerUserId, ImageType, ImageSize) -- Gets Image from UserId
+	GameLeaderboard1v1:WaitForChild("Player2"):WaitForChild("Icon").Image = content2
+	GameLeaderboard1v1:WaitForChild("Player2"):WaitForChild("DisplayName").Text = otherPlayer.DisplayName
+	GameLeaderboard1v1:WaitForChild("Player2"):WaitForChild("RealName").Text = "@".. otherPlayer.Name
+	p2Icon.Image = content2
+end)
+
+TwoVsTwoSetIcons.OnClientEvent:Connect(function(teammate, enemy1, enemy2)
+	for _, Stat in player:WaitForChild("PlayerGui"):WaitForChild("GameLeaderboard"):WaitForChild("FourPlayerLeaderboard"):GetDescendants() do 
+		if Stat:IsA("TextLabel") and Stat.Name ~= "TextLabel" then
+			Stat.Text = "0"
+		end
+	end
+
+	local teammatePicture = game.Players:GetUserThumbnailAsync(teammate.UserId, ImageType, ImageSize) 
+	local enemy1Picture = game.Players:GetUserThumbnailAsync(enemy1.UserId, ImageType, ImageSize) 
+	local enemy2Picture = game.Players:GetUserThumbnailAsync(enemy2.UserId, ImageType, ImageSize) 
+
+	GameLeaderboard2v2:WaitForChild("Team1Player2"):WaitForChild("Icon").Image = teammatePicture
+	GameLeaderboard2v2:WaitForChild("Team1Player2"):WaitForChild("DisplayName").Text = teammate.DisplayName
+	GameLeaderboard2v2:WaitForChild("Team1Player2"):WaitForChild("RealName").Text = "@"..teammate.Name
+
+	GameLeaderboard2v2:WaitForChild("Team2Player1"):WaitForChild("Icon").Image = enemy1Picture
+	GameLeaderboard2v2:WaitForChild("Team2Player1"):WaitForChild("DisplayName").Text = enemy1.DisplayName
+	GameLeaderboard2v2:WaitForChild("Team2Player1"):WaitForChild("RealName").Text = "@"..enemy1.Name
+
+	GameLeaderboard2v2:WaitForChild("Team2Player2"):WaitForChild("Icon").Image = enemy2Picture
+	GameLeaderboard2v2:WaitForChild("Team2Player2"):WaitForChild("DisplayName").Text = enemy2.DisplayName
+	GameLeaderboard2v2:WaitForChild("Team2Player2"):WaitForChild("RealName").Text = "@"..enemy2.Name
+
+	Team1P2Icon.Image = teammatePicture
+	Team2P1Icon.Image = enemy1Picture
+	Team2P2Icon.Image = enemy2Picture
+end)
+
+ChangePlayerIcon.OnClientEvent:Connect(function(deadPlayer, gameMode, appearBool)
+	if appearBool then
+		if gameMode == "TwoPlayers" then
+			for _, image in player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):GetDescendants() do
+				if image:IsA("ImageLabel") then
+					if image.Parent.Name == "Player1Frame" or image.Parent.Name == "Player2Frame" then
+						image.ImageTransparency = 0
+						image.Visible = true
+					end
+				end
+			end
+		elseif gameMode == "FourPlayers" then
+			for _, image in player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):GetDescendants() do
+				if image:IsA("ImageLabel") then
+					if image.Parent.Name == "Team1Players2Frame" or image.Parent.Name == "Team2Players2Frame" then
+						image.ImageTransparency = 0
+						image.Visible = true
+					end
+				end
+			end
+		end
+	else
+		if gameMode == "TwoPlayers" then
+			for _, image in player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):GetDescendants() do
+				if image:IsA("ImageLabel") and image.Image == game.Players:GetUserThumbnailAsync(deadPlayer.UserId, ImageType, ImageSize) then
+					if image.Parent.Name == "Player1Frame" or image.Parent.Name == "Player2Frame" then
+						image.ImageTransparency = 0.6
+					end
+				end
+			end
+		elseif gameMode == "FourPlayers" then
+			for _, image in player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):GetDescendants() do
+				if image:IsA("ImageLabel") and image.Image == game.Players:GetUserThumbnailAsync(deadPlayer.UserId, ImageType, ImageSize) then
+					if image.Parent.Name == "Team1Players2Frame" or image.Parent.Name == "Team2Players2Frame" then
+						image.ImageTransparency = 0.6
+					end
+				end
+			end
+		end
+	end
+end)
+
+SyringeActivated.OnClientEvent:Connect(function(otherPlayer, isActivated, abilityDuration)
+	if isActivated then
+		if otherPlayer.Character:FindFirstChild("EnemyHighlight") then
+			otherPlayer.Character.EnemyHighlight.OutlineColor = Color3.fromRGB(0, 200, 255)
+			task.delay(abilityDuration, function()
+				otherPlayer.Character.EnemyHighlight.OutlineColor = Color3.fromRGB(255, 51, 51)
+			end)
+		elseif otherPlayer.Character:FindFirstChild("AllyHighlight") then
+			otherPlayer.Character.AllyHighlight.OutlineColor = Color3.fromRGB(28, 255, 247)
+			task.delay(abilityDuration, function()
+				otherPlayer.Character.AllyHighlight.OutlineColor = Color3.fromRGB(71, 255, 58)
+			end)
+		end
+	end
+end)
+
+RegenPotActivated.OnClientEvent:Connect(function(otherPlayer, isHealing, abilityDuration)
+	if isHealing then
+		if otherPlayer.Character:FindFirstChild("EnemyHighlight") then
+			otherPlayer.Character.EnemyHighlight.OutlineColor = Color3.fromRGB(255, 0, 255)
+			task.delay(abilityDuration, function()
+				otherPlayer.Character.EnemyHighlight.OutlineColor = Color3.fromRGB(255, 51, 51)
+			end)
+		elseif otherPlayer.Character:FindFirstChild("AllyHighlight") then
+			otherPlayer.Character.AllyHighlight.OutlineColor = Color3.fromRGB(225, 75, 255)
+			task.delay(abilityDuration, function()
+				otherPlayer.Character.AllyHighlight.OutlineColor = Color3.fromRGB(71, 255, 58)
+			end)
+		end
+	end
+end)
+
