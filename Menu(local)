@@ -1,0 +1,677 @@
+local uis = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local menuPress = ReplicatedStorage:WaitForChild("MenuPressed")
+local player = game:GetService("Players").LocalPlayer
+local playerDied = game:GetService("ReplicatedStorage").Died
+local DestroyViewmodels = ReplicatedStorage:WaitForChild("Viewmodels"):WaitForChild("DestroyViewmodels")
+
+local inMenu = false
+local weaponSelector = false
+local mapSelector = player:WaitForChild("PlayerGui"):WaitForChild("MapSelector")
+
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local preRoundRE = game:WaitForChild("ReplicatedStorage"):WaitForChild("PreRound")
+
+local Scoreboard = player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard")
+local CustomToolBar = player:WaitForChild("PlayerGui"):WaitForChild("CustomToolBar")
+local BonusesGui = player:WaitForChild("PlayerGui"):WaitForChild("Bonuses")
+local RestoreWinstreakGui = player:WaitForChild("PlayerGui"):WaitForChild("RestoreWinstreak")
+
+local SniperScopeOverlay = player:WaitForChild("PlayerGui"):WaitForChild("Scopes"):WaitForChild("ScopeOverlay")
+
+local slide = player.PlayerGui.Slider
+local playerScripts = player:WaitForChild("PlayerScripts")
+local playerModule = require(playerScripts:WaitForChild("PlayerModule"))
+local Controls = playerModule:GetControls()
+local AbilitiesGUI = player:WaitForChild("PlayerGui"):WaitForChild("Abilities")
+
+local ShopGui = player:WaitForChild("PlayerGui"):WaitForChild("Shop")
+local SettingsCloseButton = player:WaitForChild("PlayerGui"):WaitForChild("Slider"):WaitForChild("Close")
+local MobileGui = player:WaitForChild("PlayerGui"):WaitForChild("MobileGui")
+
+local InventoryGui = player:WaitForChild("PlayerGui"):WaitForChild("Inventory")
+local ClickSound = ReplicatedStorage:WaitForChild("Click")
+local SettingsTopBarClicked = ReplicatedStorage:WaitForChild("Settings"):WaitForChild("SettingsTopBarClicked")
+
+local SniperInventoryButton = InventoryGui:WaitForChild("PrimaryWeapons"):WaitForChild("Sniper")
+local SMGInventoryButton = InventoryGui:WaitForChild("PrimaryWeapons"):WaitForChild("SMG")
+local ShotgunInventoryButton = InventoryGui:WaitForChild("PrimaryWeapons"):WaitForChild("Shotgun")
+local RevolverInventoryButton = InventoryGui:WaitForChild("SecondaryWeapons"):WaitForChild("Revolver")
+local AutoPistolInventoryButton = InventoryGui:WaitForChild("SecondaryWeapons"):WaitForChild("AutoPistol")
+
+local BoosterInventoryButton = InventoryGui:WaitForChild("AbilityWeapons"):WaitForChild("Booster")
+local LightningBombInventoryButton = InventoryGui:WaitForChild("AbilityWeapons"):WaitForChild("LightningBomb")
+local OverdriveVialInventoryButton = InventoryGui:WaitForChild("AbilityWeapons"):WaitForChild("OverdriveVial")
+local RegenPotInventoryButton = InventoryGui:WaitForChild("AbilityWeapons"):WaitForChild("RegenPot")
+
+local UnlockWeaponsFolder = InventoryGui:WaitForChild("UnlockWeapon")
+local UnlockSniperButton = UnlockWeaponsFolder:WaitForChild("UnlockSniper")
+local UnlockSMGButton = UnlockWeaponsFolder:WaitForChild("UnlockSMG")
+local UnlockShotgunButton = UnlockWeaponsFolder:WaitForChild("UnlockShotgun")
+local UnlockRevolverButton = UnlockWeaponsFolder:WaitForChild("UnlockRevolver")
+local UnlockAutoPistolButton = UnlockWeaponsFolder:WaitForChild("UnlockAutoPistol")
+
+local UnlockBoosterButton = UnlockWeaponsFolder:WaitForChild("UnlockBooster")
+local UnlockLightningBombButton = UnlockWeaponsFolder:WaitForChild("UnlockLightningBomb")
+local UnlockOverdriveVialButton = UnlockWeaponsFolder:WaitForChild("UnlockOverdriveVial")
+local UnlockRegenPotButton = UnlockWeaponsFolder:WaitForChild("UnlockRegenPot")
+
+local ColorPickerGui = player:WaitForChild("PlayerGui"):WaitForChild("Slider"):WaitForChild("CrosshairMenu"):WaitForChild("ColorPicker")
+
+local CoreElements = player:WaitForChild("PlayerGui"):WaitForChild("CoreElements")
+local SettingsButton = CoreElements:WaitForChild("Settings")
+
+local RestoreWinstreakButton = CoreElements:WaitForChild("RestoreWinstreak")
+
+
+local GemFrame = ShopGui:WaitForChild("GemFrame")
+local GemFrameCurrencyText = GemFrame:WaitForChild("Currency"):WaitForChild("CurrencyText")
+
+local CurrencyText = CoreElements:WaitForChild("Currency"):WaitForChild("CurrencyText")
+local InventoryCurrencyText = InventoryGui:WaitForChild("Currency"):WaitForChild("CurrencyText")
+
+
+local enableWeaponSelector = game:WaitForChild("ReplicatedStorage"):WaitForChild("EnableWeaponSelector")
+local disableWeaponSelector = game:WaitForChild("ReplicatedStorage"):WaitForChild("DisableWeaponSelector")
+
+local preRound = false
+
+preRoundRE.OnClientEvent:Connect(function(preRoundStatus)
+	preRound = preRoundStatus
+end)
+
+DestroyViewmodels.OnClientEvent:Connect(function()
+	humanoid:UnequipTools()
+	for _, part in workspace.Camera:GetChildren() do
+		if string.match(part.Name, "Viewmodel") then
+			--part:Destroy()
+		end
+	end
+	for _, ammo in player.PlayerGui:WaitForChild("Ammo"):GetChildren() do
+		ammo.Enabled = false
+	end
+end)
+
+local generalButton = player.PlayerGui.Slider.General
+local crosshairButton = player.PlayerGui.Slider.Crosshair
+local generalActive = true
+local crosshairActive = false
+
+local ChangeADSMode = ReplicatedStorage:WaitForChild("ChangeADSMode")
+local adsToggleButton = player.PlayerGui.Slider.GeneralMenu.ADSToggle
+local adsHoldButton = player.PlayerGui.Slider.GeneralMenu.ADSHold
+
+local ChangeSniperAimMode = ReplicatedStorage:WaitForChild("ChangeSniperAimMode")
+local sniperToggleButton = player.PlayerGui.Slider.GeneralMenu.SniperToggle
+local sniperHoldButton = player.PlayerGui.Slider.GeneralMenu.SniperHold
+
+local ChangeCrouchMode = ReplicatedStorage:WaitForChild("ChangeCrouchMode")
+local crouchToggleButton = player.PlayerGui.Slider.GeneralMenu.CrouchToggle
+local crouchHoldButton = player.PlayerGui.Slider.GeneralMenu.CrouchHold
+
+local ChangeSprintMode = ReplicatedStorage:WaitForChild("Settings"):WaitForChild("ChangeSprintMode")
+local sprintToggleButton = player.PlayerGui.Slider.GeneralMenu.SprintToggle
+local sprintHoldButton = player.PlayerGui.Slider.GeneralMenu.SprintHold
+
+if player.GeneralInfo.toggleADS.Value then
+	adsToggleButton.BackgroundColor3 = Color3.new(255,255,255)
+	adsToggleButton.Toggle.TextColor3 = Color3.fromRGB(33,33,33)
+	adsHoldButton.BackgroundColor3 = Color3.fromRGB(33,33,33)
+	adsHoldButton.Hold.TextColor3 = Color3.new(255,255,255)
+end
+if not player.GeneralInfo.toggleADS.Value then
+	adsHoldButton.BackgroundColor3 = Color3.new(255,255,255)
+	adsHoldButton.Hold.TextColor3 = Color3.fromRGB(33,33,33)
+	adsToggleButton.BackgroundColor3 = Color3.fromRGB(33,33,33)
+	adsToggleButton.Toggle.TextColor3 = Color3.new(255,255,255)
+end
+
+if player.GeneralInfo.toggleSniperAim.Value then
+	sniperToggleButton.BackgroundColor3 = Color3.new(255,255,255)
+	sniperToggleButton.Toggle.TextColor3 = Color3.fromRGB(33,33,33)
+	sniperHoldButton.BackgroundColor3 = Color3.fromRGB(33,33,33)
+	sniperHoldButton.Hold.TextColor3 = Color3.new(255,255,255)
+end
+if not player.GeneralInfo.toggleSniperAim.Value then
+	sniperHoldButton.BackgroundColor3 = Color3.new(255,255,255)
+	sniperHoldButton.Hold.TextColor3 = Color3.fromRGB(33,33,33)
+	sniperToggleButton.BackgroundColor3 = Color3.fromRGB(33,33,33)
+	sniperToggleButton.Toggle.TextColor3 = Color3.new(255,255,255)
+end
+
+if player.GeneralInfo.toggleCrouch.Value then
+	crouchToggleButton.BackgroundColor3 = Color3.new(255,255,255)
+	crouchToggleButton.Toggle.TextColor3 = Color3.fromRGB(33,33,33)
+	crouchHoldButton.BackgroundColor3 = Color3.fromRGB(33,33,33)
+	crouchHoldButton.Hold.TextColor3 = Color3.new(255,255,255)
+end
+if not player.GeneralInfo.toggleCrouch.Value then
+	crouchHoldButton.BackgroundColor3 = Color3.new(255,255,255)
+	crouchHoldButton.Hold.TextColor3 = Color3.fromRGB(33,33,33)
+	crouchToggleButton.BackgroundColor3 = Color3.fromRGB(33,33,33)
+	crouchToggleButton.Toggle.TextColor3 = Color3.new(255,255,255)
+end
+
+if player.GeneralInfo.toggleSprint.Value then
+	sprintToggleButton.BackgroundColor3 = Color3.new(255,255,255)
+	sprintToggleButton.Toggle.TextColor3 = Color3.fromRGB(33,33,33)
+	sprintHoldButton.BackgroundColor3 = Color3.fromRGB(33,33,33)
+	sprintHoldButton.Hold.TextColor3 = Color3.new(255,255,255)
+else
+	sprintHoldButton.BackgroundColor3 = Color3.new(255,255,255)
+	sprintHoldButton.Hold.TextColor3 = Color3.fromRGB(33,33,33)
+	sprintToggleButton.BackgroundColor3 = Color3.fromRGB(33,33,33)
+	sprintToggleButton.Toggle.TextColor3 = Color3.new(255,255,255)
+end
+
+generalButton.BackgroundColor3 = Color3.new(255,255,255)
+generalButton.TextColor3 = Color3.new(33/255,33/255,33/255)
+crosshairButton.BackgroundColor3 = Color3.new(33/255,33/255,33/255)
+crosshairButton.TextColor3 = Color3.new(255,255,255)
+crosshairActive = false
+generalActive = true
+
+adsToggleButton.Activated:Connect(function()
+	if not player.GeneralInfo.toggleADS.Value then
+		adsToggleButton.BackgroundColor3 = Color3.new(255,255,255)
+		adsToggleButton.Toggle.TextColor3 = Color3.fromRGB(33,33,33)
+		adsHoldButton.BackgroundColor3 = Color3.fromRGB(33,33,33)
+		adsHoldButton.Hold.TextColor3 = Color3.new(255,255,255)
+		ChangeADSMode:FireServer(true)
+	end
+end)
+
+adsHoldButton.Activated:Connect(function()
+	if player.GeneralInfo.toggleADS.Value then
+		adsHoldButton.BackgroundColor3 = Color3.new(255,255,255)
+		adsHoldButton.Hold.TextColor3 = Color3.fromRGB(33,33,33)
+		adsToggleButton.BackgroundColor3 = Color3.fromRGB(33,33,33)
+		adsToggleButton.Toggle.TextColor3 = Color3.new(255,255,255)
+		ChangeADSMode:FireServer(false)
+	end
+end)
+
+sniperToggleButton.Activated:Connect(function()
+	if not player.GeneralInfo.toggleSniperAim.Value then
+		sniperToggleButton.BackgroundColor3 = Color3.new(255,255,255)
+		sniperToggleButton.Toggle.TextColor3 = Color3.fromRGB(33,33,33)
+		sniperHoldButton.BackgroundColor3 = Color3.fromRGB(33,33,33)
+		sniperHoldButton.Hold.TextColor3 = Color3.new(255,255,255)
+		ChangeSniperAimMode:FireServer(true)
+	end
+end)
+
+sniperHoldButton.Activated:Connect(function()
+	if player.GeneralInfo.toggleSniperAim.Value then
+		sniperHoldButton.BackgroundColor3 = Color3.new(255,255,255)
+		sniperHoldButton.Hold.TextColor3 = Color3.fromRGB(33,33,33)
+		sniperToggleButton.BackgroundColor3 = Color3.fromRGB(33,33,33)
+		sniperToggleButton.Toggle.TextColor3 = Color3.new(255,255,255)
+		ChangeSniperAimMode:FireServer(false)
+	end
+end)
+
+crouchToggleButton.Activated:Connect(function()
+	if not player.GeneralInfo.toggleCrouch.Value then
+		crouchToggleButton.BackgroundColor3 = Color3.new(255,255,255)
+		crouchToggleButton.Toggle.TextColor3 = Color3.fromRGB(33,33,33)
+		crouchHoldButton.BackgroundColor3 = Color3.fromRGB(33,33,33)
+		crouchHoldButton.Hold.TextColor3 = Color3.new(255,255,255)
+		ChangeCrouchMode:FireServer(true)
+	end
+end)
+
+crouchHoldButton.Activated:Connect(function()
+	if player.GeneralInfo.toggleCrouch.Value then
+		crouchHoldButton.BackgroundColor3 = Color3.new(255,255,255)
+		crouchHoldButton.Hold.TextColor3 = Color3.fromRGB(33,33,33)
+		crouchToggleButton.BackgroundColor3 = Color3.fromRGB(33,33,33)
+		crouchToggleButton.Toggle.TextColor3 = Color3.new(255,255,255)
+		ChangeCrouchMode:FireServer(false)
+	end
+end)
+
+sprintToggleButton.Activated:Connect(function()
+	if not player.GeneralInfo.toggleSprint.Value then
+		sprintToggleButton.BackgroundColor3 = Color3.new(255,255,255)
+		sprintToggleButton.Toggle.TextColor3 = Color3.fromRGB(33,33,33)
+		sprintHoldButton.BackgroundColor3 = Color3.fromRGB(33,33,33)
+		sprintHoldButton.Hold.TextColor3 = Color3.new(255,255,255)
+		ChangeSprintMode:FireServer(true)
+	end
+end)
+
+sprintHoldButton.Activated:Connect(function()
+	if player.GeneralInfo.toggleSprint.Value then
+		sprintHoldButton.BackgroundColor3 = Color3.new(255,255,255)
+		sprintHoldButton.Hold.TextColor3 = Color3.fromRGB(33,33,33)
+		sprintToggleButton.BackgroundColor3 = Color3.fromRGB(33,33,33)
+		sprintToggleButton.Toggle.TextColor3 = Color3.new(255,255,255)
+		ChangeSprintMode:FireServer(false)
+	end
+end)
+
+function generalButtonUpdate()
+	if crosshairActive then
+		generalButton.BackgroundColor3 = Color3.new(255,255,255)
+		generalButton.TextColor3 = Color3.new(33/255,33/255,33/255)
+		crosshairButton.BackgroundColor3 = Color3.new(33/255,33/255,33/255)
+		crosshairButton.TextColor3 = Color3.new(255,255,255)
+		crosshairActive = false
+		generalActive = true
+		player.PlayerGui.Slider.GeneralMenu.Enabled = true
+		player.PlayerGui.Slider.CrosshairMenu.Enabled = false
+
+	end
+end
+
+function crosshairButtonUpdate()
+	if generalActive then
+		generalButton.BackgroundColor3 = Color3.new(33/255,33/255,33/255)
+		generalButton.TextColor3 = Color3.new(255,25,25)
+		crosshairButton.BackgroundColor3 = Color3.new(255,255,255)
+		crosshairButton.TextColor3 = Color3.new(33/255,33/255,33/255)
+		crosshairActive = true
+		generalActive = false
+		player.PlayerGui.Slider.GeneralMenu.Enabled = false
+		player.PlayerGui.Slider.CrosshairMenu.Enabled = true
+
+	end
+end
+
+generalButton.Activated:Connect(function()
+	generalButtonUpdate()
+end)
+
+crosshairButton.Activated:Connect(function()
+	crosshairButtonUpdate()
+end)
+
+local function EnableTools(player)
+	local backpack = player:FindFirstChild("Backpack")
+	if backpack then
+		for _, child in pairs(backpack:GetChildren()) do
+			if child:IsA("Tool") then
+				child.Enabled = true
+			end
+		end
+	end
+end
+
+local function DisableTools(player)
+	(player.Character or player.CharacterAdded:Wait()):WaitForChild("Humanoid"):UnequipTools()
+
+	local backpack = player:FindFirstChild("Backpack")
+	if backpack then
+		for _, child in backpack:GetChildren() do
+			if child:IsA("Tool") then
+				child.Enabled = false
+			end
+		end
+	end
+end
+
+local function closeMenu()
+	player.PlayerGui.Slider.Enabled = false
+	player.PlayerGui.Slider.GeneralMenu.Enabled = false
+	player.PlayerGui.Slider.CrosshairMenu.Enabled = false
+	ColorPickerGui.Enabled = false
+
+	inMenu = false
+	task.wait()
+	menuPress:FireServer(inMenu)
+end
+
+local function SettingsButtonActivate()
+	ClickSound:Play()
+	if not inMenu and humanoid.Health > 0 and not InventoryGui.Enabled then
+		CoreElements.Enabled = false
+		player.PlayerGui.Slider.Enabled = true
+		if generalActive then
+			player.PlayerGui.Slider.GeneralMenu.Enabled = true
+		else
+			player.PlayerGui.Slider.CrosshairMenu.Enabled = true
+		end
+
+		inMenu = true
+		task.wait()
+		menuPress:FireServer(inMenu)
+
+	elseif not player.GeneralInfo.isInGame.Value and not InventoryGui.Enabled then
+		CoreElements.Enabled = true
+		closeMenu()
+	end
+end
+
+local function SettingsButtonClose()
+	ClickSound:Play()
+	if not player.GeneralInfo.isInGame.Value and not InventoryGui.Enabled then
+		CoreElements.Enabled = true
+	end
+	closeMenu()
+end
+
+SettingsButton.Activated:Connect(function()
+	SettingsButtonActivate()
+end)
+
+SettingsCloseButton.Activated:Connect(function()
+	SettingsButtonClose()
+end)
+
+SettingsTopBarClicked.Event:Connect(function()
+	SettingsButtonActivate()
+
+end)
+
+uis.InputBegan:Connect(function(input, gameProcessedEvent)
+	if gameProcessedEvent then return end
+	if input.KeyCode == Enum.KeyCode.M then
+		if not inMenu and humanoid.Health > 0 and not InventoryGui.Enabled then
+			if CoreElements.Enabled then
+				CoreElements.Enabled = false
+			end
+			player.PlayerGui.Slider.Enabled = true
+			if generalActive then
+				player.PlayerGui.Slider.GeneralMenu.Enabled = true
+			else
+				player.PlayerGui.Slider.CrosshairMenu.Enabled = true
+			end
+
+			inMenu = true
+			task.wait()
+			menuPress:FireServer(inMenu)
+
+		else
+			if not player.GeneralInfo.isInGame.Value and not InventoryGui.Enabled then
+				CoreElements.Enabled = true
+			end
+			closeMenu()
+		end
+	end
+end)
+
+playerDied.OnClientEvent:Connect(function()
+	if inMenu then
+		closeMenu()
+	end
+end)
+
+enableWeaponSelector.OnClientEvent:Connect(function(plr)
+	weaponSelector = true
+end)
+
+disableWeaponSelector.OnClientEvent:Connect(function(plr)
+	weaponSelector = false
+end)
+
+local weaponSelector = player:WaitForChild("PlayerGui"):WaitForChild("FullWeaponSelector")
+
+game:GetService("RunService").RenderStepped:Connect(function()
+	if CoreElements.Enabled then
+		CurrencyText.Text = tostring(player.Currency.Gems.Value)
+		if player.Statistics.LastWinstreak.Value > 0 then
+			RestoreWinstreakButton.Visible = true
+		else
+			RestoreWinstreakButton.Visible = false
+		end
+	end
+	if RestoreWinstreakGui.Enabled then
+		RestoreWinstreakGui:WaitForChild("Currency"):WaitForChild("CurrencyText").Text = tostring(player.Currency.Gems.Value)
+		RestoreWinstreakGui:WaitForChild("RestoreBack"):WaitForChild("WinstreakText").Text = tostring(player.Statistics.LastWinstreak.Value)
+		if player.Statistics.WinstreakRestores.Value <= 0 then
+			RestoreWinstreakGui:WaitForChild("RestoreButton"):WaitForChild("Price").Text = "25"
+
+		elseif player.Statistics.WinstreakRestores.Value == 1 then
+			RestoreWinstreakGui:WaitForChild("RestoreButton"):WaitForChild("Price").Text = "50"
+
+		elseif player.Statistics.WinstreakRestores.Value == 2 then
+			RestoreWinstreakGui:WaitForChild("RestoreButton"):WaitForChild("Price").Text = "100"
+
+		elseif player.Statistics.WinstreakRestores.Value == 3 then
+			RestoreWinstreakGui:WaitForChild("RestoreButton"):WaitForChild("Price").Text = "200"
+
+		elseif player.Statistics.WinstreakRestores.Value == 4 then
+			RestoreWinstreakGui:WaitForChild("RestoreButton"):WaitForChild("Price").Text = "400"
+
+		elseif player.Statistics.WinstreakRestores.Value == 5 then
+			RestoreWinstreakGui:WaitForChild("RestoreButton"):WaitForChild("Price").Text = "800"
+
+		else
+			RestoreWinstreakGui:WaitForChild("RestoreButton"):WaitForChild("Price").Text = "1000"
+		end
+	end
+	if GemFrame.Visible then
+		GemFrameCurrencyText.Text = tostring(player.Currency.Gems.Value)
+	end
+	if player.GeneralInfo.isInGame.Value then
+		if SniperScopeOverlay.Enabled or weaponSelector.Enabled or mapSelector.Enabled or CoreElements.Enabled then
+			AbilitiesGUI.Enabled = false
+		else
+			AbilitiesGUI.Enabled = true
+		end
+	end
+	
+	if InventoryGui.Enabled then
+		InventoryCurrencyText.Text = tostring(player.Currency.Gems.Value)
+		if not player.Weapons.hasSniper.Value then
+			SniperInventoryButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+			SniperInventoryButton.UIStroke.Color = Color3.fromRGB(0, 0, 0)
+			SniperInventoryButton.BackgroundTransparency = 0.3
+			SniperInventoryButton.DefaultSniperPic.Visible = false
+			SniperInventoryButton.LaserSniperPic.Visible = false
+			SniperInventoryButton.Locked.Visible = true
+		else
+			SniperInventoryButton.BackgroundTransparency = 0.65
+		end
+
+		if not player.Weapons.hasBooster.Value then
+			BoosterInventoryButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+			BoosterInventoryButton.UIStroke.Color = Color3.fromRGB(0, 0, 0)
+			BoosterInventoryButton.BackgroundTransparency = 0.3
+			BoosterInventoryButton.DefaultBoosterPic.Visible = false
+			BoosterInventoryButton.Locked.Visible = true
+		else
+			BoosterInventoryButton.BackgroundTransparency = 0.65
+		end
+
+		if not player.Weapons.hasLightningBomb.Value then
+			LightningBombInventoryButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+			LightningBombInventoryButton.UIStroke.Color = Color3.fromRGB(0, 0, 0)
+			LightningBombInventoryButton.BackgroundTransparency = 0.3
+			LightningBombInventoryButton.DefaultLightningBombPic.Visible = false
+			LightningBombInventoryButton.Locked.Visible = true
+		else
+			LightningBombInventoryButton.BackgroundTransparency = 0.65
+		end
+
+		if not player.Weapons.hasOverdriveVial.Value then
+			OverdriveVialInventoryButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+			OverdriveVialInventoryButton.UIStroke.Color = Color3.fromRGB(0, 0, 0)
+			OverdriveVialInventoryButton.BackgroundTransparency = 0.3
+			OverdriveVialInventoryButton.DefaultOverdriveVialPic.Visible = false
+			OverdriveVialInventoryButton.Locked.Visible = true
+		else
+			OverdriveVialInventoryButton.BackgroundTransparency = 0.65
+		end
+
+		if not player.Weapons.hasRegenPot.Value then
+			RegenPotInventoryButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+			RegenPotInventoryButton.UIStroke.Color = Color3.fromRGB(0, 0, 0)
+			RegenPotInventoryButton.BackgroundTransparency = 0.3
+			RegenPotInventoryButton.DefaultRegenPotPic.Visible = false
+			RegenPotInventoryButton.Locked.Visible = true
+		else
+			RegenPotInventoryButton.BackgroundTransparency = 0.65
+		end
+
+		if not player.Weapons.hasSMG.Value then
+			SMGInventoryButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+			SMGInventoryButton.UIStroke.Color = Color3.fromRGB(0, 0, 0)
+			SMGInventoryButton.BackgroundTransparency = 0.3
+			SMGInventoryButton.DefaultSMGPic.Visible = false
+			SMGInventoryButton.Locked.Visible = true
+		else
+			SMGInventoryButton.BackgroundTransparency = 0.65
+		end
+
+		if not player.Weapons.hasShotgun.Value then
+			ShotgunInventoryButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+			ShotgunInventoryButton.UIStroke.Color = Color3.fromRGB(0, 0, 0)
+			ShotgunInventoryButton.BackgroundTransparency = 0.3
+			ShotgunInventoryButton.DefaultShotgunPic.Visible = false
+			ShotgunInventoryButton.Locked.Visible = true
+		else
+			ShotgunInventoryButton.BackgroundTransparency = 0.65
+		end
+
+		if not player.Weapons.hasRevolver.Value then
+			RevolverInventoryButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+			RevolverInventoryButton.UIStroke.Color = Color3.fromRGB(0, 0, 0)
+			RevolverInventoryButton.BackgroundTransparency = 0.3
+			RevolverInventoryButton.DefaultRevolverPic.Visible = false
+			RevolverInventoryButton.LaserRevolverPic.Visible = false
+			RevolverInventoryButton.Locked.Visible = true
+		else
+			RevolverInventoryButton.BackgroundTransparency = 0.65
+		end
+		
+		if not player.Weapons.hasAutoPistol.Value then
+			AutoPistolInventoryButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+			AutoPistolInventoryButton.UIStroke.Color = Color3.fromRGB(0, 0, 0)
+			AutoPistolInventoryButton.BackgroundTransparency = 0.3
+			AutoPistolInventoryButton.DefaultAutoPistolPic.Visible = false
+			AutoPistolInventoryButton.Locked.Visible = true
+		else
+			AutoPistolInventoryButton.BackgroundTransparency = 0.65
+		end
+	end
+	
+	
+
+	if mapSelector.Enabled or ShopGui.Enabled or BonusesGui.Enabled then
+		game.Lighting:WaitForChild("Blur").Enabled = true
+	else
+		game.Lighting:WaitForChild("Blur").Enabled = false
+	end
+
+	if uis.TouchEnabled then
+		if CustomToolBar.Enabled then
+			MobileGui.Enabled = true
+		else
+			MobileGui.Enabled = false
+		end
+		CustomToolBar:WaitForChild("Frame").Visible = false
+		CustomToolBar:WaitForChild("FrameMobile").Visible = true
+	else
+		CustomToolBar:WaitForChild("Frame").Visible = true
+		CustomToolBar:WaitForChild("FrameMobile").Visible = false
+	end
+
+	if weaponSelector.Enabled or InventoryGui.Enabled then
+		game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.Chat, false)
+	else
+		game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.Chat, true)
+	end
+
+	if player.Character then
+		if player.Character:WaitForChild("Head").LocalTransparencyModifier == 1 then
+			local UIS = game:GetService("UserInputService")
+			if weaponSelector.Enabled == false and not inMenu and mapSelector.Enabled == false then
+				UIS.MouseIconEnabled = false
+			else
+				UIS.MouseIconEnabled = true
+
+				if player.Weapons.hasSniper.Value then
+					weaponSelector:WaitForChild("Primaries"):WaitForChild("Sniper").Visible = true
+					UnlockSniperButton.Visible = false
+				else
+					weaponSelector:WaitForChild("Primaries"):WaitForChild("Sniper").Visible = false
+				end
+
+				if player.Weapons.hasShotgun.Value then
+					weaponSelector:WaitForChild("Primaries"):WaitForChild("Shotgun").Visible = true
+					UnlockShotgunButton.Visible = false
+				else
+					weaponSelector:WaitForChild("Primaries"):WaitForChild("Shotgun").Visible = false
+				end
+
+				if player.Weapons.hasSMG.Value then
+					weaponSelector:WaitForChild("Primaries"):WaitForChild("SMG").Visible = true
+					UnlockSMGButton.Visible = false
+				else
+					weaponSelector:WaitForChild("Primaries"):WaitForChild("SMG").Visible = false
+				end
+
+				if player.Weapons.hasRevolver.Value then
+					weaponSelector:WaitForChild("Secondaries"):WaitForChild("Revolver").Visible = true
+					UnlockRevolverButton.Visible = false
+				else
+					weaponSelector:WaitForChild("Secondaries"):WaitForChild("Revolver").Visible = false
+				end
+				
+				if player.Weapons.hasAutoPistol.Value then
+					weaponSelector:WaitForChild("Secondaries"):WaitForChild("AutoPistol").Visible = true
+					UnlockAutoPistolButton.Visible = false
+				else
+					weaponSelector:WaitForChild("Secondaries"):WaitForChild("AutoPistol").Visible = false
+				end
+
+				if player.Weapons.hasBooster.Value then
+					weaponSelector:WaitForChild("Abilities"):WaitForChild("Booster").Visible = true
+					UnlockBoosterButton.Visible = false
+				else
+					weaponSelector:WaitForChild("Abilities"):WaitForChild("Booster").Visible = false
+				end
+
+				if player.Weapons.hasLightningBomb.Value then
+					weaponSelector:WaitForChild("Abilities"):WaitForChild("LightningBomb").Visible = true
+					UnlockLightningBombButton.Visible = false
+				else
+					weaponSelector:WaitForChild("Abilities"):WaitForChild("LightningBomb").Visible = false
+				end
+
+				if player.Weapons.hasOverdriveVial.Value then
+					weaponSelector:WaitForChild("Abilities"):WaitForChild("OverdriveVial").Visible = true
+					UnlockOverdriveVialButton.Visible = false
+				else
+					weaponSelector:WaitForChild("Abilities"):WaitForChild("OverdriveVial").Visible = false
+				end
+
+				if player.Weapons.hasRegenPot.Value then
+					weaponSelector:WaitForChild("Abilities"):WaitForChild("RegenPot").Visible = true
+					UnlockRegenPotButton.Visible = false
+				else
+					weaponSelector:WaitForChild("Abilities"):WaitForChild("RegenPot").Visible = false
+				end
+				if player.GameTeam.playerTeam.Value == "ShootingRange" then
+					Scoreboard:WaitForChild("LeaveShootingRange").Visible = true
+					weaponSelector:WaitForChild("Primaries"):WaitForChild("Sniper").Visible = true
+					weaponSelector:WaitForChild("Primaries"):WaitForChild("Shotgun").Visible = true
+					weaponSelector:WaitForChild("Primaries"):WaitForChild("SMG").Visible = true
+					weaponSelector:WaitForChild("Secondaries"):WaitForChild("Revolver").Visible = true
+					weaponSelector:WaitForChild("Secondaries"):WaitForChild("AutoPistol").Visible = true
+
+					weaponSelector:WaitForChild("Abilities"):WaitForChild("Booster").Visible = true
+					weaponSelector:WaitForChild("Abilities"):WaitForChild("LightningBomb").Visible = true
+					weaponSelector:WaitForChild("Abilities"):WaitForChild("OverdriveVial").Visible = true
+					weaponSelector:WaitForChild("Abilities"):WaitForChild("RegenPot").Visible = true
+
+				else
+					Scoreboard:WaitForChild("LeaveShootingRange").Visible = false
+				end
+			end
+		else
+			local UIS = game:GetService("UserInputService")
+			UIS.MouseIconEnabled = true
+		end
+		if player.GameTeam.playerTeam.Value ~= "ShootingRange" then
+			Scoreboard:WaitForChild("LeaveShootingRange").Visible = false
+		end
+	else
+		local UIS = game:GetService("UserInputService")
+		UIS.MouseIconEnabled = true
+	end
+
+end)
