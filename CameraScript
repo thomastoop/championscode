@@ -1,0 +1,11 @@
+game:GetService("ReplicatedStorage").head.OnServerEvent:Connect(function(plr, txt, txt2, txt3)
+	local char = plr.Character
+	if char:WaitForChild("Humanoid") then
+		if char:WaitForChild("Humanoid").Health > 0 then
+			local torso = char:FindFirstChild("Torso")
+			torso:WaitForChild("Neck").C0 = txt
+			torso:WaitForChild("Right Shoulder").C0 = txt2
+			torso:WaitForChild("Left Shoulder").C0 = txt3
+		end
+	end
+end)
