@@ -1,0 +1,112 @@
+local player = game.Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CoreElements = player:WaitForChild("PlayerGui"):WaitForChild("CoreElements")
+local ClickSound = ReplicatedStorage:WaitForChild("Click")
+local HoverSound = ReplicatedStorage:WaitForChild("Hover")
+local ErrorSound = ReplicatedStorage:WaitForChild("Error")
+local ImageSize = Enum.ThumbnailSize.Size420x420 -- Thumbnail Size
+local ImageType = Enum.ThumbnailType.HeadShot -- Thumbnail Type
+local MapSelectorVote = ReplicatedStorage:WaitForChild("MapSelectorVote")
+
+local MapSelectionGUI = player:WaitForChild("PlayerGui"):WaitForChild("MapSelector")
+local RandomMapButton = MapSelectionGUI:WaitForChild("Random")
+local IntensityMapButton = MapSelectionGUI:WaitForChild("Intensity")
+local OasisMapButton = MapSelectionGUI:WaitForChild("Oasis")
+local HyperiaMapButton = MapSelectionGUI:WaitForChild("Hyperia")
+local CryofrostMapButton = MapSelectionGUI:WaitForChild("Cryofrost")
+local EtherionMapButton = MapSelectionGUI:WaitForChild("Etherion")
+
+local MapStartSize = UDim2.new(0.201, 0, 0.199, 0)
+local MapHoverSize = UDim2.new(0.211, 0, 0.209, 0)
+
+
+ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("ExitedQueue").OnClientEvent:Connect(function()
+	if player:WaitForChild("PlayerGui"):WaitForChild("MapSelector").Enabled == false then
+		CoreElements.Enabled = true
+	end
+end)
+
+
+RandomMapButton.MouseEnter:Connect(function()
+	HoverSound:Play()
+	RandomMapButton:TweenSize(MapHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+RandomMapButton.MouseLeave:Connect(function()
+	RandomMapButton:TweenSize(MapStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+RandomMapButton.Activated:Connect(function()
+	ClickSound:Play()
+	MapSelectorVote:FireServer("Random", game.Players:GetUserThumbnailAsync(player.UserId, ImageType, ImageSize))
+end)
+
+IntensityMapButton.MouseEnter:Connect(function()
+	HoverSound:Play()
+	IntensityMapButton:TweenSize(MapHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+IntensityMapButton.MouseLeave:Connect(function()
+	IntensityMapButton:TweenSize(MapStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+IntensityMapButton.Activated:Connect(function()
+	ClickSound:Play()
+	MapSelectorVote:FireServer("Intensity", game.Players:GetUserThumbnailAsync(player.UserId, ImageType, ImageSize))
+end)
+
+OasisMapButton.MouseEnter:Connect(function()
+	HoverSound:Play()
+	OasisMapButton:TweenSize(MapHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+OasisMapButton.MouseLeave:Connect(function()
+	OasisMapButton:TweenSize(MapStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+OasisMapButton.Activated:Connect(function()
+	ClickSound:Play()
+	MapSelectorVote:FireServer("Oasis", game.Players:GetUserThumbnailAsync(player.UserId, ImageType, ImageSize))
+end)
+
+HyperiaMapButton.MouseEnter:Connect(function()
+	HoverSound:Play()
+	HyperiaMapButton:TweenSize(MapHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+HyperiaMapButton.MouseLeave:Connect(function()
+	HyperiaMapButton:TweenSize(MapStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+HyperiaMapButton.Activated:Connect(function()
+	ClickSound:Play()
+	MapSelectorVote:FireServer("Hyperia", game.Players:GetUserThumbnailAsync(player.UserId, ImageType, ImageSize))
+end)
+
+CryofrostMapButton.MouseEnter:Connect(function()
+	HoverSound:Play()
+	CryofrostMapButton:TweenSize(MapHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+CryofrostMapButton.MouseLeave:Connect(function()
+	CryofrostMapButton:TweenSize(MapStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+CryofrostMapButton.Activated:Connect(function()
+	ClickSound:Play()
+	MapSelectorVote:FireServer("Cryofrost", game.Players:GetUserThumbnailAsync(player.UserId, ImageType, ImageSize))
+end)
+
+EtherionMapButton.MouseEnter:Connect(function()
+	HoverSound:Play()
+	EtherionMapButton:TweenSize(MapHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+EtherionMapButton.MouseLeave:Connect(function()
+	EtherionMapButton:TweenSize(MapStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+EtherionMapButton.Activated:Connect(function()
+	ClickSound:Play()
+	MapSelectorVote:FireServer("Etherion", game.Players:GetUserThumbnailAsync(player.UserId, ImageType, ImageSize))
+end)
