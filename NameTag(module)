@@ -1,0 +1,124 @@
+-- services
+local uis = game:GetService("UserInputService")
+local tagsfolder = script:WaitForChild("Tags")
+
+local nametag = {
+	-- disable old List stat system
+	stat = { folder = "leaderstats", name = "" },
+
+	icons = {
+		computer = "102620095645415",
+		mobile   = "86866145869121",
+		console  = "90940825923888",
+		vr       = "129096884155657",
+	},
+}
+
+-- config
+local nametagsenabled   = true
+local showplrusername   = true
+local maxchars          = 100
+
+local hidenametagfromplr = false
+local maxdist           = 75
+local alwaysontop       = true
+
+local showlistvalues    = false     -- not used, but kept
+local showhealthinfo    = false     -- not used, but kept
+
+local showicons         = true
+local showmembericon    = false
+local groupid           = 0         -- your group if you want Member icon
+
+local function format_string(txt)
+	local len = string.len(txt)
+	if len > maxchars then
+		return string.sub(txt, 1, maxchars) .. "..."
+	else
+		return txt
+	end
+end
+
+function nametag.create(plr, char)
+	if not nametagsenabled then
+		return
+	end
+
+	local head  = char:WaitForChild("Head")
+	local humanoid = char:WaitForChild("Humanoid")
+
+	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+
+	-- clone template
+	local tag = tagsfolder:WaitForChild("Nametag"):Clone()
+	if plr.GeneralInfo.isInGame.Value == false then
+		tag.Enabled = true
+	else
+		tag.Enabled = false
+	end
+	tag.Adornee = head
+	tag.Parent  = head
+
+	tag.MaxDistance = maxdist
+	tag.AlwaysOnTop = alwaysontop
+	if hidenametagfromplr then
+		tag.PlayerToHideFrom = plr
+	end
+
+	-- frames
+	local propertiesframe = tag:WaitForChild("Properties")
+	local topstats        = propertiesframe:WaitForChild("TopStats")
+	local mainline        = propertiesframe:WaitForChild("MainLine")
+	local playerframe     = mainline:WaitForChild("Player")
+	local iconsframe      = mainline:WaitForChild("Icons")
+
+	local displayNameLabel = playerframe:WaitForChild("displaynamelabel")
+	local nameLabel        = playerframe:WaitForChild("namelabel")
+
+	-- text
+	displayNameLabel.Text = format_string(plr.DisplayName)
+
+	if showplrusername then
+		nameLabel.Text = format_string("@" .. plr.Name)
+	else
+		nameLabel.Text = ""
+	end
+
+	-- icons
+	if showicons then
+		iconsframe.Visible = true
+
+		if plr.HasVerifiedBadge then
+			iconsframe.Verified.Visible = true
+		end
+
+		if plr.MembershipType == Enum.MembershipType.Premium then
+			iconsframe.Premium.Visible = true
+		end
+
+		if showmembericon and groupid ~= 0 and tonumber(groupid) then
+			if plr:IsInGroup(groupid) then
+				iconsframe.Member.Visible = true
+			end
+		end
+	else
+		iconsframe.Visible = false
+	end
+
+	-- old list/health stuff kept but disabled
+	local listframe = propertiesframe:FindFirstChild("List")
+	if listframe then
+		listframe.Visible = showlistvalues
+		if showhealthinfo then
+			local healthframe = listframe:FindFirstChild("healthframe")
+			if healthframe then
+				healthframe.Visible = true
+				humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
+			end
+		end
+	end
+
+	return tag
+end
+
+return nametag
