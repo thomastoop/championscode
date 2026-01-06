@@ -1,0 +1,83 @@
+local Players = game:GetService("Players")
+local MarketplaceService = game:GetService("MarketplaceService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SetPurchaseSkinColors = ReplicatedStorage:WaitForChild("SetPurchaseSkinColors")
+local PurchasedProductEvent = ReplicatedStorage:WaitForChild("Products"):WaitForChild("PurchasedProduct")
+
+local Gem10RobuxPackID = 2686752815
+local Gem49RobuxPackID = 2686753163
+local Gem149RobuxPackID = 2686753324
+local Gem349RobuxPackID = 2686753612
+local Gem799RobuxPackID = 2686753774
+local Gem1999RobuxPackID = 2686753932
+local Gem4999RobuxPackID = 2686754061
+
+local HyperlightRifleID = 2686851968
+local HyperlightSniperID = 2686852339
+local HyperlightRevolverID = 2686853381
+local HyperlightMeleeID = 2686853701
+
+local HyperlightBundleNoSkinsOwned = 2686873452
+local HyperlightBundle1SkinOwned = 2686873796
+local HyperlightBundle2SkinsOwned = 2686874038
+local HyperlightBundle3SkinsOwned = 2686874204
+
+MarketplaceService.ProcessReceipt = function(receiptInfo)
+	local player = Players:GetPlayerByUserId(receiptInfo.PlayerId)
+	if not player then
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
+	if receiptInfo.ProductId == Gem10RobuxPackID then
+		player.Currency.Gems.Value += 20
+		PurchasedProductEvent:FireClient(player, "20Gems")
+	elseif receiptInfo.ProductId == Gem49RobuxPackID then
+		player.Currency.Gems.Value += 110
+		PurchasedProductEvent:FireClient(player, "110Gems")
+	elseif receiptInfo.ProductId == Gem149RobuxPackID then
+		player.Currency.Gems.Value += 375
+		PurchasedProductEvent:FireClient(player, "375Gems")
+	elseif receiptInfo.ProductId == Gem349RobuxPackID then
+		player.Currency.Gems.Value += 1000
+		PurchasedProductEvent:FireClient(player, "1000Gems")
+	elseif receiptInfo.ProductId == Gem799RobuxPackID then
+		player.Currency.Gems.Value += 2500
+		PurchasedProductEvent:FireClient(player, "2500Gems")
+	elseif receiptInfo.ProductId == Gem1999RobuxPackID then
+		player.Currency.Gems.Value += 7000
+		PurchasedProductEvent:FireClient(player, "7000Gems")
+	elseif receiptInfo.ProductId == Gem4999RobuxPackID then
+		player.Currency.Gems.Value += 20000
+		PurchasedProductEvent:FireClient(player, "20000Gems")
+
+	elseif receiptInfo.ProductId == HyperlightRifleID then
+		player.Skins.hasLaserRifle.Value = true
+		SetPurchaseSkinColors:FireClient(player)
+		PurchasedProductEvent:FireClient(player, "HyperlightRifle")
+	elseif receiptInfo.ProductId == HyperlightSniperID then
+		player.Skins.hasLaserSniper.Value = true
+		player.Weapons.hasSniper.Value = true
+		SetPurchaseSkinColors:FireClient(player)
+		PurchasedProductEvent:FireClient(player, "HyperlightSniper")
+	elseif receiptInfo.ProductId == HyperlightRevolverID then
+		player.Skins.hasLaserRevolver.Value = true
+		player.Weapons.hasRevolver.Value = true
+		SetPurchaseSkinColors:FireClient(player)
+		PurchasedProductEvent:FireClient(player, "HyperlightRevolver")
+
+	elseif receiptInfo.ProductId == HyperlightMeleeID then
+		player.Skins.hasSaber.Value = true
+		SetPurchaseSkinColors:FireClient(player)
+		PurchasedProductEvent:FireClient(player, "HyperlightMelee")
+
+	elseif receiptInfo.ProductId == HyperlightBundleNoSkinsOwned or receiptInfo.ProductId == HyperlightBundle1SkinOwned or receiptInfo.ProductId == HyperlightBundle2SkinsOwned or receiptInfo.ProductId == HyperlightBundle3SkinsOwned then
+		player.Skins.hasLaserRifle.Value = true
+		player.Skins.hasLaserSniper.Value = true
+		player.Weapons.hasSniper.Value = true
+		player.Skins.hasLaserRevolver.Value = true
+		player.Weapons.hasRevolver.Value = true
+		player.Skins.hasSaber.Value = true
+		SetPurchaseSkinColors:FireClient(player)
+		PurchasedProductEvent:FireClient(player, "HyperlightBundle")
+	end
+	return Enum.ProductPurchaseDecision.PurchaseGranted
+end
