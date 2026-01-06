@@ -1,0 +1,64 @@
+-- services
+local plrs = game:GetService("Players")
+local rps  = game:GetService("ReplicatedStorage")
+
+-- folders
+local modulesfolder  = rps:WaitForChild("Modules")
+local generalfolder  = rps:WaitForChild("General")
+
+-- modules
+local nametagmodule  = require(modulesfolder:WaitForChild("Nametag"))
+
+-- remotes
+local returnplrdevice = generalfolder:WaitForChild("ReturnPlayerDevice")
+
+local function on_char_added(plr, char)
+	local humanoid = char:WaitForChild("Humanoid")
+
+	local tag = nametagmodule.create(plr, char)
+	if not tag then return end
+
+	local properties = tag:WaitForChild("Properties")
+	local mainline   = properties:WaitForChild("MainLine")
+	local topstats   = properties:WaitForChild("TopStats")
+
+	local iconsframe    = mainline:WaitForChild("Icons")
+	local levelLabel    = topstats:WaitForChild("LevelImage"):WaitForChild("LevelLabel")
+	local winstreakLabel= topstats:WaitForChild("WinstreakImage"):WaitForChild("WinstreakLabel")
+
+	-- DEVICE ICON
+	local img = returnplrdevice:InvokeClient(plr)
+	topstats.Device.Image = "rbxthumb://type=Asset&w=768&h=432&id=" .. img
+
+	-- LEVEL + WINSTREAK
+	local leaderstats = plr:WaitForChild("leaderstats")
+	local levelValue      = leaderstats:WaitForChild("Level")
+	local winstreakValue  = leaderstats:WaitForChild("Winstreak")
+
+	local function updateLevel()
+		levelLabel.Text = tostring(levelValue.Value)
+	end
+
+	local function updateWS()
+		winstreakLabel.Text = tostring(winstreakValue.Value)
+	end
+
+	updateLevel()
+	updateWS()
+
+	levelValue.Changed:Connect(updateLevel)
+	winstreakValue.Changed:Connect(updateWS)
+
+	-- optional: health hook if you ever want it
+    --[[
+    humanoid.HealthChanged:Connect(function(hp)
+        -- your health display here if you re-enable it
+    end)
+    ]]
+end
+
+plrs.PlayerAdded:Connect(function(plr)
+	plr.CharacterAdded:Connect(function(char)
+		on_char_added(plr, char)
+	end)
+end)
