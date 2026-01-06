@@ -1,0 +1,375 @@
+local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local player = game.Players.LocalPlayer
+local ImageSize = Enum.ThumbnailSize.Size420x420 -- Thumbnail Size
+local ImageType = Enum.ThumbnailType.HeadShot -- Thumbnail Type'
+local DealtDamage = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("DealtDamage")
+
+local hit = ReplicatedStorage:WaitForChild("Hit")
+local hs = ReplicatedStorage:WaitForChild("Headshot")
+local skinHeadshot = ReplicatedStorage:WaitForChild("SkinHeadshot")
+local createDmgIndicator = ReplicatedStorage:WaitForChild("CreateDamageIndicator")
+local skinDmgIndicator = ReplicatedStorage:WaitForChild("SkinDamageIndicator")
+
+hit.OnClientEvent:Connect(function(humanoid, humanoidParent)
+
+	local highlight = Instance.new("Highlight")
+	highlight.DepthMode = "Occluded"
+	highlight.Parent = humanoidParent
+	highlight.FillColor = Color3.new(1, 1, 1)
+	highlight.OutlineColor = Color3.fromRGB(255, 51, 51)
+	highlight.FillTransparency = 1
+	highlight.OutlineTransparency = 1
+
+	-- Tween to fade in both FillTransparency and OutlineTransparency
+	local fadeInTween = TweenService:Create(highlight, TweenInfo.new(0.05, Enum.EasingStyle.Linear, Enum.EasingDirection.In), {
+		FillTransparency = 0.85,
+		OutlineTransparency = 0
+	})
+	fadeInTween:Play()
+
+	-- Wait for the fade-in to complete
+	fadeInTween.Completed:Wait()
+
+	-- Tween to fade out both FillTransparency and OutlineTransparency
+	local fadeOutTween = TweenService:Create(highlight, TweenInfo.new(0.12, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {
+		FillTransparency = 1,
+		OutlineTransparency = 1
+	})
+	fadeOutTween:Play()
+
+	-- Wait for the fade-out to complete before destroying the highlight
+	fadeOutTween.Completed:Wait()
+	highlight:Destroy()
+
+end)
+
+hs.OnClientEvent:Connect(function(humanoid, humanoidParent, weaponName)
+
+	local highlight = Instance.new("Highlight")
+	highlight.DepthMode = "Occluded"
+	if humanoid.Name == "HelmetTop" or humanoid.Name == "HelmetVeryTop" or humanoid.Name == "HelmetMain" then
+		highlight.Parent = humanoid
+	else
+		highlight.Parent = humanoid.Parent
+	end
+	highlight.FillColor = Color3.new(1, 0, 0)
+	highlight.FillTransparency = 1
+	highlight.OutlineColor = Color3.fromRGB(255, 51, 51)
+	highlight.OutlineTransparency = 1
+	if string.match(weaponName, "Laser") then
+		if string.match(weaponName, "Rifle") then
+			if player.Skins.LaserRifleVariant.Value == "Blue" then
+				highlight.FillColor = Color3.fromRGB(35, 178, 255)
+				highlight.OutlineColor = Color3.fromRGB(35, 178, 255)
+			elseif player.Skins.LaserRifleVariant.Value == "Red" then
+				highlight.FillColor = Color3.fromRGB(255, 0, 0)
+				highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
+			elseif player.Skins.LaserRifleVariant.Value == "Purple" then
+				highlight.FillColor = Color3.fromRGB(170, 0, 255)
+				highlight.OutlineColor = Color3.fromRGB(160, 52, 255)
+			end
+		elseif string.match(weaponName, "Sniper") then
+			if player.Skins.LaserSniperVariant.Value == "Blue" then
+				highlight.FillColor = Color3.fromRGB(35, 178, 255)
+				highlight.OutlineColor = Color3.fromRGB(35, 178, 255)
+			elseif player.Skins.LaserSniperVariant.Value == "Red" then
+				highlight.FillColor = Color3.fromRGB(255, 0, 0)
+				highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
+			elseif player.Skins.LaserSniperVariant.Value == "Purple" then
+				highlight.FillColor = Color3.fromRGB(170, 0, 255)
+				highlight.OutlineColor = Color3.fromRGB(160, 52, 255)
+			end
+		elseif string.match(weaponName, "Revolver") then
+			if player.Skins.LaserRevolverVariant.Value == "Blue" then
+				highlight.FillColor = Color3.fromRGB(35, 178, 255)
+				highlight.OutlineColor = Color3.fromRGB(35, 178, 255)
+			elseif player.Skins.LaserRevolverVariant.Value == "Red" then
+				highlight.FillColor = Color3.fromRGB(255, 0, 0)
+				highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
+			elseif player.Skins.LaserRevolverVariant.Value == "Purple" then
+				highlight.FillColor = Color3.fromRGB(170, 0, 255)
+				highlight.OutlineColor = Color3.fromRGB(160, 52, 255)
+			end
+		end
+	else
+		highlight.FillColor = Color3.new(1, 0, 0)
+		highlight.OutlineColor = Color3.fromRGB(255, 51, 51)
+	end
+	-- Tween to fade in both FillTransparency and OutlineTransparency
+	local fadeInTween = TweenService:Create(highlight, TweenInfo.new(0.05, Enum.EasingStyle.Linear, Enum.EasingDirection.In), {
+		FillTransparency = 0.85,
+		OutlineTransparency = 0
+	})
+	fadeInTween:Play()
+
+	-- Wait for the fade-in to complete
+	fadeInTween.Completed:Wait()
+
+	-- Tween to fade out both FillTransparency and OutlineTransparency
+	local fadeOutTween = TweenService:Create(highlight, TweenInfo.new(0.12, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {
+		FillTransparency = 1,
+		OutlineTransparency = 1
+	})
+	fadeOutTween:Play()
+
+	-- Wait for the fade-out to complete before destroying the highlight
+	fadeOutTween.Completed:Wait()
+	highlight:Destroy()
+end)
+
+createDmgIndicator.OnClientEvent:Connect(function(character, damage, headshot, weaponName)
+	local head = character:FindFirstChild("Head") 
+	if head then
+		-- Check if a BillboardGui already exists, and if so, destroy it
+
+		DealtDamage:FireServer(damage)
+
+		local existingGui = head:FindFirstChild("DamageIndicator")
+		local totalDamage = damage
+
+		if existingGui then
+			totalDamage = tonumber(existingGui.TextLabel.Text) + damage
+			existingGui:Destroy()
+		end
+		
+		local anchor = Instance.new("Part")
+		anchor.Name = "headClone"
+		anchor.Size = Vector3.new(0.2, 0.2, 0.2)
+		anchor.Anchored = true
+		anchor.CanCollide = false
+		anchor.CanQuery = false
+		anchor.CanTouch = false
+		anchor.Transparency = 1
+		anchor.CFrame = head.CFrame
+		anchor.Parent = workspace
+		
+		-- Create a new BillboardGui for the damage indicator
+		local billboardGui = Instance.new("BillboardGui")
+		billboardGui.Name = "DamageIndicator"
+		billboardGui.Size = UDim2.new(0, 80, 0, 40)
+		billboardGui.StudsOffset = Vector3.new(0, 2, 0)
+		billboardGui.Adornee = anchor
+		billboardGui.AlwaysOnTop = true
+
+		local textLabel = Instance.new("TextLabel")
+		textLabel.Size = UDim2.new(1, 0, 1, 0)
+		textLabel.BackgroundTransparency = 1
+		textLabel.Text = tostring(totalDamage)
+
+		if headshot then
+			if string.match(weaponName, "Laser") then
+				if string.match(weaponName, "Rifle") then
+					if player.Skins.LaserRifleVariant.Value == "Blue" then
+						textLabel.TextColor3 = Color3.fromRGB(61, 213, 255)
+					elseif player.Skins.LaserRifleVariant.Value == "Red" then
+						textLabel.TextColor3 = Color3.fromRGB(255, 10, 10)
+					elseif player.Skins.LaserRifleVariant.Value == "Purple" then
+						textLabel.TextColor3 = Color3.fromRGB(170, 0, 255)
+					end
+				elseif string.match(weaponName, "Sniper") then
+					if player.Skins.LaserSniperVariant.Value == "Blue" then
+						textLabel.TextColor3 = Color3.fromRGB(61, 213, 255)
+					elseif player.Skins.LaserSniperVariant.Value == "Red" then
+						textLabel.TextColor3 = Color3.fromRGB(255, 10, 10)
+					elseif player.Skins.LaserSniperVariant.Value == "Purple" then
+						textLabel.TextColor3 = Color3.fromRGB(170, 0, 255)
+					end
+				elseif string.match(weaponName, "Revolver") then
+					if player.Skins.LaserRevolverVariant.Value == "Blue" then
+						textLabel.TextColor3 = Color3.fromRGB(61, 213, 255)
+					elseif player.Skins.LaserRevolverVariant.Value == "Red" then
+						textLabel.TextColor3 = Color3.fromRGB(255, 10, 10)
+					elseif player.Skins.LaserRevolverVariant.Value == "Purple" then
+						textLabel.TextColor3 = Color3.fromRGB(170, 0, 255)
+					end
+				end
+			else
+				textLabel.TextColor3 = Color3.new(1, 83/255, 83/255)
+			end
+		else
+			textLabel.TextColor3 = Color3.new(1, 1, 1)
+		end
+		textLabel.TextStrokeTransparency = 1
+		textLabel.TextScaled = true
+		textLabel.Font = Enum.Font.Nunito
+		textLabel.Parent = billboardGui
+
+		billboardGui.Parent = head
+
+		-- Tween: Enlarge the size, then shrink and move upwards slightly
+		local enlargeTween = TweenService:Create(textLabel, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+			TextSize = 40,
+			Position = UDim2.new(0, 0, 0, -20)
+		})
+
+		local shrinkAndFadeTween = TweenService:Create(textLabel, TweenInfo.new(0.5, Enum.EasingStyle.Linear, Enum.EasingDirection.In), {
+			TextTransparency = 1,
+			TextSize = 20,
+			Position = UDim2.new(0, 0, 0, -50)
+		})
+
+		enlargeTween:Play()
+		enlargeTween.Completed:Connect(function()
+			shrinkAndFadeTween:Play()
+		end)
+
+		shrinkAndFadeTween.Completed:Connect(function()
+			billboardGui:Destroy()
+			anchor:Destroy()
+		end)
+	end
+end)
+
+skinHeadshot.OnClientEvent:Connect(function(humanoid, humanoidParent, skin, weapon)
+	local highlight = Instance.new("Highlight")
+	highlight.DepthMode = "Occluded"
+	highlight.Parent = humanoid.Parent
+	if skin == "Laser" then
+		if weapon == "Rifle" then
+			if player.Skins.LaserRifleVariant.Value == "Blue" then
+				highlight.FillColor = Color3.fromRGB(35, 178, 255)
+				highlight.OutlineColor = Color3.fromRGB(35, 178, 255)
+			elseif player.Skins.LaserRifleVariant.Value == "Red" then
+				highlight.FillColor = Color3.fromRGB(255, 0, 0)
+				highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
+			elseif player.Skins.LaserRifleVariant.Value == "Purple" then
+				highlight.FillColor = Color3.fromRGB(170, 0, 255)
+				highlight.OutlineColor = Color3.fromRGB(160, 52, 255)
+			end
+		elseif weapon == "Sniper" then
+			if player.Skins.LaserSniperVariant.Value == "Blue" then
+				highlight.FillColor = Color3.fromRGB(35, 178, 255)
+				highlight.OutlineColor = Color3.fromRGB(35, 178, 255)
+			elseif player.Skins.LaserSniperVariant.Value == "Red" then
+				highlight.FillColor = Color3.fromRGB(255, 0, 0)
+				highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
+			elseif player.Skins.LaserSniperVariant.Value == "Purple" then
+				highlight.FillColor = Color3.fromRGB(170, 0, 255)
+				highlight.OutlineColor = Color3.fromRGB(160, 52, 255)
+			end
+		elseif weapon == "Revolver" then
+			if player.Skins.LaserRevolverVariant.Value == "Blue" then
+				highlight.FillColor = Color3.fromRGB(35, 178, 255)
+				highlight.OutlineColor = Color3.fromRGB(35, 178, 255)
+			elseif player.Skins.LaserRevolverVariant.Value == "Red" then
+				highlight.FillColor = Color3.fromRGB(255, 0, 0)
+				highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
+			elseif player.Skins.LaserRevolverVariant.Value == "Purple" then
+				highlight.FillColor = Color3.fromRGB(170, 0, 255)
+				highlight.OutlineColor = Color3.fromRGB(160, 52, 255)
+			end
+		end
+	end
+	highlight.FillTransparency = 1
+	highlight.OutlineTransparency = 1
+
+	-- Tween to fade in both FillTransparency and OutlineTransparency
+	local fadeInTween = TweenService:Create(highlight, TweenInfo.new(0.05, Enum.EasingStyle.Linear, Enum.EasingDirection.In), {
+		FillTransparency = 0.85,
+		OutlineTransparency = 0
+	})
+	fadeInTween:Play()
+
+	-- Wait for the fade-in to complete
+	fadeInTween.Completed:Wait()
+
+	-- Tween to fade out both FillTransparency and OutlineTransparency
+	local fadeOutTween = TweenService:Create(highlight, TweenInfo.new(0.12, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {
+		FillTransparency = 1,
+		OutlineTransparency = 1
+	})
+	fadeOutTween:Play()
+
+	-- Wait for the fade-out to complete before destroying the highlight
+	fadeOutTween.Completed:Wait()
+	highlight:Destroy()
+end)
+
+skinDmgIndicator.OnClientEvent:Connect(function(character, damage, headshot, skin, weapon)
+	local head = character:FindFirstChild("Head")
+	if head then
+		-- Check if a BillboardGui already exists, and if so, destroy it
+
+		DealtDamage:FireServer(damage)
+
+		local existingGui = head:FindFirstChild("DamageIndicator")
+		local totalDamage = damage
+
+		if existingGui then
+			totalDamage = tonumber(existingGui.TextLabel.Text) + damage
+			existingGui:Destroy()
+		end
+
+		-- Create a new BillboardGui for the damage indicator
+		local billboardGui = Instance.new("BillboardGui")
+		billboardGui.Name = "DamageIndicator"
+		billboardGui.Size = UDim2.new(0, 80, 0, 40)
+		billboardGui.StudsOffset = Vector3.new(0, 2, 0)
+		billboardGui.Adornee = head
+		billboardGui.AlwaysOnTop = true
+
+		local textLabel = Instance.new("TextLabel")
+		textLabel.Size = UDim2.new(1, 0, 1, 0)
+		textLabel.BackgroundTransparency = 1
+		textLabel.Text = tostring(totalDamage)
+		if headshot then
+			if skin == "Laser" then
+				if weapon == "Rifle" then
+					if player.Skins.LaserRifleVariant.Value == "Blue" then
+						textLabel.TextColor3 = Color3.fromRGB(61, 213, 255)
+					elseif player.Skins.LaserRifleVariant.Value == "Red" then
+						textLabel.TextColor3 = Color3.fromRGB(255, 10, 10)
+					elseif player.Skins.LaserRifleVariant.Value == "Purple" then
+						textLabel.TextColor3 = Color3.fromRGB(170, 0, 255)
+					end
+				elseif weapon == "Sniper" then
+					if player.Skins.LaserSniperVariant.Value == "Blue" then
+						textLabel.TextColor3 = Color3.fromRGB(61, 213, 255)
+					elseif player.Skins.LaserSniperVariant.Value == "Red" then
+						textLabel.TextColor3 = Color3.fromRGB(255, 10, 10)
+					elseif player.Skins.LaserSniperVariant.Value == "Purple" then
+						textLabel.TextColor3 = Color3.fromRGB(170, 0, 255)
+					end
+				elseif weapon == "Revolver" then
+					if player.Skins.LaserRevolverVariant.Value == "Blue" then
+						textLabel.TextColor3 = Color3.fromRGB(61, 213, 255)
+					elseif player.Skins.LaserRevolverVariant.Value == "Red" then
+						textLabel.TextColor3 = Color3.fromRGB(255, 10, 10)
+					elseif player.Skins.LaserRevolverVariant.Value == "Purple" then
+						textLabel.TextColor3 = Color3.fromRGB(170, 0, 255)
+					end
+				end
+			end
+		else
+			textLabel.TextColor3 = Color3.new(1, 1, 1)
+		end
+		textLabel.TextStrokeTransparency = 1
+		textLabel.TextScaled = true
+		textLabel.Font = Enum.Font.Nunito
+		textLabel.Parent = billboardGui
+
+		billboardGui.Parent = head
+
+		-- Tween: Enlarge the size, then shrink and move upwards slightly
+		local enlargeTween = TweenService:Create(textLabel, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+			TextSize = 40,
+			Position = UDim2.new(0, 0, 0, -20)
+		})
+
+		local shrinkAndFadeTween = TweenService:Create(textLabel, TweenInfo.new(0.5, Enum.EasingStyle.Linear, Enum.EasingDirection.In), {
+			TextTransparency = 1,
+			TextSize = 20,
+			Position = UDim2.new(0, 0, 0, -50)
+		})
+
+		enlargeTween:Play()
+		enlargeTween.Completed:Connect(function()
+			shrinkAndFadeTween:Play()
+		end)
+
+		shrinkAndFadeTween.Completed:Connect(function()
+			billboardGui:Destroy()
+		end)
+	end
+end)
