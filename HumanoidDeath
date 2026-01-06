@@ -1,0 +1,77 @@
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local playerDied = ReplicatedStorage:WaitForChild("Died")
+local PlayerDiedServer = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("PlayerDiedServer")
+
+local lobbySpawn = workspace:WaitForChild("LobbySpawn")
+local spawnDirectionAngle = 0 -- Angle players face at spawn
+
+local function teleportToLobby(character)
+	local hrp = character:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	local offset = Vector3.new(math.random(0, 5), 0, math.random(0, 5))
+	local spawnCFrame = CFrame.new(lobbySpawn.Position + offset) * CFrame.Angles(0, math.rad(spawnDirectionAngle), 0)
+
+	-- Force teleport with short delay to avoid being overridden
+	task.defer(function()
+		if hrp then
+			hrp.CFrame = spawnCFrame
+		end
+	end)
+end
+
+local function onPlayerAdded(player)
+	player.RespawnLocation = lobbySpawn
+	player.CharacterAdded:Connect(function(character)
+		local humanoid = character:WaitForChild("Humanoid")
+		character.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
+		humanoid.BreakJointsOnDeath = false
+
+		--local hrp = character:WaitForChild("HumanoidRootPart")
+		-- Ensure GameTeam and playerTeam are ready
+		--local maxWaitTime = 50
+		--local elapsed = 0
+		--while (not hrp or not player:FindFirstChild("GameTeam") or not player.GameTeam:FindFirstChild("playerTeam")) and elapsed < maxWaitTime do
+		--	task.wait(0.1)
+		--	elapsed += 0.1
+		--end
+
+		-- Teleport if team is None or ShootingRange
+		local team = player:FindFirstChild("GameTeam") and player.GameTeam:FindFirstChild("playerTeam")
+		--if team and (team.Value == "None" or team.Value == "ShootingRange") then
+		--	print("teleporting to lobby")
+		--	player.RespawnLocation = lobbySpawn
+		--	teleportToLobby(character)
+		--end
+
+		-- Fire died remote
+		playerDied:FireClient(player)
+
+		-- Death handling
+		local function onDied()
+			playerDied:FireClient(player)
+			PlayerDiedServer:Fire(player)
+			print(player.Name, "has died!")
+			player.GeneralInfo.SyringeActivated.Value = false
+
+			for _, descendant in ipairs(character:GetDescendants()) do
+				if descendant:IsA("BasePart") then
+					descendant.CanQuery = false
+					descendant.CanTouch = false
+				end
+			end
+
+			if team and team.Value == "None" then
+				humanoid:UnequipTools()
+				player:LoadCharacter()
+			elseif player.GeneralInfo.isInGame.Value then
+				player.Statistics.Deaths.Value += 1
+			end
+		end
+
+		humanoid.Died:Connect(onDied)
+	end)
+end
+
+Players.PlayerAdded:Connect(onPlayerAdded)
