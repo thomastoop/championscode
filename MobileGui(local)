@@ -1,0 +1,142 @@
+local Player = game.Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+local uis = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local enableScoreboard = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("EnableScoreboard")
+local enableScoreboard2v2 = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("EnableScoreboard2v2")
+
+local GuiSetup = false
+--local updateLines = game:WaitForChild("ReplicatedStorage"):WaitForChild("UpdateCrosshair"):WaitForChild("LinesEnable")
+--local StoreLinesEnable = Player:WaitForChild("CrosshairData"):WaitForChild("linesEnabled").Value
+--updateLines:FireServer(Player.CrosshairData.linesEnabled.Value)
+---linesButton = PlayerGui:WaitForChild("Slider"):WaitForChild("CrosshairMenu"):WaitForChild("LinesToggle")
+--if StoreLinesEnable == false then
+--	linesButton.BackgroundColor3 = Color3.new(33/255,33/255,33/255)
+--	Player.PlayerGui:WaitForChild("Crosshair"):WaitForChild("Lines").Enabled = false
+--else
+--	linesButton.BackgroundColor3 = Color3.new(255/255,255/255,255/255)
+--	Player.PlayerGui:WaitForChild("Crosshair"):WaitForChild("Lines").Enabled = true
+--end
+
+--local FrameY = MobileGui:WaitForChild("FrameY")
+local function updateMobileGui()
+	if uis.TouchEnabled then
+		if not GuiSetup then
+			GuiSetup = true
+			print("Setting up MobileGui")
+			PlayerGui:WaitForChild("MobileGui"):WaitForChild("CrouchGui").Enabled = true
+			local MobileGui = PlayerGui:WaitForChild("MobileGui")
+			local ShootButton = MobileGui:WaitForChild("ShootButton")
+			local AimButton = MobileGui:WaitForChild("AimButton")
+			local CrouchButton = MobileGui:WaitForChild("CrouchGui"):WaitForChild("CrouchButton")
+			local ReloadButton = MobileGui:WaitForChild("ReloadButton")
+			local InspectButton = MobileGui:WaitForChild("InspectButton")
+			local SprintButton = MobileGui:WaitForChild("CrouchGui"):WaitForChild("SprintButton")
+
+			ShootButton.MouseButton1Down:Connect(function()
+				ShootButton.Image = "rbxassetid://84585874777519"
+			end)
+			ShootButton.MouseButton1Up:Connect(function()
+				ShootButton.Image = "rbxassetid://88723818162486"
+			end)
+			ShootButton.MouseLeave:Connect(function()
+				ShootButton.Image = "rbxassetid://88723818162486"
+			end)
+			ReloadButton.MouseButton1Down:Connect(function()
+				ReloadButton.Image = "rbxassetid://83568905414843"
+			end)
+			ReloadButton.MouseButton1Up:Connect(function()
+				ReloadButton.Image = "rbxassetid://98268743579059"
+			end)
+			ReloadButton.MouseLeave:Connect(function()
+				ReloadButton.Image = "rbxassetid://98268743579059"
+			end)
+			InspectButton.MouseButton1Down:Connect(function()
+				InspectButton.Image = "rbxassetid://125063330364298"
+			end)
+			InspectButton.MouseButton1Up:Connect(function()
+				InspectButton.Image = "rbxassetid://82294280731674"
+			end)
+			InspectButton.MouseLeave:Connect(function()
+				InspectButton.Image = "rbxassetid://82294280731674"
+			end)
+
+			ShootButton.Size = UDim2.new(0.172, 0, 0.172, 0) -- Scales with screen size
+			ShootButton.Position = UDim2.new(0.722, 0, 0.561, 0) -- Left bottom corner, always visible
+			ShootButton.AnchorPoint = Vector2.new(0, 0) -- Anchor from top-left (you can adjust)
+
+			AimButton.Size = UDim2.new(0.172, 0, 0.172, 0) -- Scales with screen size
+			AimButton.Position = UDim2.new(0.823, 0, 0.458, 0) -- Left bottom corner, always visible
+			AimButton.AnchorPoint = Vector2.new(0, 0) -- Anchor from top-left (you can adjust)
+
+			CrouchButton.Size = UDim2.new(0.172, 0, 0.172, 0) -- Scales with screen size
+			CrouchButton.Position = UDim2.new(0.659, 0, 0.744, 0) -- Left bottom corner, always visible
+			CrouchButton.AnchorPoint = Vector2.new(0, 0) -- Anchor from top-left (you can adjust)
+
+			ReloadButton.Size = UDim2.new(0.133, 0, 0.133, 0) -- Scales with screen size
+			ReloadButton.Position = UDim2.new(0.630, 0, 0.593, 0) -- Left bottom corner, always visible
+			ReloadButton.AnchorPoint = Vector2.new(0, 0) -- Anchor from top-left (you can adjust)
+
+			InspectButton.Size = UDim2.new(0.104, 0, 0.104, 0) -- Scales with screen size
+			InspectButton.Position = UDim2.new(0.904, 0, 0.212, 0) -- Left bottom corner, always visible
+			InspectButton.AnchorPoint = Vector2.new(0, 0) -- Anchor from top-left (you can adjust)
+
+			-- Example for SprintButton:
+			SprintButton.Size = UDim2.new(0.172, 0, 0.172, 0) -- Scales with screen size
+			SprintButton.Position = UDim2.new(0.075, 0, 0.178, 0) -- Left bottom corner, always visible
+			SprintButton.AnchorPoint = Vector2.new(0, 0) -- Anchor from top-left (you can adjust)
+		end
+		
+
+	else
+		PlayerGui:WaitForChild("MobileGui"):WaitForChild("CrouchGui").Enabled = false
+	end
+end
+
+-- Run once initially
+updateMobileGui()
+
+-- Re-run when screen size changes (optional)
+game:GetService("Workspace").CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(updateMobileGui)
+
+--FrameY.Size = UDim2.new(0, (JumpButton.Size.X.Offset / 4) * 2.5, 0, (JumpButton.Size.Y.Offset / 4) * 2.5) 
+--FrameY.Position = UDim2.new(0, JumpButton.AbsolutePosition.X + (JumpButton.AbsoluteSize.X/2), 0, JumpButton.AbsolutePosition.Y - ((JumpButton.AbsoluteSize.Y/4) * 2))
+
+enableScoreboard.OnClientEvent:Connect(function()
+	updateMobileGui()
+end)
+
+enableScoreboard2v2.OnClientEvent:Connect(function()
+	updateMobileGui()
+end)
+
+--[[
+
+		local TouchGui = PlayerGui:WaitForChild("TouchGui", 15)
+		local TouchControlFrame = TouchGui and TouchGui:WaitForChild("TouchControlFrame", 15)
+		local JumpButton = TouchControlFrame and TouchControlFrame:WaitForChild("JumpButton", 15)
+
+		if not JumpButton then
+			warn("JumpButton not found after 15 seconds. Skipping mobile button layout update.")
+			return
+		end
+		
+		ShootButton.Size = UDim2.new(0, (JumpButton.Size.X.Offset / 2.5) * 2.5, 0, (JumpButton.Size.X.Offset / 2.5) * 2.5) 
+		ShootButton.Position = UDim2.new(0, JumpButton.AbsolutePosition.X - ((JumpButton.AbsoluteSize.X/2.5) * 2), 0, JumpButton.AbsolutePosition.Y - (JumpButton.AbsoluteSize.Y/1.35))
+
+		AimButton.Size = UDim2.new(0, (JumpButton.Size.X.Offset / 2.5) * 2.5, 0, (JumpButton.Size.X.Offset / 2.5) * 2.5) 
+		AimButton.Position = UDim2.new(0, JumpButton.AbsolutePosition.X + ((JumpButton.AbsoluteSize.X) * .34), 0, JumpButton.AbsolutePosition.Y - (JumpButton.AbsoluteSize.Y/1))
+
+		CrouchButton.Size = UDim2.new(0, (JumpButton.Size.X.Offset / 2.5) * 2.5, 0, (JumpButton.Size.X.Offset / 2.5) * 2.5) 
+		CrouchButton.Position = UDim2.new(0, JumpButton.AbsolutePosition.X - ((JumpButton.AbsoluteSize.X/1.6) * 2), 0, JumpButton.AbsolutePosition.Y + (JumpButton.AbsoluteSize.Y/4))
+
+		ReloadButton.Size = UDim2.new(0, (JumpButton.Size.X.Offset / 3.5) * 2.5, 0, (JumpButton.Size.X.Offset / 3.5) * 2.5) 
+		ReloadButton.Position = UDim2.new(0, JumpButton.AbsolutePosition.X - ((JumpButton.AbsoluteSize.X/1.2) * 2), 0, JumpButton.AbsolutePosition.Y - (JumpButton.AbsoluteSize.Y/2))
+
+		InspectButton.Size = UDim2.new(0, (JumpButton.Size.X.Offset / 4.5) * 2.5, 0, (JumpButton.Size.X.Offset / 4.5) * 2.5) 
+		InspectButton.Position = UDim2.new(0, JumpButton.AbsolutePosition.X + ((JumpButton.AbsoluteSize.X) * .34), 0, JumpButton.AbsolutePosition.Y - (JumpButton.AbsoluteSize.Y/.5))
+
+		SprintButton.Size = UDim2.new(0, (JumpButton.Size.X.Offset / 2.2) * 2.5, 0, (JumpButton.Size.X.Offset / 2.2) * 2.5) 
+		SprintButton.Position = UDim2.new(0, JumpButton.AbsolutePosition.X - ((JumpButton.AbsoluteSize.X) * 8.5), 0, JumpButton.AbsolutePosition.Y - (JumpButton.AbsoluteSize.Y/.5))
+		
+]]
