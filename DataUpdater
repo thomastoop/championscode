@@ -1,0 +1,536 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local badgeService = game:GetService("BadgeService")
+
+local level50Badge = 3485436279736198
+local level100Badge = 4294971594665801
+
+local updateSens = ReplicatedStorage:WaitForChild("Settings"):WaitForChild("UpdateADSSens")
+local updateSensitivity = ReplicatedStorage:WaitForChild("Settings"):WaitForChild("UpdateSensitivity")
+local updateMusicVolume = ReplicatedStorage:WaitForChild("Settings"):WaitForChild("UpdateMusicVolume")
+local ServerAddKillLeaderstats = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("ServerAddKillLeaderstats")
+local updateCenterDot = ReplicatedStorage:WaitForChild("UpdateCrosshair"):WaitForChild("CenterDotEnable")
+local updateDotSize = ReplicatedStorage:WaitForChild("UpdateCrosshair"):WaitForChild("UpdateCenterDotSize")
+local updateLines = ReplicatedStorage:WaitForChild("UpdateCrosshair"):WaitForChild("LinesEnable")
+local updateLinesLength = ReplicatedStorage:WaitForChild("UpdateCrosshair"):WaitForChild("UpdateLinesLength")
+local updateDotOutline = ReplicatedStorage:WaitForChild("UpdateCrosshair"):WaitForChild("DotOutlineEnable")
+local updateDotOutlineSize = ReplicatedStorage:WaitForChild("UpdateCrosshair"):WaitForChild("UpdateDotOutlineSize")
+local updateLinesThickness = ReplicatedStorage:WaitForChild("UpdateCrosshair"):WaitForChild("UpdateLinesThickness")
+local updateLinesSpacing = ReplicatedStorage:WaitForChild("UpdateCrosshair"):WaitForChild("UpdateLinesSpacing")
+local updateLineOutlines = ReplicatedStorage:WaitForChild("UpdateCrosshair"):WaitForChild("LineOutlinesEnable")
+local updateLineOutlineSize = ReplicatedStorage:WaitForChild("UpdateCrosshair"):WaitForChild("UpdateLineOutlineSize")
+
+local ChangeSelectedPrimary = ReplicatedStorage:WaitForChild("ChangeSelectedPrimary")
+local ChangeSelectedSecondary = ReplicatedStorage:WaitForChild("ChangeSelectedSecondary")
+local ChangeSelectedAbility1 = ReplicatedStorage:WaitForChild("ChangeSelectedAbility1")
+
+local ChangeADSMode = ReplicatedStorage:WaitForChild("ChangeADSMode")
+local ChangeSniperAimMode = ReplicatedStorage:WaitForChild("ChangeSniperAimMode")
+local ChangeCrouchMode = ReplicatedStorage:WaitForChild("ChangeCrouchMode")
+local ChangeSprintMode = ReplicatedStorage:WaitForChild("Settings"):WaitForChild("ChangeSprintMode")
+local ChangeChatTagEvent = ReplicatedStorage:WaitForChild("Settings"):WaitForChild("ChangeChatTag")
+
+local ChangeRifleSkin = ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeRifleSkin")
+local ChangeSniperSkin = ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeSniperSkin")
+local ChangeSMGSkin = ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeSMGSkin")
+local ChangePistolSkin = ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangePistolSkin")
+local ChangeRevolverSkin = ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeRevolverSkin")
+local ChangeMeleeSkin = ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeMeleeSkin")
+local ChangeCharacterSkin = ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeCharacterSkin")
+local ChangeHandSkin = ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeHandSkin")
+
+local UnlockWeaponEvent = ReplicatedStorage:WaitForChild("UnlockWeapon")
+
+local ChangeLaserRifleSkinVariant = ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeLaserRifleSkinVariant")
+local ChangeLaserSniperSkinVariant = ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeLaserSniperSkinVariant")
+local ChangeLaserRevolverSkinVariant = ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeLaserRevolverSkinVariant")
+local ChangeSaberVariant = ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeSaberVariant")
+
+local ClaimFavorite = ReplicatedStorage:WaitForChild("Bonuses"):WaitForChild("ClaimFavorite")
+local ClaimLike = ReplicatedStorage:WaitForChild("Bonuses"):WaitForChild("ClaimLike")
+local RedeemCode = ReplicatedStorage:WaitForChild("Bonuses"):WaitForChild("RedeemCode")
+
+local preRoundRE = ReplicatedStorage:WaitForChild("PreRound")
+local SyringeActivated = ReplicatedStorage:WaitForChild("AbilityActions"):WaitForChild("SyringeActivated")
+
+local UpdateCenterDotColor = ReplicatedStorage:WaitForChild("Settings"):WaitForChild("UpdateCenterDotColor")
+local UpdateLinesColor = ReplicatedStorage:WaitForChild("Settings"):WaitForChild("UpdateLinesColor")
+
+local RestoreWinstreak = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("RestoreWinstreak")
+
+local HttpService = game:GetService("HttpService")
+local BaseUrl = "https://www.roproxy.com/users/favorites/list-json?assetTypeId=%d&itemsPerPage=%d&pageNumber=%d&userId=%d"
+
+local TagTesters = {
+	["distszn"] = true,
+	["crucialmind"] = true,
+	["DeadMrWalking"] = true,
+	["viirkko"] = true,
+	["knightsalt14"] = true,
+	["voidule"] = true,
+	["Takkosu999"] = true,
+	["321riahc"] = true,
+	["vA4kGq9J8r1L"] = true,
+	["hi123456789101112135"] = true,
+	["championstestaccount"] = true,
+
+}
+
+local function GetFavorites(assetTypeId, itemsPerPage, pageNumber, userId)
+	local Url = string.format(BaseUrl, assetTypeId, itemsPerPage, pageNumber, userId)
+	print(Url)
+	local Success, Result = pcall(HttpService.GetAsync, HttpService, Url)
+	if not Success then
+		warn("HTTP GetAsync failed:", Result)
+		return nil
+	end
+
+	Success, Result = pcall(HttpService.JSONDecode, HttpService, Result)
+	if not Success then
+		warn("JSON decode failed:", Result)
+		return nil
+	end
+
+	return Result
+end
+
+ClaimFavorite.OnServerEvent:Connect(function(player)	
+	if not player.GeneralInfo.claimedFavoriteBonus.Value then
+		player.GeneralInfo.claimedFavoriteBonus.Value = true
+		player.Skins.hasTopSmallGems.Value = true
+		player.Currency.Gems.Value += 100
+		player.PlayerGui.Bonuses.BonusesFrame.Favorite.Claim.Claim.Text = "CLAIMED"
+		player.PlayerGui.Bonuses.BonusesFrame.Favorite.Claim.BackgroundColor3 = Color3.fromRGB(0, 43, 71)
+		player.PlayerGui.Bonuses.BonusesFrame.Favorite.Claim.UIStroke.Color = Color3.fromRGB(0, 43, 71)
+	end
+end)
+
+
+ClaimLike.OnServerEvent:Connect(function(player)
+	if player:IsInGroup(4536092) then
+		if not player.GeneralInfo.claimedLikeBonus.Value then
+			player.GeneralInfo.claimedLikeBonus.Value = true
+			player.Skins.hasBigCenterGem.Value = true
+			player.Currency.Gems.Value += 100
+			player.PlayerGui.Bonuses.BonusesFrame.Like.Claim.Claim.Text = "CLAIMED"
+			player.PlayerGui.Bonuses.BonusesFrame.Like.Claim.BackgroundColor3 = Color3.fromRGB(0, 43, 71)
+			player.PlayerGui.Bonuses.BonusesFrame.Like.Claim.UIStroke.Color = Color3.fromRGB(0, 43,71)
+		end
+	end
+end)
+
+RedeemCode.OnServerEvent:Connect(function(player, code)
+	if code == "Shotgun" then
+		--player.Weapons.hasShotgun.Value = true
+	elseif code == "2000Gems" then
+		--player.Currency.Gems.Value += 2000
+		--player.Rewards.claimedCode2kGems.Value = true
+	elseif code == "LikeGoal" then
+		if not player.Rewards.claimedCodeLikeGoal.Value then
+			player.Currency.Gems.Value += 100
+			player.Rewards.claimedCodeLikeGoal.Value = true
+		end
+	elseif code == "EARLYEXCLUSIVE" then
+		--if not player.Skins.hasLaserRifle.Value then
+		--	player.Currency.Gems.Value += 2000
+		--	player.Skins.hasLaserRifle.Value = true
+		--end
+	elseif code == "BUGTESTEREXCLUSIVE" then
+		--if not player.Rewards.claimedCode2kGems.Value then
+			--player.Currency.Gems.Value += 3000
+			--player.Skins.hasLaserRifle.Value = true
+			--player.Skins.hasLaserSniper.Value = true
+			--player.Skins.hasLaserRevolver.Value = true
+			--player.Skins.hasSaber.Value = true
+			--player.Rewards.claimedCode2kGems.Value = true
+		--end
+	end
+end)
+
+
+-- Calculate the XP needed for a specific level
+local function GetXPForLevel(level)
+	if level == 1 then return 0 end -- Level 1 requires 0 XP
+
+	local totalXP = 0
+	local baseXP = 100
+	local multiplier = 1.25
+
+	for i = 2, level do
+		local bracket = math.floor((i - 2) / 5) -- Determine the 5-level bracket
+		local xpForThisLevel = baseXP * math.pow(multiplier, bracket)
+		totalXP += xpForThisLevel
+	end
+	
+	return math.floor(totalXP) -- Return the total XP required for this level
+end
+
+-- Binary Search method for finding player level
+local function GetPlayerLevelBinary(xp)
+	if xp < 100 then return 1 end -- Quick return for level 1
+
+	local left = 2
+	local right = 1500 -- Maximum level
+
+	while left <= right do
+		local mid = math.floor((left + right) / 2)
+		local xpNeeded = GetXPForLevel(mid)
+
+		if xpNeeded == xp then
+			return mid
+		elseif xpNeeded < xp then
+			left = mid + 1
+		else
+			right = mid - 1
+		end
+	end
+
+	return right -- Return the highest level the player has completed
+end
+
+-- The main function to update player level
+local function UpdatePlayerLevel(player)
+	local xp = player.Progression.Experience.Value
+	player.leaderstats.Level.Value = GetPlayerLevelBinary(xp)
+	if player.leaderstats.Level.Value >= 50 then
+		if not badgeService:UserHasBadgeAsync(player.UserId, level50Badge) then
+			badgeService:AwardBadge(player.UserId, level50Badge)
+		end
+	end
+	if player.leaderstats.Level.Value >= 100 then
+		if not badgeService:UserHasBadgeAsync(player.UserId, level100Badge) then
+			badgeService:AwardBadge(player.UserId, level100Badge)
+		end
+	end
+end
+
+
+RestoreWinstreak.OnServerEvent:Connect(function(player)
+	if player.Statistics.WinstreakRestores.Value <= 0 then
+		if player.Currency.Gems.Value >= 25 then
+			player.Statistics.WinstreakRestores.Value += 1
+			player.Currency.Gems.Value -= 25
+			player.leaderstats.Winstreak.Value = player.Statistics.LastWinstreak.Value
+			player.Statistics.LastWinstreak.Value = 0 
+			RestoreWinstreak:FireClient(player)
+		end
+	elseif player.Statistics.WinstreakRestores.Value == 1 then
+		if player.Currency.Gems.Value >= 50 then
+			player.Statistics.WinstreakRestores.Value += 1
+			player.Currency.Gems.Value -= 50
+			player.leaderstats.Winstreak.Value = player.Statistics.LastWinstreak.Value
+			player.Statistics.LastWinstreak.Value = 0 
+
+			RestoreWinstreak:FireClient(player)
+
+		end
+	elseif player.Statistics.WinstreakRestores.Value == 2 then
+		if player.Currency.Gems.Value >= 100 then
+			player.Statistics.WinstreakRestores.Value += 1
+
+			player.Currency.Gems.Value -= 100
+			player.leaderstats.Winstreak.Value = player.Statistics.LastWinstreak.Value
+			player.Statistics.LastWinstreak.Value = 0 
+
+			RestoreWinstreak:FireClient(player)
+
+		end
+	elseif player.Statistics.WinstreakRestores.Value == 3 then
+		if player.Currency.Gems.Value >= 200 then
+			player.Statistics.WinstreakRestores.Value += 1
+
+			player.Currency.Gems.Value -= 200
+			player.leaderstats.Winstreak.Value = player.Statistics.LastWinstreak.Value
+			player.Statistics.LastWinstreak.Value = 0 
+
+			RestoreWinstreak:FireClient(player)
+
+		end
+	elseif player.Statistics.WinstreakRestores.Value == 4 then
+		if player.Currency.Gems.Value >= 400 then
+			player.Statistics.WinstreakRestores.Value += 1
+
+			player.Currency.Gems.Value -= 400
+			player.leaderstats.Winstreak.Value = player.Statistics.LastWinstreak.Value
+			player.Statistics.LastWinstreak.Value = 0 
+
+			RestoreWinstreak:FireClient(player)
+
+		end
+	elseif player.Statistics.WinstreakRestores.Value == 5 then
+		if player.Currency.Gems.Value >= 800 then
+			player.Statistics.WinstreakRestores.Value += 1
+
+			player.Currency.Gems.Value -= 800
+			player.leaderstats.Winstreak.Value = player.Statistics.LastWinstreak.Value
+			player.Statistics.LastWinstreak.Value = 0 
+
+			RestoreWinstreak:FireClient(player)
+
+		end
+	else
+		if player.Currency.Gems.Value >= 1000 then
+			player.Statistics.WinstreakRestores.Value += 1
+
+			player.Currency.Gems.Value -= 1000
+			player.leaderstats.Winstreak.Value = player.Statistics.LastWinstreak.Value
+			player.Statistics.LastWinstreak.Value = 0 
+
+			RestoreWinstreak:FireClient(player)
+
+		end
+	end
+end)
+
+ChangeChatTagEvent.OnServerEvent:Connect(function(player, tag)
+	if tag == "None" then
+		player.GeneralInfo.ChatTag.Value = "None"
+		player:SetAttribute("ChatTag", "None")
+	elseif tag == "Tester" then
+		if TagTesters[player.Name] then
+			player.GeneralInfo.ChatTag.Value = "Tester"
+			player:SetAttribute("ChatTag", "Tester")
+		end
+	end
+end)
+
+updateSens.OnServerEvent:Connect(function(player, sens)
+	player.ADS_Sens.ADSsens.Value = sens
+end)
+
+updateSensitivity.OnServerEvent:Connect(function(player, sens)
+	player.GeneralInfo.Sensitivity.Value = sens
+end)
+
+updateMusicVolume.OnServerEvent:Connect(function(player, volume)
+	player.GeneralInfo.MusicVolume.Value = volume
+end)
+
+ServerAddKillLeaderstats.Event:Connect(function(player, victimName, weaponName)
+	player.leaderstats.Kills.Value += 1
+	player.Currency.Gems.Value += 1
+	player.Progression.Experience.Value += 10
+	player.GeneralInfo.KillsInOneGame.Value += 1
+	UpdatePlayerLevel(player)
+end)
+
+updateCenterDot.OnServerEvent:Connect(function(player, centerDotEnabled)
+	player.CrosshairData.centerDotEnabled.Value = centerDotEnabled
+end)
+
+updateDotSize.OnServerEvent:Connect(function(player, dotSize)
+	player.CrosshairData.centerDotSize.Value = dotSize
+end)
+
+updateLines.OnServerEvent:Connect(function(player, linesEnabled)
+	player.CrosshairData.linesEnabled.Value = linesEnabled
+end)
+
+updateLinesLength.OnServerEvent:Connect(function(player, linesLength)
+	player.CrosshairData.linesLength.Value = linesLength
+end)
+
+updateDotOutline.OnServerEvent:Connect(function(player, dotOutlineEnabled)
+	player.CrosshairData.dotOutlineEnabled.Value = dotOutlineEnabled
+end)
+
+updateDotOutlineSize.OnServerEvent:Connect(function(player, dotOutlineSize)
+	player.CrosshairData.dotOutlineSize.Value = dotOutlineSize
+end)
+
+updateLinesThickness.OnServerEvent:Connect(function(player, linesThickness)
+	player.CrosshairData.linesThickness.Value = linesThickness
+end)
+
+updateLinesSpacing.OnServerEvent:Connect(function(player, linesSpacing)
+	player.CrosshairData.linesSpacing.Value = linesSpacing
+end)
+
+updateLineOutlines.OnServerEvent:Connect(function(player, lineOutlinesEnabled)
+	player.CrosshairData.lineOutlinesEnabled.Value = lineOutlinesEnabled
+end)
+
+updateLineOutlineSize.OnServerEvent:Connect(function(player, lineOutlineSize)
+	player.CrosshairData.lineOutlineSize.Value = lineOutlineSize
+end)
+
+ChangeSelectedPrimary.OnServerEvent:Connect(function(player, primary)
+	player.SelectedWeapons.selectedPrimary.Value = primary
+end)
+
+ChangeSelectedSecondary.OnServerEvent:Connect(function(player, secondary)
+	player.SelectedWeapons.selectedSecondary.Value = secondary
+end)
+
+ChangeSelectedAbility1.OnServerEvent:Connect(function(player, ability)
+	player.SelectedWeapons.selectedAbility1.Value = ability
+end)
+
+ChangeADSMode.OnServerEvent:Connect(function(player, mode)
+	player.GeneralInfo.toggleADS.Value = mode
+end)
+
+ChangeSniperAimMode.OnServerEvent:Connect(function(player, mode)
+	player.GeneralInfo.toggleSniperAim.Value = mode
+end)
+
+ChangeCrouchMode.OnServerEvent:Connect(function(player, mode)
+	player.GeneralInfo.toggleCrouch.Value = mode
+end)
+
+ChangeSprintMode.OnServerEvent:Connect(function(player, mode)
+	player.GeneralInfo.toggleSprint.Value = mode
+end)
+
+ChangeRifleSkin.OnServerEvent:Connect(function(player, skin)
+	player.Skins.RifleWeaponSkin.Value = skin
+end)
+
+ChangeSniperSkin.OnServerEvent:Connect(function(player, skin)
+	player.Skins.SniperWeaponSkin.Value = skin
+end)
+
+ChangeSMGSkin.OnServerEvent:Connect(function(player, skin)
+	player.Skins.SMGWeaponSkin.Value = skin
+end)
+
+ChangePistolSkin.OnServerEvent:Connect(function(player, skin)
+	player.Skins.PistolWeaponSkin.Value = skin
+end)
+
+ChangeRevolverSkin.OnServerEvent:Connect(function(player, skin)
+	player.Skins.RevolverWeaponSkin.Value = skin
+end)
+
+ChangeMeleeSkin.OnServerEvent:Connect(function(player, skin)
+	player.Skins.MeleeWeaponSkin.Value = skin
+end)
+
+ChangeCharacterSkin.OnServerEvent:Connect(function(player, skin)
+	player.Skins.CharacterSkin.Value = skin
+end)
+
+ChangeHandSkin.OnServerEvent:Connect(function(player, skin)
+	player.Skins.HandSkin.Value = skin
+end)
+
+UpdateCenterDotColor.OnServerEvent:Connect(function(player, color)
+	player.CrosshairData.CenterDotColor.Value = color
+end)
+
+UpdateLinesColor.OnServerEvent:Connect(function(player, color)
+	player.CrosshairData.LinesColor.Value = color
+end)
+
+UnlockWeaponEvent.OnServerEvent:Connect(function(player, weapon)
+	if weapon == "Sniper" then
+		if player.Currency.Gems.Value >= 500 then
+			player.Weapons.hasSniper.Value = true
+			player.Currency.Gems.Value -= 500
+		end
+	elseif weapon == "SMG" then
+		if player.Currency.Gems.Value >= 350 then
+			player.Weapons.hasSMG.Value = true
+			player.Currency.Gems.Value -= 350
+		end
+	elseif weapon == "Shotgun" then
+		if player.Currency.Gems.Value >= 250 then
+			player.Weapons.hasShotgun.Value = true
+			player.Currency.Gems.Value -= 250
+		end
+	elseif weapon == "Revolver" then
+		if player.Currency.Gems.Value >= 225 then
+			player.Weapons.hasRevolver.Value = true
+			player.Currency.Gems.Value -= 225
+		end
+	elseif weapon == "AutoPistol" then
+		if player.Currency.Gems.Value >= 250 then
+			player.Weapons.hasAutoPistol.Value = true
+			player.Currency.Gems.Value -= 250
+		end
+	elseif weapon == "Booster" then
+		if player.Currency.Gems.Value >= 150 then
+			player.Weapons.hasBooster.Value = true
+			player.Currency.Gems.Value -= 150
+		end
+
+	elseif weapon == "LightningBomb" then
+		if player.Currency.Gems.Value >= 200 then
+			player.Weapons.hasLightningBomb.Value = true
+			player.Currency.Gems.Value -= 200
+		end
+
+	elseif weapon == "OverdriveVial" then
+		if player.Currency.Gems.Value >= 150 then
+			player.Weapons.hasOverdriveVial.Value = true
+			player.Currency.Gems.Value -= 150
+		end
+
+	elseif weapon == "RegenPot" then
+		if player.Currency.Gems.Value >= 200 then
+			player.Weapons.hasRegenPot.Value = true
+			player.Currency.Gems.Value -= 200
+		end
+
+	end
+end)
+
+ChangeLaserRifleSkinVariant.OnServerEvent:Connect(function(player, variant)
+	player.Skins.LaserRifleVariant.Value = variant
+end)
+
+ChangeLaserSniperSkinVariant.OnServerEvent:Connect(function(player, variant)
+	player.Skins.LaserSniperVariant.Value = variant
+end)
+
+ChangeLaserRevolverSkinVariant.OnServerEvent:Connect(function(player, variant)
+	player.Skins.LaserRevolverVariant.Value = variant
+end)
+
+ChangeSaberVariant.OnServerEvent:Connect(function(player, variant)
+	player.Skins.SaberVariant.Value = variant
+end)
+
+preRoundRE.OnServerEvent:Connect(function(player, preRoundStatus)
+	player.GeneralInfo.PreRound.Value = preRoundStatus
+end)
+
+SyringeActivated.OnServerEvent:Connect(function(player, isActivated, abilityDuration)
+	player.GeneralInfo.SyringeActivated.Value = isActivated
+	SyringeActivated:FireAllClients(player, isActivated, abilityDuration)
+end)
+
+local temp = game:GetService("ReplicatedStorage"):WaitForChild("TEMP")
+temp.OnServerEvent:Connect(function(player)
+
+
+--[[
+	UpdatePlayerLevel(player)
+	player.Skins.hasLaserRifle.Value = true
+	player.Skins.hasLaserSniper.Value = true
+	player.Skins.hasLaserRevolver.Value = true
+	player.Skins.hasSaber.Value = true
+	player.Weapons.hasShotgun.Value = false
+	player.Weapons.hasSniper.Value = false
+	player.Weapons.hasRevolver.Value = false
+	player.Weapons.hasSMG.Value = false
+	player.Skins.hasTopSmallGems.Value = true
+	player.Skins.hasBigCenterGem.Value = true
+	player.Weapons.hasLightningBomb.Value = true
+	player.Weapons.hasBooster.Value = true
+	player.Weapons.hasOverdriveVial.Value = true
+]]
+	
+	player.Weapons.hasBooster.Value = false
+
+	player.Weapons.hasLightningBomb.Value = false
+	player.Weapons.hasOverdriveVial.Value = false
+
+
+	--player.Currency.Gems.Value += 1000
+
+	--player.Skins.hasLebronCharacter.Value = true
+	--player.Skins.CharacterSkin.Value = "Lebron"
+	--player.GeneralInfo.claimedFavoriteBonus.Value = false
+	--player.GeneralInfo.claimedLikeBonus.Value = false
+
+end)
