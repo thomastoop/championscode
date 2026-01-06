@@ -1,0 +1,33 @@
+local tool = script.Parent
+local replicatedStorage = game:GetService("ReplicatedStorage")
+local serverStorage = game:GetService("ServerStorage")
+local abilityParts = serverStorage:WaitForChild("AbilityParts")
+local defaultBooster = abilityParts:WaitForChild("DefaultBooster")
+local debris = game:GetService("Debris")
+local disableWeaponSelector = replicatedStorage:WaitForChild("DisableWeaponSelector")
+local remoteEvent = replicatedStorage:WaitForChild("AbilityActions"):WaitForChild("PlaceBoosterRemote")
+
+local allBoosters = {}
+
+remoteEvent.OnServerEvent:Connect(function(player, cframe, map)
+	-- Clone the DefaultBooster model and place it at the specified position
+	local booster = defaultBooster:Clone()
+	table.insert(allBoosters, booster)
+	booster:SetAttribute("ownerId", player.UserId)
+	booster:SetPrimaryPartCFrame(cframe * CFrame.Angles(math.rad(45), 0, 0))
+	booster.Parent = map
+	
+	if player.GameTeam.playerTeam.Value == "ShootingRange" then
+		debris:AddItem(booster, 20)
+	end
+
+	-- You can add additional logic here if needed, such as setting ownership or handling collisions
+end)
+
+disableWeaponSelector.OnServerEvent:Connect(function(player)
+	for _, booster in allBoosters do
+		if player.UserId == booster:GetAttribute("ownerId") then
+			booster:Destroy()
+		end
+	end
+end)
