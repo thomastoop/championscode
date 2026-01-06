@@ -1,0 +1,27 @@
+local Players = game:GetService("Players")
+local PS = game:GetService("PhysicsService")
+
+local CollisionGroupName = "Players"
+
+-- Register the collision group
+PS:RegisterCollisionGroup(CollisionGroupName)
+PS:CollisionGroupSetCollidable(CollisionGroupName, CollisionGroupName, false)
+
+Players.PlayerAdded:Connect(function(Player)
+	Player.CharacterAdded:Connect(function(char)
+		-- Function to change the collision group of a part
+		local function ChangeGroup(Part)
+			if Part:IsA("BasePart") then
+				Part.CollisionGroup = CollisionGroupName
+			end
+		end
+
+		-- Set collision group for existing parts
+		for _, Object in pairs(char:GetChildren()) do
+			ChangeGroup(Object)
+		end
+
+		-- Set collision group for newly added parts
+		char.ChildAdded:Connect(ChangeGroup)
+	end)
+end)
