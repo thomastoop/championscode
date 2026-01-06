@@ -1,0 +1,31 @@
+local badgeService = game:GetService("BadgeService")
+local Players = game:GetService("Players")
+
+local creatorId = 162647616
+
+local playedGameBadge = 3671550976978956
+local metTheOwnerBadge = 4162193917909946
+
+game.Players.PlayerAdded:Connect(function(player)
+	task.wait(1)
+	
+	if not badgeService:UserHasBadgeAsync(player.UserId, playedGameBadge) then
+		badgeService:AwardBadge(player.UserId, playedGameBadge)
+	end
+	
+	if player.UserId == creatorId then
+		for i, v in Players:GetPlayers() do
+			if not badgeService:UserHasBadgeAsync(v.UserId, metTheOwnerBadge) then
+				badgeService:AwardBadge(v.UserId, metTheOwnerBadge)
+			end
+		end
+	end
+	
+	if Players:GetPlayerByUserId(creatorId) ~= nil then
+		if not badgeService:UserHasBadgeAsync(player.UserId, metTheOwnerBadge) then
+			badgeService:AwardBadge(player.UserId, metTheOwnerBadge)
+		end
+	end
+	
+	
+end)
