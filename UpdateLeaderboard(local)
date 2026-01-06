@@ -1,0 +1,64 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+local UpdateDamage = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("UpdateDamage")
+local addKill = ReplicatedStorage:WaitForChild("AddKill")
+local UpdateDeath = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("UpdateDeath")
+
+-- Listen for leaderboard updates from the server
+UpdateDamage.OnClientEvent:Connect(function(targetUserId, damage)
+	local player = Players.LocalPlayer
+	local playerGui = player:WaitForChild("PlayerGui")
+	local leaderboard = playerGui:WaitForChild("GameLeaderboard")
+
+	-- Find the correct player's icon and update their damage
+	for _, icon in leaderboard:GetDescendants() do
+		if icon:IsA("ImageLabel") and icon.Image == game.Players:GetUserThumbnailAsync(targetUserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420) then
+			local damageLabel = icon.Parent:FindFirstChild("Damage")
+			if damageLabel then
+				damageLabel.Text = tostring(tonumber(damageLabel.Text) + damage)
+				if damageLabel.Parent.Parent.Parent.Name == "TwoPlayerLeaderboard" and damageLabel.Parent.Parent.Parent.Visible then
+					if tonumber(damageLabel.Parent.Parent.Player1.Damage.Text) > tonumber(damageLabel.Parent.Parent.Player2.Damage.Text) then
+						damageLabel.Parent.Parent.Player1.Position = UDim2.new(0.5, 0, 0.414, 0)
+						damageLabel.Parent.Parent.Player2.Position = UDim2.new(0.5, 0, 0.708, 0)
+					else
+						damageLabel.Parent.Parent.Player2.Position = UDim2.new(0.5, 0, 0.414, 0)
+						damageLabel.Parent.Parent.Player1.Position = UDim2.new(0.5, 0, 0.708, 0)
+					end
+				end
+			end
+		end
+	end
+end)
+
+addKill.OnClientEvent:Connect(function(targetUserId)
+	local player = Players.LocalPlayer
+	local playerGui = player:WaitForChild("PlayerGui")
+	local leaderboard = playerGui:WaitForChild("GameLeaderboard")
+
+	-- Find the correct player's icon and update their damage
+	for _, icon in leaderboard:GetDescendants() do
+		if icon:IsA("ImageLabel") and icon.Image == game.Players:GetUserThumbnailAsync(targetUserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420) then
+			local killLabel = icon.Parent:FindFirstChild("Kills")
+			if killLabel then
+				killLabel.Text = tostring(tonumber(killLabel.Text) + 1)
+			end
+		end
+	end
+end)
+
+UpdateDeath.OnClientEvent:Connect(function(targetUserId)
+	local player = Players.LocalPlayer
+	local playerGui = player:WaitForChild("PlayerGui")
+	local leaderboard = playerGui:WaitForChild("GameLeaderboard")
+
+	-- Find the correct player's icon and update their damage
+	for _, icon in leaderboard:GetDescendants() do
+		if icon:IsA("ImageLabel") and icon.Image == game.Players:GetUserThumbnailAsync(targetUserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420) then
+			local deathLabel = icon.Parent:FindFirstChild("Deaths")
+			if deathLabel then
+				deathLabel.Text = tostring(tonumber(deathLabel.Text) + 1)
+			end
+		end
+	end
+end)
