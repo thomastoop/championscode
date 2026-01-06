@@ -1,0 +1,95 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local FastCast = require(ReplicatedStorage:WaitForChild("FastCast"))
+local bombThrown = ReplicatedStorage:WaitForChild("AbilityActions"):WaitForChild("LightningBombThrown")
+local bombExploded = ReplicatedStorage:WaitForChild("AbilityActions"):WaitForChild("LightningBombExploded")
+local lightningBombTemplate = ReplicatedStorage:WaitForChild("AbilityParts"):WaitForChild("LocalDefaultLightningBombSinglePart"):Clone()
+local RunService = game:GetService("RunService")
+lightningBombTemplate.Parent = workspace
+
+local grenadeTemplate = ReplicatedStorage:WaitForChild("AbilityParts"):WaitForChild("DefaultGrenadeMesh"):Clone()
+grenadeTemplate.Parent = workspace
+grenadeTemplate.Transparency = 1
+
+local CreateLocalCosmeticProjectile = ReplicatedStorage:WaitForChild("AbilityActions"):WaitForChild("CreateLocalCosmeticProjectile")
+local grenadeClientExplosionPosition = ReplicatedStorage.AbilityActions:WaitForChild("GrenadeClientExplosionPosition")
+
+local caster = FastCast.new()
+
+-- Set up FastCast behavior
+local behavior = FastCast.newBehavior()
+local params = RaycastParams.new()
+params.FilterType = Enum.RaycastFilterType.Exclude
+params.FilterDescendantsInstances = {}
+
+behavior.RaycastParams = params
+behavior.AutoIgnoreContainer = true
+behavior.Acceleration = Vector3.new(0, -workspace.Gravity, 0)
+lightningBombTemplate.Transparency = 0
+behavior.CosmeticBulletTemplate = lightningBombTemplate
+behavior.CosmeticBulletContainer = workspace.LocalBulletFolder
+behavior.HighFidelityBehavior = FastCast.HighFidelityBehavior.Always
+
+local currentProjectileType = nil
+local activeGrenades = {}
+
+caster.LengthChanged:Connect(function(ActiveCast, lastPoint, rayDir, displacement, segmentVelocity, cosmeticBulletObject)
+	local newpos = lastPoint + (rayDir * displacement)
+	cosmeticBulletObject.Position = newpos
+
+	if currentProjectileType == "Grenade" and cosmeticBulletObject:IsA("BasePart") then
+		local rotationSpeed = math.rad(360)
+		local dt = RunService.Heartbeat:Wait()
+		cosmeticBulletObject.CFrame *= CFrame.Angles(rotationSpeed * dt, 0, 0)
+
+		-- Store this grenade object associated with its ActiveCast
+		activeGrenades[ActiveCast] = cosmeticBulletObject
+	end
+end)
+
+-- Handle projectile collision
+caster.RayHit:Connect(function(ActiveCast, RaycastResult, segmentVelocity, cosmeticBulletObject)
+	if currentProjectileType ~= "Grenade" then
+		cosmeticBulletObject:Destroy()
+	else
+		activeGrenades[ActiveCast] = nil
+	end
+end)
+
+CreateLocalCosmeticProjectile.OnClientEvent:Connect(function(plr, toolPos, direction, initialVelocity, behavior, projectile, targetPosition, tool)
+	currentProjectileType = projectile
+	local direction = (targetPosition - toolPos).Unit
+	local velocity = 150
+
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = {player.Character, tool}
+	behavior.RaycastParams = params
+
+	if projectile == "LightningBomb" then
+		behavior.CosmeticBulletTemplate = lightningBombTemplate
+		velocity = 150
+
+	elseif projectile == "Grenade" then
+		behavior.CosmeticBulletTemplate = grenadeTemplate
+		velocity = 150
+	end
+
+	local cast = caster:Fire(toolPos, direction, velocity, behavior)
+
+	-- Schedule this specific grenade's explosion
+	if projectile == "Grenade" then
+		task.delay(1.6, function()
+			local grenade = activeGrenades[cast]
+			if grenade and grenade.Parent then
+				if plr == player then
+					grenadeClientExplosionPosition:FireServer(grenade.Position)
+					--print("Grenade exploded at:", grenade.Position)
+				end
+				grenade:Destroy()
+				activeGrenades[cast] = nil
+			end
+		end)
+	end
+end)
