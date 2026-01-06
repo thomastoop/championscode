@@ -1,0 +1,479 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local GameScoresFolder = workspace:WaitForChild("GameScores")
+
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+local ImageSize = Enum.ThumbnailSize.Size420x420
+local ImageType = Enum.ThumbnailType.HeadShot
+
+local SpectateOtherPlayer1v1 = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("SpectateOtherPlayer1v1")
+local Spectate2v2 = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("Spectate2v2")
+
+local Scoreboard = player.PlayerGui:WaitForChild("Scoreboard")
+local SpectateFrame = player.PlayerGui:WaitForChild("Scoreboard"):WaitForChild("Spectate")
+local StopSpectatingButton = Scoreboard:WaitForChild("StopSpectating")
+
+local RoundWin = Scoreboard:WaitForChild("RoundWon")
+local RoundLost = Scoreboard:WaitForChild("RoundLost")
+local RoundDraw = Scoreboard:WaitForChild("RoundDraw")
+
+local enableScoreboard = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("EnableScoreboard")
+local enableScoreboard2v2 = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("EnableScoreboard2v2")
+local FullStopSpectate2v2 = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("FullStopSpectate2v2")
+
+local buttonRoot = nil
+local gameNumber = 0
+
+local spectating = false
+local spectatedPlayer = nil
+local previousSpectatedPlayer = nil -- Keep track of previous player
+local lastCameraCFrame = nil
+
+local otherSpectatedPlayer = nil
+
+-- Ordered list instead of dictionary
+local playersToSpectate = {}
+local currentSpectateIndex = 1
+
+
+enableScoreboard.OnClientEvent:Connect(function()
+	playersToSpectate = {}
+end)
+
+enableScoreboard2v2.OnClientEvent:Connect(function()
+	playersToSpectate = {}
+end)
+
+local function hideHelmetOfPlayerNotInGame(targetPlayer)
+	if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("PlayerArmorHelmet") and targetPlayer.Character:FindFirstChild("PlayerArmor") then
+		if targetPlayer.Character:FindFirstChild("PlayerArmor"):FindFirstChild("MainVest") then
+			if targetPlayer.Character:FindFirstChild("PlayerArmor"):FindFirstChild("MainVest").Transparency == 1 then
+				local helmet = targetPlayer.Character.PlayerArmorHelmet
+				if helmet:FindFirstChild("HelmetMain") then
+					helmet.HelmetMain.Transparency = 1
+				end
+				if helmet:FindFirstChild("HelmetTop") then
+					helmet.HelmetTop.Transparency = 1
+				end
+				if helmet:FindFirstChild("HelmetVeryTop") then
+					helmet.HelmetVeryTop.Transparency = 1
+				end
+			end
+		end
+	end
+end
+
+
+local function setHelmetTransparency(targetPlayer, transparency)
+	if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("PlayerArmorHelmet") and targetPlayer.Character:FindFirstChild("PlayerArmor") then
+		if targetPlayer.Character:FindFirstChild("PlayerArmor"):FindFirstChild("MainVest") then
+			if targetPlayer.Character:FindFirstChild("PlayerArmor"):FindFirstChild("MainVest").Transparency == 0 then
+				local helmet = targetPlayer.Character.PlayerArmorHelmet
+				if helmet:FindFirstChild("HelmetMain") then
+					helmet.HelmetMain.Transparency = transparency
+				end
+				if helmet:FindFirstChild("HelmetTop") then
+					helmet.HelmetTop.Transparency = transparency
+				end
+				if helmet:FindFirstChild("HelmetVeryTop") then
+					helmet.HelmetVeryTop.Transparency = transparency
+				end
+			end
+		end
+	end
+end
+
+--  Start spectating someone
+local function startSpectating(targetPlayer)
+	if targetPlayer and targetPlayer.Character then
+
+		-- Restore previous player's helmet
+		setHelmetTransparency(previousSpectatedPlayer, 0) --  Restore helmet
+		spectating = true
+		previousSpectatedPlayer = spectatedPlayer
+		spectatedPlayer = targetPlayer
+
+		setHelmetTransparency(spectatedPlayer, 1) --  Hide new helmet
+
+		camera.CameraType = Enum.CameraType.Scriptable
+
+	end
+end
+
+local function spectateByIndex(index)
+	if #playersToSpectate == 0 then return end
+
+	-- Wrap index around (loop forward/backward)
+	if index < 1 then
+		index = #playersToSpectate
+	elseif index > #playersToSpectate then
+		index = 1
+	end
+
+	currentSpectateIndex = index
+	if playersToSpectate[currentSpectateIndex] and playersToSpectate[currentSpectateIndex]:IsDescendantOf(Players) then
+		startSpectating(playersToSpectate[currentSpectateIndex])
+	end
+end
+
+--  Stop spectating
+local function stopSpectating()
+	spectating = false
+	buttonRoot = nil
+	gameNumber = 0
+	--  Restore current spectated player's helmet before clearing
+	setHelmetTransparency(spectatedPlayer, 0)
+
+	spectatedPlayer = nil
+	lastCameraCFrame = nil -- Reset smoothing baseline
+
+	camera.CameraType = Enum.CameraType.Custom
+	camera.CameraSubject = player.Character:WaitForChild("Humanoid")
+	SpectateFrame.Visible = false
+end
+
+local gameAlreadyEnded = false
+local activePlayers = 0
+local connectionList = {} -- store connections so we can clean them up
+
+local function StopSpectateCompletelyGameEnded()
+	stopSpectating()
+	gameNumber = 0
+	buttonRoot = nil
+	Scoreboard.Enabled = false
+	player.PlayerGui:WaitForChild("CoreElements").Enabled = true
+	StopSpectatingButton.Visible = false
+	Scoreboard:WaitForChild("Player1Frame"):WaitForChild("Player1Score").Text = "0"
+	Scoreboard:WaitForChild("Player2Frame"):WaitForChild("Player2Score").Text = "0"
+	Scoreboard:WaitForChild("Team1Players2Frame"):WaitForChild("Team1Score").Text = "0"
+	Scoreboard:WaitForChild("Team2Players2Frame"):WaitForChild("Team2Score").Text = "0"
+end
+
+local function disconnectGameEvents()
+	for _, conn in ipairs(connectionList) do
+		conn:Disconnect()
+	end
+	connectionList = {}
+end
+
+local function updateActivePlayers()
+	activePlayers = 0
+	if buttonRoot then
+		for _, val in buttonRoot:GetDescendants() do
+			if val:IsA("IntValue") and val.Value > 0 then
+				activePlayers += 1
+			end
+		end
+	end
+
+	if activePlayers == 0 and not gameAlreadyEnded then
+		gameAlreadyEnded = true
+
+		if spectating and not player.GeneralInfo.isInGame.Value then
+			StopSpectateCompletelyGameEnded()
+			
+			for _, p in Players:GetChildren() do
+				hideHelmetOfPlayerNotInGame(p)
+			end
+		end
+	elseif activePlayers > 0 then
+		gameAlreadyEnded = false
+	end
+end
+
+local function hookGame(buttonRootRef)
+	-- reset everything
+	disconnectGameEvents()
+	buttonRoot = buttonRootRef
+	gameAlreadyEnded = false
+	updateActivePlayers()
+
+	-- watch when new IntValues are added
+	table.insert(connectionList, buttonRoot.DescendantAdded:Connect(function(desc)
+		if desc:IsA("IntValue") then
+			table.insert(connectionList, desc.Changed:Connect(updateActivePlayers))
+			updateActivePlayers()
+		end
+	end))
+
+	-- watch when IntValues are removed
+	table.insert(connectionList, buttonRoot.DescendantRemoving:Connect(function(desc)
+		if desc:IsA("IntValue") then
+			updateActivePlayers()
+		end
+	end))
+
+	-- hook existing IntValues
+	for _, val in buttonRoot:GetDescendants() do
+		if val:IsA("IntValue") then
+			table.insert(connectionList, val.Changed:Connect(updateActivePlayers))
+		end
+	end
+end
+
+if workspace:WaitForChild("SpectatorBoard1"):WaitForChild("PlasticPart") and workspace:WaitForChild("SpectatorBoard2"):WaitForChild("PlasticPart") then
+	local SpectatorBoard1 = workspace:WaitForChild("SpectatorBoard1")
+	local SpectatorBoard2 = workspace:WaitForChild("SpectatorBoard2")
+
+	local SpectatorButtonGame1 = SpectatorBoard1:WaitForChild("Game1"):WaitForChild("SurfaceGui"):WaitForChild("Frame"):WaitForChild("SpectateButton")
+	local SpectatorButtonGame2 = SpectatorBoard1:WaitForChild("Game2"):WaitForChild("SurfaceGui"):WaitForChild("Frame"):WaitForChild("SpectateButton")
+	local SpectatorButtonGame3 = SpectatorBoard1:WaitForChild("Game3"):WaitForChild("SurfaceGui"):WaitForChild("Frame"):WaitForChild("SpectateButton")
+	local SpectatorButtonGame4 = SpectatorBoard1:WaitForChild("Game4"):WaitForChild("SurfaceGui"):WaitForChild("Frame"):WaitForChild("SpectateButton")
+	local SpectatorButtonGame5 = SpectatorBoard1:WaitForChild("Game5"):WaitForChild("SurfaceGui"):WaitForChild("Frame"):WaitForChild("SpectateButton")
+	local SpectatorButtonGame6 = SpectatorBoard2:WaitForChild("Game6"):WaitForChild("SurfaceGui"):WaitForChild("Frame"):WaitForChild("SpectateButton")
+	local SpectatorButtonGame7 = SpectatorBoard2:WaitForChild("Game7"):WaitForChild("SurfaceGui"):WaitForChild("Frame"):WaitForChild("SpectateButton")
+	local SpectatorButtonGame8 = SpectatorBoard2:WaitForChild("Game8"):WaitForChild("SurfaceGui"):WaitForChild("Frame"):WaitForChild("SpectateButton")
+	local SpectatorButtonGame9 = SpectatorBoard2:WaitForChild("Game9"):WaitForChild("SurfaceGui"):WaitForChild("Frame"):WaitForChild("SpectateButton")
+	local SpectatorButtonGame10 = SpectatorBoard2:WaitForChild("Game10"):WaitForChild("SurfaceGui"):WaitForChild("Frame"):WaitForChild("SpectateButton")
+
+	local SpectatorButtons = {
+		[1] = SpectatorButtonGame1,
+		[2] = SpectatorButtonGame2,
+		[3] = SpectatorButtonGame3,
+		[4] = SpectatorButtonGame4,
+		[5] = SpectatorButtonGame5,
+		[6] = SpectatorButtonGame6,
+		[7] = SpectatorButtonGame7,
+		[8] = SpectatorButtonGame8,
+		[9] = SpectatorButtonGame9,
+		[10] = SpectatorButtonGame10,
+	}
+
+
+	for gameNum, SpectatorButton in SpectatorButtons do
+		SpectatorButton.Activated:Connect(function()
+			RoundWin.Visible = false
+			RoundLost.Visible = false
+			RoundDraw.Visible = false
+			
+			gameNumber = gameNum
+			buttonRoot = SpectatorButton.Parent.Parent.Parent
+			local root = SpectatorButton.Parent.Parent.Parent
+			hookGame(root)
+			playersToSpectate = {} -- reset list
+
+			for i = 1, 5 do
+				local p = root.Team1:FindFirstChild("Player" .. i).Value
+				if p and p > 0 then table.insert(playersToSpectate, Players:GetPlayerByUserId(p)) end
+			end
+
+			for i = 1, 5 do
+				local p = root.Team2:FindFirstChild("Player" .. i).Value
+				if p and p > 0 then table.insert(playersToSpectate, Players:GetPlayerByUserId(p)) end
+			end
+
+			local numPlayers = 0
+			for _, playerID in root:GetDescendants() do
+				if playerID:IsA("IntValue") and playerID.Value > 0 then
+					numPlayers += 1
+				end
+			end
+			if numPlayers < 3 then
+				for _, icon in root.SurfaceGui.Frame:GetChildren() do
+					if icon:IsA("ImageLabel") then
+						if icon.Image ~= "rbxassetid://91217805096675" then
+							if string.match(icon.Name, "Left") then
+								Scoreboard:WaitForChild("Player1Frame"):WaitForChild("Icon").Image = icon.Image
+							end
+							if string.match(icon.Name, "Right") then
+								Scoreboard:WaitForChild("Player2Frame"):WaitForChild("Icon").Image = icon.Image
+							end
+						end
+					end
+				end
+			elseif numPlayers < 5 then
+				for _, icon in root.SurfaceGui.Frame:GetChildren() do
+					if icon:IsA("ImageLabel") then
+						if icon.Image ~= "rbxassetid://91217805096675" then
+							if string.match(icon.Name, "Left") then
+								if Scoreboard:WaitForChild("Team1Players2Frame"):WaitForChild("Player1Icon").Image == "rbxassetid://91217805096675" then
+									Scoreboard:WaitForChild("Team1Players2Frame"):WaitForChild("Player1Icon").Image = icon.Image
+								else
+									Scoreboard:WaitForChild("Team1Players2Frame"):WaitForChild("Player2Icon").Image = icon.Image
+								end
+							end
+							if string.match(icon.Name, "Right") then
+								if Scoreboard:WaitForChild("Team2Players2Frame"):WaitForChild("Player1Icon").Image == "rbxassetid://91217805096675" then
+									Scoreboard:WaitForChild("Team2Players2Frame"):WaitForChild("Player1Icon").Image = icon.Image
+								else
+									Scoreboard:WaitForChild("Team2Players2Frame"):WaitForChild("Player2Icon").Image = icon.Image
+								end								
+							end
+						end
+					end
+				end
+			end
+
+			-- Start spectating the first player in the list
+			if #playersToSpectate > 0 then
+				currentSpectateIndex = 1
+				startSpectating(playersToSpectate[currentSpectateIndex])
+			end
+			if #playersToSpectate < 3 then
+				Scoreboard:WaitForChild("Player1Frame").Visible = true
+				Scoreboard:WaitForChild("Player2Frame").Visible = true
+				Scoreboard:WaitForChild("Team1Players2Frame").Visible = false
+				Scoreboard:WaitForChild("Team2Players2Frame").Visible = false
+			elseif #playersToSpectate < 5 then
+				Scoreboard:WaitForChild("Player1Frame").Visible = false
+				Scoreboard:WaitForChild("Player2Frame").Visible = false
+				Scoreboard:WaitForChild("Team1Players2Frame").Visible = true
+				Scoreboard:WaitForChild("Team2Players2Frame").Visible = true
+			end
+		end)
+	end
+end
+
+--  Spectate 1v1
+SpectateOtherPlayer1v1.OnClientEvent:Connect(function(otherPlayerToSpectate, spectate)
+	if spectate then
+		startSpectating(otherPlayerToSpectate)
+	else
+		stopSpectating()
+	end
+end)
+
+--  Spectate 2v2
+Spectate2v2.OnClientEvent:Connect(function(teammate, enemy1, enemy2, spectate)
+	if spectate then
+		local target = teammate or enemy1 or enemy2
+		startSpectating(target)
+
+		if enemy1 and enemy2 then
+			if target == enemy1 then
+				otherSpectatedPlayer = enemy2
+			elseif target == enemy2 then
+				otherSpectatedPlayer = enemy1
+			end
+		end
+	else
+		stopSpectating()
+	end
+end)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if not spectating or gameProcessed then return end
+
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		-- Left click → next
+		if #playersToSpectate ~= 0 then
+			setHelmetTransparency(spectatedPlayer, 0)
+		end
+		spectateByIndex(currentSpectateIndex + 1)
+	elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
+		-- Right click → previous
+		if #playersToSpectate ~= 0 then
+			setHelmetTransparency(spectatedPlayer, 0)
+		end
+		spectateByIndex(currentSpectateIndex - 1)
+	elseif input.UserInputType == Enum.KeyCode.L then
+		if not player.GeneralInfo.isInGame.Value and StopSpectatingButton.Visible == true  then
+			stopSpectating()
+			Scoreboard.Enabled = false
+			player.PlayerGui:WaitForChild("CoreElements").Enabled = true
+			StopSpectatingButton.Visible = false
+			Scoreboard:WaitForChild("Player1Frame"):WaitForChild("Player1Score").Text = "0"
+			Scoreboard:WaitForChild("Player2Frame"):WaitForChild("Player2Score").Text = "0"
+			Scoreboard:WaitForChild("Team1Players2Frame"):WaitForChild("Team1Score").Text = "0"
+			Scoreboard:WaitForChild("Team2Players2Frame"):WaitForChild("Team2Score").Text = "0"
+		end
+	end
+end)
+
+StopSpectatingButton.Activated:Connect(function()
+	if not player.GeneralInfo.isInGame.Value and StopSpectatingButton.Visible == true  then
+		StopSpectateCompletelyGameEnded()
+
+	end
+end)
+
+FullStopSpectate2v2.OnClientEvent:Connect(function()
+	StopSpectateCompletelyGameEnded()
+
+end)
+
+--  Camera render logic
+RunService.RenderStepped:Connect(function()
+	if player.Character and player.Character:FindFirstChild("Humanoid") then
+		if player.Character.Humanoid.Health > 0 and not player.PlayerGui.Inventory.Enabled and player.GeneralInfo.isInGame.Value then
+			if camera.CameraType ~= Enum.CameraType.Custom then
+				camera.CameraType = Enum.CameraType.Custom
+				camera.CameraSubject = player.Character.Humanoid
+			end
+			if spectating then
+				stopSpectating()
+				SpectateFrame.Visible = false
+			end
+		end
+	end
+
+	if buttonRoot then
+		local numPlayers = 0
+		for _, playerID in buttonRoot:GetDescendants() do
+			if playerID:IsA("IntValue") and playerID.Value > 0 then
+				numPlayers += 1
+			end
+		end
+		if numPlayers == 0 then
+			if spectating and not player.GeneralInfo.isInGame.Value then
+				stopSpectating()
+				gameNumber = 0
+				buttonRoot = nil
+				Scoreboard.Enabled = false
+				player.PlayerGui:WaitForChild("CoreElements").Enabled = true
+				StopSpectatingButton.Visible = false
+				Scoreboard:WaitForChild("Player1Frame"):WaitForChild("Player1Score").Text = "0"
+				Scoreboard:WaitForChild("Player2Frame"):WaitForChild("Player2Score").Text = "0"
+				Scoreboard:WaitForChild("Team1Players2Frame"):WaitForChild("Team1Score").Text = "0"
+				Scoreboard:WaitForChild("Team2Players2Frame"):WaitForChild("Team2Score").Text = "0"
+				for _, player in Players:GetChildren() do
+					hideHelmetOfPlayerNotInGame(player)
+				end
+			end
+		end
+	end
+
+	if spectating and spectatedPlayer and spectatedPlayer.Character then
+		Scoreboard.Enabled = true
+		player.PlayerGui:WaitForChild("CoreElements").Enabled = false
+		SpectateFrame.Visible = true
+		if player.GeneralInfo.isInGame.Value then
+			StopSpectatingButton.Visible = false
+		else
+			StopSpectatingButton.Visible = true
+			if Scoreboard:WaitForChild("Player1Frame").Visible and Scoreboard:WaitForChild("Player2Frame").Visible and gameNumber > 0 then
+				Scoreboard:WaitForChild("Player1Frame"):WaitForChild("Player1Score").Text = tostring(GameScoresFolder:WaitForChild("Game"..gameNumber):WaitForChild("Team1Score").Value)
+				Scoreboard:WaitForChild("Player2Frame"):WaitForChild("Player2Score").Text = tostring(GameScoresFolder:WaitForChild("Game"..gameNumber):WaitForChild("Team2Score").Value)
+			elseif Scoreboard:WaitForChild("Team1Players2Frame").Visible and Scoreboard:WaitForChild("Team2Players2Frame").Visible and gameNumber > 0 then
+				Scoreboard:WaitForChild("Team1Players2Frame"):WaitForChild("Team1Score").Text = tostring(GameScoresFolder:WaitForChild("Game"..gameNumber):WaitForChild("Team1Score").Value)
+				Scoreboard:WaitForChild("Team2Players2Frame"):WaitForChild("Team2Score").Text = tostring(GameScoresFolder:WaitForChild("Game"..gameNumber):WaitForChild("Team2Score").Value)
+			end
+		end	
+
+		SpectateFrame:WaitForChild("PlayerIcon").Image = game.Players:GetUserThumbnailAsync(spectatedPlayer.UserId, ImageType, ImageSize)
+		SpectateFrame:WaitForChild("PlayerName").Text = spectatedPlayer.DisplayName
+		local head = spectatedPlayer.Character:FindFirstChild("Head")
+		local spectatedPlayerHumanoid = spectatedPlayer.Character:FindFirstChild("Humanoid")
+		if head and camera.CameraType == Enum.CameraType.Scriptable then
+			if camera.CameraSubject ~= head then
+				camera.CameraSubject = head
+			end
+		end
+		if head then
+			local targetCFrame = head.CFrame
+			if not lastCameraCFrame then
+				lastCameraCFrame = targetCFrame
+			end
+			local smoothSpeed = 1
+			local newCFrame = lastCameraCFrame:Lerp(targetCFrame, smoothSpeed)
+			camera.CFrame = newCFrame
+			lastCameraCFrame = newCFrame
+		end
+
+	else
+		SpectateFrame.Visible = false
+	end
+end)
