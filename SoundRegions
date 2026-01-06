@@ -1,0 +1,80 @@
+local player = game.Players.LocalPlayer
+
+-- Create the Sound instance
+local sound = Instance.new("Sound")
+sound.Volume = player.GeneralInfo.MusicVolume.Value or 0.5
+sound.Looped = false -- important: let it finish so we can detect when to switch
+sound.Parent = script
+
+local char = script.Parent
+local hrp = char:WaitForChild("HumanoidRootPart")
+
+local areasGroup = workspace:WaitForChild("SoundRegions")
+local currentArea = nil
+local trackList = {}
+local currentTrackIndex = 1
+
+-- Set up raycast parameters
+local raycastParams = RaycastParams.new()
+raycastParams.FilterType = Enum.RaycastFilterType.Include
+raycastParams.FilterDescendantsInstances = {areasGroup}
+
+-- Function to start playing the next track
+local function playNextTrack()
+	if not currentArea or not currentArea:FindFirstChild("Sounds") then return end
+
+	if #trackList == 0 then
+		-- Grab all the tracks from the area's "Sounds" folder
+		for _, s in ipairs(currentArea.Sounds:GetChildren()) do
+			if s:IsA("Sound") then
+				table.insert(trackList, s.SoundId)
+			end
+		end
+
+		-- Pick a random starting track
+		if #trackList > 0 then
+			currentTrackIndex = math.random(1, #trackList)
+		end
+	end
+
+	if #trackList > 0 then
+		-- Wrap around the playlist
+		if currentTrackIndex > #trackList then
+			currentTrackIndex = 1
+		end
+
+		sound.SoundId = trackList[currentTrackIndex]
+		sound:Play()
+		currentTrackIndex += 1
+	end
+end
+
+
+-- When a track ends, go to the next one
+sound.Ended:Connect(function()
+	if currentArea then
+		playNextTrack()
+	end
+end)
+
+game:GetService("RunService").Heartbeat:Connect(function()
+	local direction = hrp.CFrame.UpVector * -1000
+	local result = workspace:Raycast(hrp.Position, direction, raycastParams)
+
+	if sound.IsPlaying then
+		sound.Volume = player.GeneralInfo.MusicVolume.Value or 0.5
+	end
+
+	if result and result.Instance and result.Instance.Parent == areasGroup then
+		if result.Instance ~= currentArea then
+			currentArea = result.Instance
+			trackList = {} -- reset playlist for new area
+			currentTrackIndex = 1
+			playNextTrack()
+		end
+	else
+		currentArea = nil
+		trackList = {}
+		sound:Stop()
+	end
+end)
