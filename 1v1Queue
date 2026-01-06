@@ -1,0 +1,3104 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Zone = require(ReplicatedStorage.Zone)
+local Players = game:GetService("Players")
+local Teams = game:GetService("Teams")
+local MatchmakingLocked = false
+
+local OneVsOneQueue1 = workspace:WaitForChild("Queues"):WaitForChild("OneVsOneQueue1")
+local OneVsOneQueue1Spot1 = OneVsOneQueue1:WaitForChild("Player1")
+local OneVsOneQueue1Spot2 = OneVsOneQueue1:WaitForChild("Player2")
+local OneVsOneQueue1container1 = OneVsOneQueue1Spot1:WaitForChild("ZonePart1")
+local OneVsOneQueue1container2 = OneVsOneQueue1Spot2:WaitForChild("ZonePart2")
+local OneVsOneQueue1Zone1 = Zone.new(OneVsOneQueue1container1)
+local OneVsOneQueue1Zone2 = Zone.new(OneVsOneQueue1container2)
+local OneVsOneQueue1Player1Picture = OneVsOneQueue1:WaitForChild("Player1Pic"):WaitForChild("SurfaceGui"):WaitForChild("ImageLabel")
+local OneVsOneQueue1Player2Picture = OneVsOneQueue1:WaitForChild("Player2Pic"):WaitForChild("SurfaceGui"):WaitForChild("ImageLabel")
+
+local ChangePlayerIcon = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("ChangePlayerIcon")
+local resetEvent = ReplicatedStorage:FindFirstChild("ResetJoints")
+
+local ImageSize = Enum.ThumbnailSize.Size420x420 -- Thumbnail Size
+local ImageType = Enum.ThumbnailType.HeadShot -- Thumbnail Type
+local PLACEHOLDER = "rbxassetid://91217805096675"
+
+local OneVsOneQueue2 = workspace:WaitForChild("Queues"):WaitForChild("OneVsOneQueue2")
+local OneVsOneQueue2Spot1 = OneVsOneQueue2:WaitForChild("Player1")
+local OneVsOneQueue2Spot2 = OneVsOneQueue2:WaitForChild("Player2")
+local OneVsOneQueue2Zone1 = Zone.new(OneVsOneQueue2:WaitForChild("Player1"):WaitForChild("ZonePart1"))
+local OneVsOneQueue2Zone2 = Zone.new(OneVsOneQueue2:WaitForChild("Player2"):WaitForChild("ZonePart2"))
+local OneVsOneQueue2Player1Picture = OneVsOneQueue2:WaitForChild("Player1Pic"):WaitForChild("SurfaceGui"):WaitForChild("ImageLabel")
+local OneVsOneQueue2Player2Picture = OneVsOneQueue2:WaitForChild("Player2Pic"):WaitForChild("SurfaceGui"):WaitForChild("ImageLabel")
+
+local Bot1v1Queue = workspace:WaitForChild("Queues"):WaitForChild("Bot1v1Queue")
+local Bot1v1QueueSpot = Bot1v1Queue:WaitForChild("Player1")
+local Bot1v1QueueZone = Zone.new(Bot1v1Queue:WaitForChild("Player1"):WaitForChild("ZonePart1"))
+local Bot1v1QueuePicture = Bot1v1Queue:WaitForChild("Player1Pic"):WaitForChild("SurfaceGui"):WaitForChild("ImageLabel")
+
+local CreateEnemyHighlight = ReplicatedStorage:WaitForChild("CreateEnemyHighlight")
+local PlayerDiedServer = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("PlayerDiedServer")
+
+local MapSelectionTeleport = workspace:WaitForChild("MapSelectionLobby"):WaitForChild("MapSelectionTeleport")
+local SetWeaponPictures = ReplicatedStorage:WaitForChild("SetWeaponPictures")
+local PlayerDisconnectedServer = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("PlayerDisconnectedServer")
+
+local EnteredQueue = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("EnteredQueue")
+local ExitedQueue = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("ExitedQueue")
+
+local OasisMapFolder = workspace:WaitForChild("OasisMaps")
+local IntensityMapFolder = workspace:WaitForChild("IntensityMaps")
+local HyperiaMapFolder = workspace:WaitForChild("HyperiaMaps")
+local CryofrostMapFolder = workspace:WaitForChild("CryofrostMaps")
+local EtherionMapFolder = workspace:WaitForChild("EtherionMaps")
+
+local NotifyInsufficientPlayers = ReplicatedStorage:WaitForChild("Notifications"):WaitForChild("NotifyInsufficientPlayers")
+
+local SpectateOtherPlayer1v1 = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("SpectateOtherPlayer1v1")
+
+local ActiveMapsFolder = workspace:WaitForChild("ActiveMaps")
+local Map1Active = ActiveMapsFolder:WaitForChild("Map1Active")
+local Map2Active = ActiveMapsFolder:WaitForChild("Map2Active")
+local Map3Active = ActiveMapsFolder:WaitForChild("Map3Active")
+local Map4Active = ActiveMapsFolder:WaitForChild("Map4Active")
+local Map5Active = ActiveMapsFolder:WaitForChild("Map5Active")
+local Map6Active = ActiveMapsFolder:WaitForChild("Map6Active")
+local Map7Active = ActiveMapsFolder:WaitForChild("Map7Active")
+local Map8Active = ActiveMapsFolder:WaitForChild("Map8Active")
+local Map9Active = ActiveMapsFolder:WaitForChild("Map9Active")
+local Map10Active = ActiveMapsFolder:WaitForChild("Map10Active")
+
+local GameMapsFolder = workspace:WaitForChild("GameMaps")
+local Game1Map = GameMapsFolder:WaitForChild("Game1Map")
+local Game2Map = GameMapsFolder:WaitForChild("Game2Map")
+local Game3Map = GameMapsFolder:WaitForChild("Game3Map")
+local Game4Map = GameMapsFolder:WaitForChild("Game4Map")
+local Game5Map = GameMapsFolder:WaitForChild("Game5Map")
+local Game6Map = GameMapsFolder:WaitForChild("Game6Map")
+local Game7Map = GameMapsFolder:WaitForChild("Game7Map")
+local Game8Map = GameMapsFolder:WaitForChild("Game8Map")
+local Game9Map = GameMapsFolder:WaitForChild("Game9Map")
+local Game10Map = GameMapsFolder:WaitForChild("Game10Map")
+
+local SpectatorBoard1 = workspace:WaitForChild("SpectatorBoard1")
+local SpectatorBoard2 = workspace:WaitForChild("SpectatorBoard2")
+
+local IntensityMapWalls = {
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity1"):WaitForChild("IntensityWall1"),
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity1"):WaitForChild("IntensityWall2"),
+
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity2"):WaitForChild("IntensityWall1"),
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity2"):WaitForChild("IntensityWall2"),
+
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity3"):WaitForChild("IntensityWall1"),
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity3"):WaitForChild("IntensityWall2"),
+	
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity4"):WaitForChild("IntensityWall1"),
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity4"):WaitForChild("IntensityWall2"),
+
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity5"):WaitForChild("IntensityWall1"),
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity5"):WaitForChild("IntensityWall2"),
+
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity6"):WaitForChild("IntensityWall1"),
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity6"):WaitForChild("IntensityWall2"),
+
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity7"):WaitForChild("IntensityWall1"),
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity7"):WaitForChild("IntensityWall2"),
+
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity8"):WaitForChild("IntensityWall1"),
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity8"):WaitForChild("IntensityWall2"),
+	
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity9"):WaitForChild("IntensityWall1"),
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity9"):WaitForChild("IntensityWall2"),
+
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity10"):WaitForChild("IntensityWall1"),
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity10"):WaitForChild("IntensityWall2")
+}
+
+local IntensityMapTeleports = {
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity1"):WaitForChild("Player1"),
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity1"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity2"):WaitForChild("Player1"),
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity2"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity3"):WaitForChild("Player1"),
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity3"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity4"):WaitForChild("Player1"),
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity4"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity5"):WaitForChild("Player1"),
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity5"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity6"):WaitForChild("Player1"),
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity6"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity7"):WaitForChild("Player1"),
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity7"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity8"):WaitForChild("Player1"),
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity8"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity9"):WaitForChild("Player1"),
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity9"):WaitForChild("Player2"),
+	
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity10"):WaitForChild("Player1"),
+	workspace:WaitForChild("IntensityMaps"):WaitForChild("Intensity10"):WaitForChild("Player2"),
+}
+
+-- OASIS (walls under Barriers/Wall1 & Wall2; teleports named OasisPlayer1TP / OasisPlayer2TP)
+local OasisMapWalls = {
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis1"):WaitForChild("Barriers"):WaitForChild("Wall1"),
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis1"):WaitForChild("Barriers"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis2"):WaitForChild("Barriers"):WaitForChild("Wall1"),
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis2"):WaitForChild("Barriers"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis3"):WaitForChild("Barriers"):WaitForChild("Wall1"),
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis3"):WaitForChild("Barriers"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis4"):WaitForChild("Barriers"):WaitForChild("Wall1"),
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis4"):WaitForChild("Barriers"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis5"):WaitForChild("Barriers"):WaitForChild("Wall1"),
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis5"):WaitForChild("Barriers"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis6"):WaitForChild("Barriers"):WaitForChild("Wall1"),
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis6"):WaitForChild("Barriers"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis7"):WaitForChild("Barriers"):WaitForChild("Wall1"),
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis7"):WaitForChild("Barriers"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis8"):WaitForChild("Barriers"):WaitForChild("Wall1"),
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis8"):WaitForChild("Barriers"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis9"):WaitForChild("Barriers"):WaitForChild("Wall1"),
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis9"):WaitForChild("Barriers"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis10"):WaitForChild("Barriers"):WaitForChild("Wall1"),
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis10"):WaitForChild("Barriers"):WaitForChild("Wall2")
+}
+
+local OasisMapTeleports = {
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis1"):WaitForChild("OasisPlayer1TP"),
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis1"):WaitForChild("OasisPlayer2TP"),
+
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis2"):WaitForChild("OasisPlayer1TP"),
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis2"):WaitForChild("OasisPlayer2TP"),
+
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis3"):WaitForChild("OasisPlayer1TP"),
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis3"):WaitForChild("OasisPlayer2TP"),
+
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis4"):WaitForChild("OasisPlayer1TP"),
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis4"):WaitForChild("OasisPlayer2TP"),
+
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis5"):WaitForChild("OasisPlayer1TP"),
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis5"):WaitForChild("OasisPlayer2TP"),
+
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis6"):WaitForChild("OasisPlayer1TP"),
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis6"):WaitForChild("OasisPlayer2TP"),
+
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis7"):WaitForChild("OasisPlayer1TP"),
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis7"):WaitForChild("OasisPlayer2TP"),
+
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis8"):WaitForChild("OasisPlayer1TP"),
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis8"):WaitForChild("OasisPlayer2TP"),
+
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis9"):WaitForChild("OasisPlayer1TP"),
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis9"):WaitForChild("OasisPlayer2TP"),
+
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis10"):WaitForChild("OasisPlayer1TP"),
+	workspace:WaitForChild("OasisMaps"):WaitForChild("Oasis10"):WaitForChild("OasisPlayer2TP")
+}
+
+
+-- HYPERIA (walls Wall1/Wall2; teleports named Player1 / Player2)
+local HyperiaMapWalls = {
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia1"):WaitForChild("Wall1"),
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia1"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia2"):WaitForChild("Wall1"),
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia2"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia3"):WaitForChild("Wall1"),
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia3"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia4"):WaitForChild("Wall1"),
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia4"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia5"):WaitForChild("Wall1"),
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia5"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia6"):WaitForChild("Wall1"),
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia6"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia7"):WaitForChild("Wall1"),
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia7"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia8"):WaitForChild("Wall1"),
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia8"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia9"):WaitForChild("Wall1"),
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia9"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia10"):WaitForChild("Wall1"),
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia10"):WaitForChild("Wall2")
+}
+
+local HyperiaMapTeleports = {
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia1"):WaitForChild("Player1"),
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia1"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia2"):WaitForChild("Player1"),
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia2"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia3"):WaitForChild("Player1"),
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia3"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia4"):WaitForChild("Player1"),
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia4"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia5"):WaitForChild("Player1"),
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia5"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia6"):WaitForChild("Player1"),
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia6"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia7"):WaitForChild("Player1"),
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia7"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia8"):WaitForChild("Player1"),
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia8"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia9"):WaitForChild("Player1"),
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia9"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia10"):WaitForChild("Player1"),
+	workspace:WaitForChild("HyperiaMaps"):WaitForChild("Hyperia10"):WaitForChild("Player2")
+}
+
+
+-- CRYOFROST (walls Wall1/Wall2; teleports named Player1 / Player2)
+-- If your Cryofrost maps only have Player1, remove the Player2 entries below.
+local CryofrostMapWalls = {
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost1"):WaitForChild("Wall1"),
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost1"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost2"):WaitForChild("Wall1"),
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost2"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost3"):WaitForChild("Wall1"),
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost3"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost4"):WaitForChild("Wall1"),
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost4"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost5"):WaitForChild("Wall1"),
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost5"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost6"):WaitForChild("Wall1"),
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost6"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost7"):WaitForChild("Wall1"),
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost7"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost8"):WaitForChild("Wall1"),
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost8"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost9"):WaitForChild("Wall1"),
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost9"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost10"):WaitForChild("Wall1"),
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost10"):WaitForChild("Wall2")
+}
+
+local CryofrostMapTeleports = {
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost1"):WaitForChild("Player1"),
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost1"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost2"):WaitForChild("Player1"),
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost2"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost3"):WaitForChild("Player1"),
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost3"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost4"):WaitForChild("Player1"),
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost4"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost5"):WaitForChild("Player1"),
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost5"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost6"):WaitForChild("Player1"),
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost6"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost7"):WaitForChild("Player1"),
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost7"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost8"):WaitForChild("Player1"),
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost8"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost9"):WaitForChild("Player1"),
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost9"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost10"):WaitForChild("Player1"),
+	workspace:WaitForChild("CryofrostMaps"):WaitForChild("Cryofrost10"):WaitForChild("Player2")
+}
+
+local EtherionMapWalls = {
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion1"):WaitForChild("Wall1"),
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion1"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion2"):WaitForChild("Wall1"),
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion2"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion3"):WaitForChild("Wall1"),
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion3"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion4"):WaitForChild("Wall1"),
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion4"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion5"):WaitForChild("Wall1"),
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion5"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion6"):WaitForChild("Wall1"),
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion6"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion7"):WaitForChild("Wall1"),
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion7"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion8"):WaitForChild("Wall1"),
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion8"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion9"):WaitForChild("Wall1"),
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion9"):WaitForChild("Wall2"),
+
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion10"):WaitForChild("Wall1"),
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion10"):WaitForChild("Wall2")
+}
+
+local EtherionMapTeleports = {
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion1"):WaitForChild("Player1"),
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion1"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion2"):WaitForChild("Player1"),
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion2"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion3"):WaitForChild("Player1"),
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion3"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion4"):WaitForChild("Player1"),
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion4"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion5"):WaitForChild("Player1"),
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion5"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion6"):WaitForChild("Player1"),
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion6"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion7"):WaitForChild("Player1"),
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion7"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion8"):WaitForChild("Player1"),
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion8"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion9"):WaitForChild("Player1"),
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion9"):WaitForChild("Player2"),
+
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion10"):WaitForChild("Player1"),
+	workspace:WaitForChild("EtherionMaps"):WaitForChild("Etherion10"):WaitForChild("Player2")
+}
+
+local PlayerTeleportParts = {
+	Player1TeleportPart = nil,
+	Player2TeleportPart = nil,
+	Player3TeleportPart = nil,
+	Player4TeleportPart = nil,
+	Player5TeleportPart = nil,
+	Player6TeleportPart = nil,
+	Player7TeleportPart = nil,
+	Player8TeleportPart = nil,
+	Player9TeleportPart = nil,
+	Player10TeleportPart = nil,
+	Player11TeleportPart = nil,
+	Player12TeleportPart = nil,
+	Player13TeleportPart = nil,
+	Player14TeleportPart = nil,
+	Player15TeleportPart = nil,
+	Player16TeleportPart = nil,
+	Player17TeleportPart = nil,
+	Player18TeleportPart = nil,
+	Player19TeleportPart = nil,
+	Player20TeleportPart = nil
+}
+
+local MapSelectorVote = ReplicatedStorage:WaitForChild("MapSelectorVote")
+
+local SelectedMaps = {
+	SelectedMapGame1 = nil,
+	SelectedMapGame2 = nil,
+	SelectedMapGame3 = nil,
+	SelectedMapGame4 = nil,
+	SelectedMapGame5 = nil,
+	SelectedMapGame6 = nil,
+	SelectedMapGame7 = nil,
+	SelectedMapGame8 = nil,
+	SelectedMapGame9 = nil,
+	SelectedMapGame10 = nil
+}
+
+local NextRoundActive = {
+	false, 
+	false, 
+	false, 
+	false, 
+	false, 
+	false, 
+	false, 
+	false, 
+	false, 
+	false
+}
+
+local GameEndedActive = {
+	false, 
+	false, 
+	false, 
+	false, 
+	false, 
+	false, 
+	false, 
+	false, 
+	false, 
+	false
+}
+
+local GameActive = {
+	false, 
+	false, 
+	false, 
+	false, 
+	false, 
+	false, 
+	false, 
+	false, 
+	false, 
+	false
+}
+
+local updatePart1v1Queue1 = OneVsOneQueue1:WaitForChild("UpdatePart")
+local surfaceGui1v1Queue1 = updatePart1v1Queue1:WaitForChild("SurfaceGui")
+local playerCount1v1Queue1Label1 = OneVsOneQueue1:WaitForChild("UpdatePart1"):WaitForChild("SurfaceGui"):WaitForChild("PlrCount1")
+local playerCount1v1Queue1Label2 = OneVsOneQueue1:WaitForChild("UpdatePart2"):WaitForChild("SurfaceGui"):WaitForChild("PlrCount2")
+local timerTextLabel1v1Queue1 = surfaceGui1v1Queue1:WaitForChild("TimerText")
+
+local updatePart1v1Queue2 = OneVsOneQueue2:WaitForChild("UpdatePart")
+local surfaceGui1v1Queue2 = updatePart1v1Queue2:WaitForChild("SurfaceGui")
+local playerCount1v1Queue2Label1 = OneVsOneQueue2:WaitForChild("UpdatePart1"):WaitForChild("SurfaceGui"):WaitForChild("PlrCount1")
+local playerCountBotQueue = Bot1v1Queue:WaitForChild("UpdatePart1"):WaitForChild("SurfaceGui"):WaitForChild("PlrCount1")
+local playerCount1v1Queue2Label2 = OneVsOneQueue2:WaitForChild("UpdatePart2"):WaitForChild("SurfaceGui"):WaitForChild("PlrCount2")
+local timerTextLabel1v1Queue2 = surfaceGui1v1Queue2:WaitForChild("TimerText")
+
+local timerTextLabelBotQueue = Bot1v1Queue:WaitForChild("UpdatePart"):WaitForChild("SurfaceGui"):WaitForChild("TimerText")
+
+local enableScoreboard = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("EnableScoreboard")
+local disableScoreboard = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("DisableScoreboard")
+local otherPlayer = ReplicatedStorage:WaitForChild("OtherPlayer")
+local nextRound = ReplicatedStorage:WaitForChild("NextRound")
+local gameEnded = ReplicatedStorage:WaitForChild("GameEnded")
+local postRoundRE = ReplicatedStorage:WaitForChild("PostRound")
+local preRoundRE = ReplicatedStorage:WaitForChild("PreRound")
+local equipPrimary = ReplicatedStorage:WaitForChild("EquipPrimary")
+local BarrierChange = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("BarrierChange")
+
+local AllowCrouching = ReplicatedStorage:WaitForChild("AllowCrouching")
+
+local MapVotes1 = {
+	["Random"] = 0,
+	["Intensity"] = 0,
+	["Oasis"] = 0,
+	["Hyperia"] = 0,
+	["Cryofrost"] = 0,
+	["Etherion"] = 0
+}
+
+local MapVotes2 = {
+	["Random"] = 0,
+	["Intensity"] = 0,
+	["Oasis"] = 0,
+	["Hyperia"] = 0,
+	["Cryofrost"] = 0,
+	["Etherion"] = 0
+}
+
+local MapVotes3 = {
+	["Random"] = 0,
+	["Intensity"] = 0,
+	["Oasis"] = 0,
+	["Hyperia"] = 0,
+	["Cryofrost"] = 0,
+	["Etherion"] = 0
+}
+
+local MapVotes4 = {
+	["Random"] = 0,
+	["Intensity"] = 0,
+	["Oasis"] = 0,
+	["Hyperia"] = 0,
+	["Cryofrost"] = 0,
+	["Etherion"] = 0
+}
+
+local MapVotes5 = {
+	["Random"] = 0,
+	["Intensity"] = 0,
+	["Oasis"] = 0,
+	["Hyperia"] = 0,
+	["Cryofrost"] = 0,
+	["Etherion"] = 0
+}
+
+local MapVotes6 = {
+	["Random"] = 0,
+	["Intensity"] = 0,
+	["Oasis"] = 0,
+	["Hyperia"] = 0,
+	["Cryofrost"] = 0,
+	["Etherion"] = 0
+}
+
+local MapVotes7 = {
+	["Random"] = 0,
+	["Intensity"] = 0,
+	["Oasis"] = 0,
+	["Hyperia"] = 0,
+	["Cryofrost"] = 0,
+	["Etherion"] = 0
+}
+
+local MapVotes8 = {
+	["Random"] = 0,
+	["Intensity"] = 0,
+	["Oasis"] = 0,
+	["Hyperia"] = 0,
+	["Cryofrost"] = 0,
+	["Etherion"] = 0
+}
+
+local MapVotes9 = {
+	["Random"] = 0,
+	["Intensity"] = 0,
+	["Oasis"] = 0,
+	["Hyperia"] = 0,
+	["Cryofrost"] = 0,
+	["Etherion"] = 0
+}
+
+local MapVotes10 = {
+	["Random"] = 0,
+	["Intensity"] = 0,
+	["Oasis"] = 0,
+	["Hyperia"] = 0,
+	["Cryofrost"] = 0,
+	["Etherion"] = 0
+}
+
+local MapVoteTable = {
+	MapVotes1,
+	MapVotes2,
+	MapVotes3,
+	MapVotes4,
+	MapVotes5,
+	MapVotes6,
+	MapVotes7,
+	MapVotes8,
+	MapVotes9,
+	MapVotes10
+}
+
+-- Example: 10 games, each with 2 players
+local Games = {
+	[1] = {Players = {nil, nil}}, -- Game 1: player1, player2
+	[2] = {Players = {nil, nil}}, -- Game 2: player3, player4
+	[3] = {Players = {nil, nil}}, -- Game 3: player5, player6
+	[4] = {Players = {nil, nil}},
+	[5] = {Players = {nil, nil}},
+	[6] = {Players = {nil, nil}},
+	[7] = {Players = {nil, nil}},
+	[8] = {Players = {nil, nil}},
+	[9] = {Players = {nil, nil}},
+	[10] = {Players = {nil, nil}},
+}
+
+local GameScoresFolder = workspace:WaitForChild("GameScores")
+
+-- Define table for game scores
+local Scores = {}
+
+for i = 1, 10 do
+	local gameFolder = GameScoresFolder:WaitForChild("Game" .. i)
+	local team1 = gameFolder:WaitForChild("Team1Score")
+	local team2 = gameFolder:WaitForChild("Team2Score")
+
+	Scores[i] = {
+		Team1Score = team1,
+		Team2Score = team2
+	}
+end
+
+
+local playerVotes1 = {}
+local playerVotes2 = {}
+local playerVotes3 = {}
+local playerVotes4 = {}
+local playerVotes5 = {}
+local playerVotes6 = {}
+local playerVotes7 = {}
+local playerVotes8 = {}
+local playerVotes9 = {}
+local playerVotes10 = {}
+
+local playerDied = ReplicatedStorage.Died
+
+local DestroyViewmodels = ReplicatedStorage:WaitForChild("Viewmodels"):WaitForChild("DestroyViewmodels")
+local WeaponManager = require(game:GetService("ServerScriptService"):WaitForChild("WeaponManager"))
+
+local enableWeaponSelector = ReplicatedStorage:WaitForChild("EnableWeaponSelector")
+local disableWeaponSelector = ReplicatedStorage:WaitForChild("DisableWeaponSelector")
+local forceEquipLoadout = ReplicatedStorage:WaitForChild("ForceEquipLoadout")
+
+--gameStarted1 = false
+
+local playersInZone = {}
+local countdownTime = 5
+local countdownActive1v1Queue1 = false
+local countdownActive1v1Queue2 = false
+local countdownActiveBotQueue = false
+
+local countdownCoroutine
+
+local RoundTimers = {
+	roundTimerCoroutine1 = nil,
+	roundTimerCoroutine2 = nil,
+	roundTimerCoroutine3 = nil,
+	roundTimerCoroutine4 = nil,
+	roundTimerCoroutine5 = nil,
+	roundTimerCoroutine6 = nil,
+	roundTimerCoroutine7 = nil,
+	roundTimerCoroutine8 = nil,
+	roundTimerCoroutine9 = nil,
+	roundTimerCoroutine10 = nil
+}
+
+
+local RoundDraws = {
+	false,
+	false,
+	false,
+	false,
+	false,
+	false,
+	false,
+	false,
+	false,
+	false
+}
+
+local DeathCheckInProgress = {
+	false,
+	false,
+	false,
+	false,
+	false,
+	false,
+	false,
+	false,
+	false,
+	false
+}
+
+local regularPlayerPositions = {
+	true,
+	true,
+	true,
+	true,
+	true,
+	true,
+	true, 
+	true,
+	true, 
+	true 
+}
+
+
+local function isValidPlayer(player)
+	return player and player:IsA("Player") and player:IsDescendantOf(game)
+end
+
+function isPlayerAlive(player)
+	return player and Players:FindFirstChild(player.Name)
+end
+
+-- Safe way to get a player's character
+local function getPlayerCharacter(player)
+	if not isValidPlayer(player) then return nil end
+	return player.Character or player:GetCharacter()
+end
+
+-- Safe way to access player GUI elements
+local function safePlayerGUI(player, callback)
+	if not isValidPlayer(player) then return end
+	local success, err = pcall(function()
+		callback(player:WaitForChild("PlayerGui"))
+	end)
+	if not success then
+		warn("Failed to access PlayerGui for "..tostring(player)..": "..err)
+	end
+end
+
+local function safeUpdateTimers(players, text)
+	for _, player in ipairs(players) do
+		safePlayerGUI(player, function(gui)
+			local timer = gui:FindFirstChild("Scoreboard") 
+				and gui.Scoreboard:FindFirstChild("TimerFrame") 
+				and gui.Scoreboard.TimerFrame:FindFirstChild("Timer")
+			if timer then
+				timer.Text = text
+			end
+		end)
+	end
+end
+
+local function safeSetScoreboardVisibility(player, elementName, visible)
+	safePlayerGUI(player, function(gui)
+		local scoreboard = gui:FindFirstChild("Scoreboard")
+		if scoreboard then
+			local elem = scoreboard:FindFirstChild(elementName)
+			if elem and typeof(elem.Visible) == "boolean" then
+				elem.Visible = visible
+			end
+		end
+	end)
+end
+
+function safeSet(path, value)
+	local success, result = pcall(function() return loadstring("return "..path)() end)
+	if success and result ~= nil then
+		pcall(function() loadstring(path.." = ...")(value) end)
+	end
+end
+
+function safeGet(path)
+	local success, result = pcall(function() return loadstring("return "..path)() end)
+	return success and result or nil
+end
+
+-- Safe way to fire client events
+local function safeFireClient(event, player, ...)
+	if isValidPlayer(player) then
+		event:FireClient(player, ...)
+	end
+end
+
+local function fireEventToFirstExisting(event, players, ...)
+	for _, player in ipairs(players) do
+		if isValidPlayer(player) then
+			event:FireClient(player, ...)
+			break
+		end
+	end
+end
+
+local function updatePlayerVotes(player, newMap, iconImage, gameNumber)
+	if gameNumber == 1 then
+		if playerVotes1[player] then
+			MapVotes1[playerVotes1[player]] -= 1
+		end
+		playerVotes1[player] = newMap
+		MapVotes1[newMap] += 1
+	elseif gameNumber == 2 then
+		if playerVotes2[player] then
+			MapVotes2[playerVotes2[player]] -= 1
+		end
+		playerVotes2[player] = newMap
+		MapVotes2[newMap] += 1
+	elseif gameNumber == 3 then
+		if playerVotes3[player] then
+			MapVotes3[playerVotes3[player]] -= 1
+		end
+		playerVotes3[player] = newMap
+		MapVotes3[newMap] += 1
+	elseif gameNumber == 4 then
+		if playerVotes4[player] then
+			MapVotes4[playerVotes4[player]] -= 1
+		end
+		playerVotes4[player] = newMap
+		MapVotes4[newMap] += 1
+	elseif gameNumber == 5 then
+		if playerVotes5[player] then
+			MapVotes5[playerVotes5[player]] -= 1
+		end
+		playerVotes5[player] = newMap
+		MapVotes5[newMap] += 1
+	elseif gameNumber == 6 then
+		if playerVotes6[player] then
+			MapVotes6[playerVotes6[player]] -= 1
+		end
+		playerVotes6[player] = newMap
+		MapVotes6[newMap] += 1
+	elseif gameNumber == 7 then
+		if playerVotes7[player] then
+			MapVotes7[playerVotes7[player]] -= 1
+		end
+		playerVotes7[player] = newMap
+		MapVotes7[newMap] += 1
+	elseif gameNumber == 8 then
+		if playerVotes8[player] then
+			MapVotes8[playerVotes8[player]] -= 1
+		end
+		playerVotes8[player] = newMap
+		MapVotes8[newMap] += 1
+	elseif gameNumber == 9 then
+		if playerVotes9[player] then
+			MapVotes9[playerVotes9[player]] -= 1
+		end
+		playerVotes9[player] = newMap
+		MapVotes9[newMap] += 1
+	elseif gameNumber == 10 then
+		if playerVotes10[player] then
+			MapVotes10[playerVotes10[player]] -= 1
+		end
+		playerVotes10[player] = newMap
+		MapVotes10[newMap] += 1
+	end
+end
+
+local PLACEHOLDER = "rbxassetid://91217805096675"
+
+-- Tables for maps, actives, and spectator frames
+local GameMaps = {
+	[1] = Game1Map, [2] = Game2Map, [3] = Game3Map, [4] = Game4Map, [5] = Game5Map,
+	[6] = Game6Map, [7] = Game7Map, [8] = Game8Map, [9] = Game9Map, [10] = Game10Map,
+}
+
+local MapActive = {
+	[1] = Map1Active, [2] = Map2Active, [3] = Map3Active, [4] = Map4Active, [5] = Map5Active,
+	[6] = Map6Active, [7] = Map7Active, [8] = Map8Active, [9] = Map9Active, [10] = Map10Active,
+}
+
+local SpectatorFrames = {
+	[1] = SpectatorBoard1:WaitForChild("Game1"):WaitForChild("SurfaceGui"):WaitForChild("Frame"),
+	[2] = SpectatorBoard1:WaitForChild("Game2"):WaitForChild("SurfaceGui"):WaitForChild("Frame"),
+	[3] = SpectatorBoard1:WaitForChild("Game3"):WaitForChild("SurfaceGui"):WaitForChild("Frame"),
+	[4] = SpectatorBoard1:WaitForChild("Game4"):WaitForChild("SurfaceGui"):WaitForChild("Frame"),
+	[5] = SpectatorBoard1:WaitForChild("Game5"):WaitForChild("SurfaceGui"):WaitForChild("Frame"),
+	[6] = SpectatorBoard2:WaitForChild("Game6"):WaitForChild("SurfaceGui"):WaitForChild("Frame"),
+	[7] = SpectatorBoard2:WaitForChild("Game7"):WaitForChild("SurfaceGui"):WaitForChild("Frame"),
+	[8] = SpectatorBoard2:WaitForChild("Game8"):WaitForChild("SurfaceGui"):WaitForChild("Frame"),
+	[9] = SpectatorBoard2:WaitForChild("Game9"):WaitForChild("SurfaceGui"):WaitForChild("Frame"),
+	[10] = SpectatorBoard2:WaitForChild("Game10"):WaitForChild("SurfaceGui"):WaitForChild("Frame"),
+}
+
+
+-- Reset function
+local function resetGame(gameNumber)
+	-- Reset map state
+	DeathCheckInProgress[gameNumber] = false
+	RoundDraws[gameNumber] = false
+	NextRoundActive[gameNumber] = false
+	
+	GameMaps[gameNumber].Value = "None"
+	MapActive[gameNumber].Value = false
+
+	Scores[gameNumber].Team1Score.Value = 0
+	Scores[gameNumber].Team2Score.Value = 0
+	
+	Games[gameNumber].Players[1] = nil
+	Games[gameNumber].Players[2] = nil
+
+	-- Reset spectator icons
+	local frame = SpectatorFrames[gameNumber]
+	frame:WaitForChild("LeftIcon1").Image = PLACEHOLDER
+	frame:WaitForChild("RightIcon1").Image = PLACEHOLDER
+	for _, playerObj in frame.Parent.Parent.Team1:GetChildren() do
+		playerObj.Value = 0
+	end
+	for _, playerObj in frame.Parent.Parent.Team2:GetChildren() do
+		playerObj.Value = 0
+	end
+	
+
+end
+
+local function teleportPlayerToPosition(player, targetCFrame)
+	local function setPlayerPosition()
+		local humanoidRootPart = player.Character:FindFirstChild("HumanoidRootPart")
+		if player.Character then
+			humanoidRootPart.CFrame = targetCFrame
+			task.wait(0.05) -- Small delay to ensure position is set
+			humanoidRootPart.CFrame = targetCFrame -- Re-apply CFrame to ensure correct position
+		else
+			player.Character:WaitForChild("HumanoidRootPart").CFrame = targetCFrame
+		end
+	end
+
+	if player.Character then
+		setPlayerPosition()
+	else
+		-- Wait for character to load if not yet present
+		player.CharacterAdded:Wait()
+		setPlayerPosition()
+	end
+end
+
+local function enableJapanBarriers(gameNumber)
+	OasisMapWalls[gameNumber+gameNumber-1].CanCollide = true
+	OasisMapWalls[gameNumber+gameNumber-1].CanTouch = true
+	OasisMapWalls[gameNumber+gameNumber-1].CanQuery = true
+
+	OasisMapWalls[gameNumber+gameNumber].CanCollide = true
+	OasisMapWalls[gameNumber+gameNumber].CanTouch = true
+	OasisMapWalls[gameNumber+gameNumber].CanQuery = true
+
+	OasisMapWalls[gameNumber+gameNumber].Parent.Parent:WaitForChild("HealthPack"):WaitForChild("HealthPart").Transparency = 0.22
+end
+
+local function disableJapanBarriers(gameNumber)
+	OasisMapWalls[gameNumber+gameNumber-1].CanCollide = false
+	OasisMapWalls[gameNumber+gameNumber-1].CanTouch = false
+	OasisMapWalls[gameNumber+gameNumber-1].CanQuery = false
+
+	OasisMapWalls[gameNumber+gameNumber].CanCollide = false
+	OasisMapWalls[gameNumber+gameNumber].CanTouch = false
+	OasisMapWalls[gameNumber+gameNumber].CanQuery = false
+end
+
+local function enableIntensityBarriers(gameNumber)
+	IntensityMapWalls[gameNumber+gameNumber-1].CanCollide = true
+	IntensityMapWalls[gameNumber+gameNumber-1].CanTouch = true
+	IntensityMapWalls[gameNumber+gameNumber-1].CanQuery = true
+
+	IntensityMapWalls[gameNumber+gameNumber].CanCollide = true
+	IntensityMapWalls[gameNumber+gameNumber].CanTouch = true
+	IntensityMapWalls[gameNumber+gameNumber].CanQuery = true
+
+	IntensityMapWalls[gameNumber+gameNumber].Parent:WaitForChild("HealthPack"):WaitForChild("HealthPart").Transparency = 0.22
+end
+
+local function disableIntensityBarriers(gameNumber)
+	IntensityMapWalls[gameNumber+gameNumber-1].CanCollide = false
+	IntensityMapWalls[gameNumber+gameNumber-1].CanTouch = false
+	IntensityMapWalls[gameNumber+gameNumber-1].CanQuery = false
+
+	IntensityMapWalls[gameNumber+gameNumber].CanCollide = false
+	IntensityMapWalls[gameNumber+gameNumber].CanTouch = false
+	IntensityMapWalls[gameNumber+gameNumber].CanQuery = false
+end
+
+local function enableHyperiaBarriers(gameNumber)
+	HyperiaMapWalls[gameNumber+gameNumber-1].CanCollide = true
+	HyperiaMapWalls[gameNumber+gameNumber-1].CanTouch = true
+	HyperiaMapWalls[gameNumber+gameNumber-1].CanQuery = true
+
+	HyperiaMapWalls[gameNumber+gameNumber].CanCollide = true
+	HyperiaMapWalls[gameNumber+gameNumber].CanTouch = true
+	HyperiaMapWalls[gameNumber+gameNumber].CanQuery = true
+
+	HyperiaMapWalls[gameNumber+gameNumber].Parent:WaitForChild("HealthPack"):WaitForChild("HealthPart").Transparency = 0.22
+end
+
+local function disableHyperiaBarriers(gameNumber)
+	HyperiaMapWalls[gameNumber+gameNumber-1].CanCollide = false
+	HyperiaMapWalls[gameNumber+gameNumber-1].CanTouch = false
+	HyperiaMapWalls[gameNumber+gameNumber-1].CanQuery = false
+
+	HyperiaMapWalls[gameNumber+gameNumber].CanCollide = false
+	HyperiaMapWalls[gameNumber+gameNumber].CanTouch = false
+	HyperiaMapWalls[gameNumber+gameNumber].CanQuery = false
+end
+
+local function enableCryofrostBarriers(gameNumber)
+	CryofrostMapWalls[gameNumber+gameNumber-1].CanCollide = true
+	CryofrostMapWalls[gameNumber+gameNumber-1].CanTouch = true
+	CryofrostMapWalls[gameNumber+gameNumber-1].CanQuery = true
+
+	CryofrostMapWalls[gameNumber+gameNumber].CanCollide = true
+	CryofrostMapWalls[gameNumber+gameNumber].CanTouch = true
+	CryofrostMapWalls[gameNumber+gameNumber].CanQuery = true
+
+	CryofrostMapWalls[gameNumber+gameNumber].Parent:WaitForChild("HealthPack"):WaitForChild("HealthPart").Transparency = 0.22
+end
+
+local function disableCryofrostBarriers(gameNumber)
+	CryofrostMapWalls[gameNumber+gameNumber-1].CanCollide = false
+	CryofrostMapWalls[gameNumber+gameNumber-1].CanTouch = false
+	CryofrostMapWalls[gameNumber+gameNumber-1].CanQuery = false
+
+	CryofrostMapWalls[gameNumber+gameNumber].CanCollide = false
+	CryofrostMapWalls[gameNumber+gameNumber].CanTouch = false
+	CryofrostMapWalls[gameNumber+gameNumber].CanQuery = false
+end
+
+local function enableEtherionBarriers(gameNumber)
+	EtherionMapWalls[gameNumber+gameNumber-1].CanCollide = true
+	EtherionMapWalls[gameNumber+gameNumber-1].CanTouch = true
+	EtherionMapWalls[gameNumber+gameNumber-1].CanQuery = true
+
+	EtherionMapWalls[gameNumber+gameNumber].CanCollide = true
+	EtherionMapWalls[gameNumber+gameNumber].CanTouch = true
+	EtherionMapWalls[gameNumber+gameNumber].CanQuery = true
+
+	EtherionMapWalls[gameNumber+gameNumber].Parent:WaitForChild("HealthPack"):WaitForChild("HealthPart").Transparency = 0.22
+end
+
+local function disableEtherionBarriers(gameNumber)
+	EtherionMapWalls[gameNumber+gameNumber-1].CanCollide = false
+	EtherionMapWalls[gameNumber+gameNumber-1].CanTouch = false
+	EtherionMapWalls[gameNumber+gameNumber-1].CanQuery = false
+
+	EtherionMapWalls[gameNumber+gameNumber].CanCollide = false
+	EtherionMapWalls[gameNumber+gameNumber].CanTouch = false
+	EtherionMapWalls[gameNumber+gameNumber].CanQuery = false
+end
+
+local function stopGame(gameNumber)
+	if RoundTimers[gameNumber] then
+		task.delay(0.125, function()
+			if RoundTimers[gameNumber] then
+				coroutine.close(RoundTimers[gameNumber])
+				RoundTimers[gameNumber] = nil
+			end
+		end)
+		task.wait(0.2)
+		if RoundTimers[gameNumber] then
+			coroutine.close(RoundTimers[gameNumber])
+			RoundTimers[gameNumber] = nil
+		end
+	end
+end
+
+function SetHumanoidToBlockLimbs(Humanoid:Humanoid)
+	local HumanoidDescription = Humanoid:GetAppliedDescription()
+	HumanoidDescription.Head = 0
+	HumanoidDescription.LeftArm = 0
+	HumanoidDescription.RightArm = 0
+	HumanoidDescription.LeftLeg = 0
+	HumanoidDescription.RightLeg = 0
+	HumanoidDescription.Torso = 0
+	Humanoid:ApplyDescriptionAsync(HumanoidDescription)
+end
+
+local function armorPlayerCharacters(player1, player2)
+	local ServerStorage = game:GetService("ServerStorage")
+
+	local function modifyCharacter(player)
+		local character = player.Character or player.CharacterAdded:Wait()
+		if not character then return end
+		local humanoid = character:WaitForChild("Humanoid", 5)
+		if not humanoid then return end
+
+		humanoid.MaxHealth = 250
+		humanoid.Health = 250
+		humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
+
+		humanoid:RemoveAccessories()
+
+		for _,child in character:GetChildren() do
+			if child:IsA("CharacterMesh") or child:IsA("Pants") or child:IsA("Shirt") then
+				child:Destroy()
+			end
+		end
+
+		SetHumanoidToBlockLimbs(humanoid)
+
+		local bodyColors = {'HeadColor3', 'LeftArmColor3', 'LeftLegColor3', 'RightArmColor3', 'RightLegColor3', 'TorsoColor3'}
+
+		for _, color in bodyColors do
+			if player.Skins.CharacterSkin.Value == "Lebron" then
+				character["Body Colors"][color] = Color3.fromRGB(105, 64, 40)
+			else
+				character["Body Colors"][color] = Color3.fromRGB(255, 255, 255)
+			end
+		end
+
+		character:WaitForChild("Head"):WaitForChild("face").Texture = "rbxasset://textures/face.png"
+
+		-- Add armor to the character
+		local armor = character:WaitForChild("PlayerArmor")
+		local helmet = character:WaitForChild("PlayerArmorHelmet")
+		for _, part in armor:WaitForChild("TopSkins"):GetDescendants() do 
+			if part:IsA("Part") or part:IsA("UnionOperation") then
+				part.Transparency = 1
+			end
+		end
+		for _, part in armor:WaitForChild("CenterSkins"):GetDescendants() do 
+			if part:IsA("Part") or part:IsA("UnionOperation") then
+				part.Transparency = 1
+			end
+		end
+		if player.Skins.CharacterSkin.Value == "Lebron" then
+			local purpleBand = character:WaitForChild("LebronCharacterBandPurple")
+			local yellowBand = character:WaitForChild("LebronCharacterBandYellow")
+			purpleBand:WaitForChild("PurpleBand").Transparency = 1
+			yellowBand:WaitForChild("YellowBand").Transparency = 1
+			local lebronPants = ServerStorage:WaitForChild("CharacterCosmetics"):WaitForChild("Lebron"):WaitForChild("LebronPants"):Clone()
+			local lebronShirt = ServerStorage:WaitForChild("CharacterCosmetics"):WaitForChild("Lebron"):WaitForChild("LebronShirt"):Clone()
+			local lebronHead = ServerStorage:WaitForChild("CharacterCosmetics"):WaitForChild("Lebron"):WaitForChild("LebronHead"):Clone()
+			lebronPants.Parent = character
+			lebronShirt.Parent = character
+			lebronHead.Parent = character
+			lebronHead:WaitForChild("MeshPart"):WaitForChild("AccessoryWeld").Part1 = character:WaitForChild("Head")
+		else
+			for _, part in armor:GetDescendants() do
+				if part:IsA("Part") or part:IsA("UnionOperation") then
+					if part.Name ~= "Attachment" then
+						part.Transparency = 0
+					end
+				end
+			end
+			for _, part in helmet:GetDescendants() do
+				if part:IsA("Part") or part:IsA("UnionOperation") then
+					if part.Name ~= "Attachment" then
+						part.Transparency = 0
+					end
+				end
+			end
+
+			if player.Skins.TopArmorSkin.Value == "None" then
+
+			elseif player.Skins.TopArmorSkin.Value == "Gem" then
+				--armor:WaitForChild("TopSkins"):WaitForChild("TopSmallGems").Transparency = 0
+			end
+			if player.Skins.CenterArmorSkin.Value == "None" then
+
+			elseif player.Skins.CenterArmorSkin.Value == "Gem" then
+				--armor:WaitForChild("CenterSkins"):WaitForChild("BigCenterGem").Transparency = 0
+			end
+		end
+
+		for _, part in character:GetChildren() do
+			if part:IsA("Part") or part:IsA("UnionOperation") or part:IsA("MeshPart") then
+				part.CastShadow = false
+			end
+		end
+
+		-- Parent the barrier part to the player
+	end
+
+	task.spawn(function() modifyCharacter(player1) end)
+	task.spawn(function() modifyCharacter(player2) end)
+end
+
+-- Replace the current character loading with this more robust version
+local function ensureCharacterLoaded(player)
+	if not player.Character then
+		player:LoadCharacter()
+	end
+
+	local maxWaitTime = 5 -- Maximum seconds to wait
+	local startTime = os.time()
+
+	repeat
+		if player.Character and player.Character:FindFirstChild("Humanoid") then
+			if player.Character:FindFirstChild("HumanoidRootPart") then
+				return true
+			end
+		end
+		task.wait(0.1)
+	until os.time() - startTime > maxWaitTime
+
+	-- If we get here, loading failed - try again
+	player:LoadCharacter()
+	return player.Character ~= nil
+end
+
+local function safeTeleportPlayer(player, cframe)
+	-- Ensure character exists
+	if not ensureCharacterLoaded(player) then
+		warn("Failed to load character for "..player.Name)
+		return false
+	end
+
+	-- Double check critical parts exist
+	local character = player.Character
+	local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+
+	if not humanoidRootPart then
+		warn("No HumanoidRootPart found for "..player.Name)
+		return false
+	end
+
+	-- Actual teleportation with safety checks
+
+	humanoidRootPart.CFrame = cframe
+
+	-- Verify teleportation
+	task.wait(0.1) -- Small delay for physics to update
+	if (humanoidRootPart.Position - cframe.Position).Magnitude > 10 then
+		-- Teleport failed, try again
+		humanoidRootPart.CFrame = cframe
+		task.wait(0.1)
+	end
+
+	return true
+end
+
+
+local function UnequipAndDestroyTools(player1, player2)
+	if isValidPlayer(player1) then
+		player1.Character:FindFirstChild("Humanoid"):UnequipTools()
+		for _, tool in player1.Backpack:GetChildren() do
+			tool:Destroy()
+		end
+	end
+	if isValidPlayer(player2) then
+		player2.Character:FindFirstChild("Humanoid"):UnequipTools()
+		for _, tool in player2.Backpack:GetChildren() do
+			tool:Destroy()
+		end
+	end
+	safeFireClient(playerDied, player1)
+	safeFireClient(playerDied, player2)
+end
+
+
+local function armorPlayerCharactersStartGame(player1, player2)
+	armorPlayerCharacters(player1, player2)
+	task.wait(0.2)
+	enableWeaponSelector:FireClient(player1)
+	enableWeaponSelector:FireClient(player2)
+
+end
+
+local function findHighestValue(vars)
+	local highestValue = 0  -- Initialize to negative infinity
+	local highestVars = {}  -- Table to store variables with the highest value
+
+	-- Iterate through the variables table
+	for varName, varValue in vars do
+		if varValue > highestValue then
+			-- Found a new highest value, update highestValue and reset highestVars
+			highestValue = varValue
+			highestVars = {varName}
+		elseif varValue == highestValue then
+			-- Found another variable with the same highest value, add it to the list
+			table.insert(highestVars, varName)
+		end
+	end
+
+	return highestValue, highestVars
+end
+
+local function ChooseMapAndTeleportPlayers(highestVars, character1, character2, gameNumber)
+	local SelectedMap
+
+	-- Check if Random is in highestVars, if so, choose randomly between Intensity and Oasis
+	local function chooseRandomMap()
+		local randomIndex = math.random(1, 5)
+		if randomIndex == 1 then
+			return "Intensity"
+		elseif randomIndex == 2 then
+			return "Oasis"
+		elseif randomIndex == 3 then
+			return "Hyperia"
+		elseif randomIndex == 4 then
+			return "Cryofrost"
+		elseif randomIndex == 5 then
+			return "Etherion"
+		end
+	end
+
+	if #highestVars > 0 then
+		if table.find(highestVars, "Random") then
+			SelectedMap = chooseRandomMap()
+		elseif #highestVars == 1 then
+			SelectedMap = highestVars[1]
+		else
+			-- When highestVars contains multiple maps, choose randomly between them
+			local randomIndex = math.random(1, #highestVars)
+			SelectedMap = highestVars[randomIndex]
+		end
+	end
+
+	SelectedMaps[gameNumber] = SelectedMap
+end
+
+function SetPlayerIconsVisible(player)
+	ChangePlayerIcon:FireClient(player, player, "TwoPlayers", true)
+end
+
+
+function SetDeadPlayerIcons(player, deadPlayer)
+	ChangePlayerIcon:FireClient(player, deadPlayer, "TwoPlayers", false)
+end
+
+local function startGame(player1, player2, character1, character2, gameNumber)
+	task.spawn(function()
+		-- mark players in game
+		GameActive[gameNumber] = false
+		DeathCheckInProgress[gameNumber] = false
+		-- disable crouching during setup
+		safeFireClient(AllowCrouching, player1, false)
+		safeFireClient(AllowCrouching, player2, false)
+
+		if isValidPlayer(player1) then
+			player1.GeneralInfo.isInGame.Value = true
+		end
+		if isValidPlayer(player2) then
+			player2.GeneralInfo.isInGame.Value = true
+		end
+		-- GUI setup
+
+
+		safePlayerGUI(player1, function(gui)
+			gui.CoreElements.Enabled = false
+			gui.MapSelector.Enabled = true
+			gui.Scoreboard.Player1Frame.Score1.Value = 0
+			gui.Scoreboard.Player2Frame.Score2.Value = 0
+			gui.Scoreboard.Player1Frame.Player1Score.Text = "0"
+			gui.Scoreboard.Player2Frame.Player2Score.Text = "0"
+			gui.GameLeaderboard.TwoPlayerLeaderboard.Visible = true
+			for _, leaderboard in gui.GameLeaderboard:GetChildren() do
+				if leaderboard:IsA("Frame") and leaderboard.Name ~= "TwoPlayerLeaderboard" then
+					leaderboard.Visible = false
+				end
+			end
+		end)
+
+		safePlayerGUI(player2, function(gui)
+			gui.CoreElements.Enabled = false
+			gui.MapSelector.Enabled = true
+			gui.Scoreboard.Player1Frame.Score1.Value = 0
+			gui.Scoreboard.Player2Frame.Score2.Value = 0
+			gui.Scoreboard.Player1Frame.Player1Score.Text = "0"
+			gui.Scoreboard.Player2Frame.Player2Score.Text = "0"
+			gui.GameLeaderboard.TwoPlayerLeaderboard.Visible = true
+			for _, leaderboard in gui.GameLeaderboard:GetChildren() do
+				if leaderboard:IsA("Frame") and leaderboard.Name ~= "TwoPlayerLeaderboard" then
+					leaderboard.Visible = false
+				end
+			end
+		end)
+
+		-- other player info
+		safeFireClient(otherPlayer, player1, player2.UserId, player2)
+		safeFireClient(otherPlayer, player2, player1.UserId, player1)
+		safeFireClient(enableScoreboard, player1)
+		safeFireClient(enableScoreboard, player2)
+
+		-- clear backpacks
+		if isValidPlayer(player1) and player1:FindFirstChild("Backpack") then
+			for _, tool in ipairs(player1.Backpack:GetChildren()) do tool:Destroy() end
+		end
+		if isValidPlayer(player2) and player2:FindFirstChild("Backpack") then
+			for _, tool in ipairs(player2.Backpack:GetChildren()) do tool:Destroy() end
+		end
+
+		-- countdown before map vote
+		local timer1, timer2
+		safePlayerGUI(player1, function(gui) timer1 = gui.Scoreboard.TimerFrame.Timer end)
+		safePlayerGUI(player2, function(gui) timer2 = gui.Scoreboard.TimerFrame.Timer end)
+
+		task.spawn(function()
+			for i = 12, 0, -1 do
+				local text = (i >= 10) and ("0:"..i) or ("0:0"..i)
+				if timer1 then timer1.Text = text end
+				if timer2 then timer2.Text = text end
+				task.wait(1)
+			end
+			if isValidPlayer(player1) and isValidPlayer(player2) then
+				-- pick map
+				GameActive[gameNumber] = true
+
+				local _, highestVars = findHighestValue(MapVoteTable[gameNumber])
+				ChooseMapAndTeleportPlayers(highestVars, character1, character2, gameNumber)
+
+				-- handle each map safely
+				local map = SelectedMaps[gameNumber]
+				if SelectedMaps[gameNumber] == "Intensity" then
+					map = "Intensity"
+					if character1 and character1:FindFirstChild("HumanoidRootPart") then
+						character1.HumanoidRootPart.CFrame = IntensityMapTeleports[gameNumber+gameNumber-1].CFrame
+						player1.RespawnLocation = IntensityMapTeleports[gameNumber+gameNumber]:WaitForChild("SpawnLocation")
+					end
+
+					if character2 and character2:FindFirstChild("HumanoidRootPart") then
+						character2.HumanoidRootPart.CFrame = IntensityMapTeleports[gameNumber+gameNumber].CFrame
+						player2.RespawnLocation = IntensityMapTeleports[gameNumber+gameNumber-1]:WaitForChild("SpawnLocation")
+					end
+
+					PlayerTeleportParts[gameNumber+gameNumber-1] = IntensityMapTeleports[gameNumber+gameNumber-1]
+					PlayerTeleportParts[gameNumber+gameNumber] = IntensityMapTeleports[gameNumber+gameNumber]
+					--Player1TeleportPart = intensityMap1Player1TP
+					--Player2TeleportPart = intensityMap1Player2TP
+					enableIntensityBarriers(gameNumber)
+					safeFireClient(BarrierChange, player1, true, true, "Intensity", gameNumber)
+					safeFireClient(BarrierChange, player2, true, false, "Intensity", gameNumber)
+					for _, abilityPart in IntensityMapTeleports[gameNumber+gameNumber].Parent:GetChildren() do
+						if string.match(abilityPart.Name, "Booster") then
+							abilityPart:Destroy()
+						end
+					end
+				elseif SelectedMaps[gameNumber] == "Oasis" then
+					map = "Oasis"
+
+					if character1 and character1:FindFirstChild("HumanoidRootPart") then
+						character1.HumanoidRootPart.CFrame = OasisMapTeleports[gameNumber+gameNumber-1].CFrame
+						player1.RespawnLocation = OasisMapTeleports[gameNumber+gameNumber]:WaitForChild("SpawnLocation")
+					end
+
+					if character2 and character2:FindFirstChild("HumanoidRootPart") then
+						character2.HumanoidRootPart.CFrame = OasisMapTeleports[gameNumber+gameNumber].CFrame
+						player2.RespawnLocation = OasisMapTeleports[gameNumber+gameNumber-1]:WaitForChild("SpawnLocation")
+					end
+					PlayerTeleportParts[gameNumber+gameNumber-1] = OasisMapTeleports[gameNumber+gameNumber-1]
+					PlayerTeleportParts[gameNumber+gameNumber] = OasisMapTeleports[gameNumber+gameNumber]
+					enableJapanBarriers(gameNumber)
+					safeFireClient(BarrierChange, player1, true, true, "Oasis", gameNumber)
+					safeFireClient(BarrierChange, player2, true, false, "Oasis", gameNumber)
+					for _, abilityPart in OasisMapTeleports[gameNumber+gameNumber].Parent:GetChildren() do
+						if string.match(abilityPart.Name, "Booster") then
+							abilityPart:Destroy()
+						end
+					end
+				elseif SelectedMaps[gameNumber] == "Hyperia" then
+					map = "Hyperia"
+
+					if character1 and character1:FindFirstChild("HumanoidRootPart") then
+						character1.HumanoidRootPart.CFrame = HyperiaMapTeleports[gameNumber+gameNumber-1].CFrame
+						player1.RespawnLocation = HyperiaMapTeleports[gameNumber+gameNumber]:WaitForChild("SpawnLocation")
+					end
+
+					if character2 and character2:FindFirstChild("HumanoidRootPart") then
+						character2.HumanoidRootPart.CFrame = HyperiaMapTeleports[gameNumber+gameNumber].CFrame
+						player2.RespawnLocation = HyperiaMapTeleports[gameNumber+gameNumber-1]:WaitForChild("SpawnLocation")
+
+					end
+					PlayerTeleportParts[gameNumber+gameNumber-1] = HyperiaMapTeleports[gameNumber+gameNumber-1]
+					PlayerTeleportParts[gameNumber+gameNumber] = HyperiaMapTeleports[gameNumber+gameNumber]
+					enableHyperiaBarriers(gameNumber)
+					safeFireClient(BarrierChange, player1, true, true, "Hyperia", gameNumber)
+					safeFireClient(BarrierChange, player2, true, false, "Hyperia", gameNumber)
+					for _, abilityPart in HyperiaMapTeleports[gameNumber+gameNumber].Parent:GetChildren() do
+						if string.match(abilityPart.Name, "Booster") then
+							abilityPart:Destroy()
+						end
+					end
+				elseif SelectedMaps[gameNumber] == "Cryofrost" then
+					map = "Cryofrost"
+
+					if character1 and character1:FindFirstChild("HumanoidRootPart") then
+						character1.HumanoidRootPart.CFrame = CryofrostMapTeleports[gameNumber+gameNumber-1].CFrame
+						player1.RespawnLocation = CryofrostMapTeleports[gameNumber+gameNumber]:WaitForChild("SpawnLocation")
+					end
+
+					if character2 and character2:FindFirstChild("HumanoidRootPart") then
+						character2.HumanoidRootPart.CFrame = CryofrostMapTeleports[gameNumber+gameNumber].CFrame
+						player2.RespawnLocation = CryofrostMapTeleports[gameNumber+gameNumber-1]:WaitForChild("SpawnLocation")
+
+					end
+					PlayerTeleportParts[gameNumber+gameNumber-1] = CryofrostMapTeleports[gameNumber+gameNumber-1]
+					PlayerTeleportParts[gameNumber+gameNumber] = CryofrostMapTeleports[gameNumber+gameNumber]
+					enableCryofrostBarriers(gameNumber)
+					safeFireClient(BarrierChange, player1, true, true, "Cryofrost", gameNumber)
+					safeFireClient(BarrierChange, player2, true, false, "Cryofrost", gameNumber)
+					for _, abilityPart in CryofrostMapTeleports[gameNumber+gameNumber].Parent:GetChildren() do
+						if string.match(abilityPart.Name, "Booster") then
+							abilityPart:Destroy()
+						end
+					end
+				elseif SelectedMaps[gameNumber] == "Etherion" then
+					map = "Etherion"
+
+					if character1 and character1:FindFirstChild("HumanoidRootPart") then
+						character1.HumanoidRootPart.CFrame = EtherionMapTeleports[gameNumber+gameNumber-1].CFrame
+						player1.RespawnLocation = EtherionMapTeleports[gameNumber+gameNumber]:WaitForChild("SpawnLocation")
+					end
+
+					if character2 and character2:FindFirstChild("HumanoidRootPart") then
+						character2.HumanoidRootPart.CFrame = EtherionMapTeleports[gameNumber+gameNumber].CFrame
+						player2.RespawnLocation = EtherionMapTeleports[gameNumber+gameNumber-1]:WaitForChild("SpawnLocation")
+
+					end
+					PlayerTeleportParts[gameNumber+gameNumber-1] = EtherionMapTeleports[gameNumber+gameNumber-1]
+					PlayerTeleportParts[gameNumber+gameNumber] = EtherionMapTeleports[gameNumber+gameNumber]
+					enableCryofrostBarriers(gameNumber)
+					safeFireClient(BarrierChange, player1, true, true, "Etherion", gameNumber)
+					safeFireClient(BarrierChange, player2, true, false, "Etherion", gameNumber)
+					for _, abilityPart in EtherionMapTeleports[gameNumber+gameNumber].Parent:GetChildren() do
+						if string.match(abilityPart.Name, "Booster") then
+							abilityPart:Destroy()
+						end
+					end
+				end
+
+				-- update global GameXMap
+				if gameNumber == 1 then
+					Game1Map.Value = map
+				elseif gameNumber == 2 then
+					Game2Map.Value = map
+				elseif gameNumber == 3 then
+					Game3Map.Value = map
+				elseif gameNumber == 4 then
+					Game4Map.Value = map
+				elseif gameNumber == 5 then
+					Game5Map.Value = map
+				elseif gameNumber == 6 then
+					Game6Map.Value = map
+				elseif gameNumber == 7 then
+					Game7Map.Value = map
+				elseif gameNumber == 8 then
+					Game8Map.Value = map
+				elseif gameNumber == 9 then
+					Game9Map.Value = map
+				elseif gameNumber == 10 then
+					Game10Map.Value = map
+				end
+
+				-- allow crouching after setup
+				safeFireClient(AllowCrouching, player1, true)
+				safeFireClient(AllowCrouching, player2, true)
+
+				-- reset vote tables
+				if gameNumber == 1 then
+					MapVotes1["Random"] = 0
+					MapVotes1["Intensity"] = 0
+					MapVotes1["Oasis"] = 0		
+					MapVotes1["Hyperia"] = 0
+					MapVotes1["Cryofrost"] = 0
+					MapVotes1["Etherion"] = 0
+					
+					playerVotes1 = {}
+				elseif gameNumber == 2 then
+					MapVotes2["Random"] = 0
+					MapVotes2["Intensity"] = 0
+					MapVotes2["Oasis"] = 0		
+					MapVotes2["Hyperia"] = 0
+					MapVotes2["Cryofrost"] = 0
+					MapVotes1["Etherion"] = 0
+
+					playerVotes2 = {}
+				elseif gameNumber == 3 then
+					MapVotes3["Random"] = 0
+					MapVotes3["Intensity"] = 0
+					MapVotes3["Oasis"] = 0			
+					MapVotes3["Hyperia"] = 0
+					MapVotes3["Cryofrost"] = 0
+					MapVotes1["Etherion"] = 0
+
+					playerVotes3 = {}
+				elseif gameNumber == 4 then
+					MapVotes4["Random"] = 0
+					MapVotes4["Intensity"] = 0
+					MapVotes4["Oasis"] = 0	
+					MapVotes4["Hyperia"] = 0
+					MapVotes4["Cryofrost"] = 0
+					MapVotes1["Etherion"] = 0
+
+					playerVotes4 = {}
+				elseif gameNumber == 5 then
+					MapVotes5["Random"] = 0
+					MapVotes5["Intensity"] = 0
+					MapVotes5["Oasis"] = 0			
+					MapVotes5["Hyperia"] = 0
+					MapVotes5["Cryofrost"] = 0
+					MapVotes1["Etherion"] = 0
+
+					playerVotes5 = {}
+				elseif gameNumber == 6 then
+					MapVotes6["Random"] = 0
+					MapVotes6["Intensity"] = 0
+					MapVotes6["Oasis"] = 0			
+					MapVotes6["Hyperia"] = 0
+					MapVotes6["Cryofrost"] = 0
+					MapVotes1["Etherion"] = 0
+
+					playerVotes6 = {}
+				elseif gameNumber == 7 then
+					MapVotes7["Random"] = 0
+					MapVotes7["Intensity"] = 0
+					MapVotes7["Oasis"] = 0			
+					MapVotes7["Hyperia"] = 0
+					MapVotes7["Cryofrost"] = 0
+					MapVotes1["Etherion"] = 0
+
+					playerVotes7 = {}
+				elseif gameNumber == 8 then
+					MapVotes8["Random"] = 0
+					MapVotes8["Intensity"] = 0
+					MapVotes8["Oasis"] = 0			
+					MapVotes8["Hyperia"] = 0
+					MapVotes8["Cryofrost"] = 0
+					MapVotes1["Etherion"] = 0
+
+					playerVotes8 = {}
+				elseif gameNumber == 9 then
+					MapVotes9["Random"] = 0
+					MapVotes9["Intensity"] = 0
+					MapVotes9["Oasis"] = 0			
+					MapVotes9["Hyperia"] = 0
+					MapVotes9["Cryofrost"] = 0
+					MapVotes1["Etherion"] = 0
+
+					playerVotes9 = {}
+				elseif gameNumber == 10 then
+					MapVotes10["Random"] = 0
+					MapVotes10["Intensity"] = 0
+					MapVotes10["Oasis"] = 0		
+					MapVotes10["Hyperia"] = 0
+					MapVotes10["Cryofrost"] = 0
+					MapVotes1["Etherion"] = 0
+
+					playerVotes10 = {}
+				end
+
+				-- update ping safely
+				local function updatePing(p1, p2)
+					safePlayerGUI(p1, function(gui)
+						gui.GameLeaderboard.TwoPlayerLeaderboard.Background.Player1.Ping.Text = string.format("%.0f", p1:GetNetworkPing()*2000)
+						gui.GameLeaderboard.TwoPlayerLeaderboard.Background.Player2.Ping.Text = string.format("%.0f", p2:GetNetworkPing()*2000)
+					end)
+				end
+				updatePing(player1, player2)
+				updatePing(player2, player1)
+
+				-- pre-round setup
+				safeFireClient(preRoundRE, player1, true)
+				safeFireClient(preRoundRE, player2, true)
+				safePlayerGUI(player1, function(gui) gui.MapSelector.Enabled = false end)
+				safePlayerGUI(player2, function(gui) gui.MapSelector.Enabled = false end)
+
+				if isValidPlayer(player1) then
+					player1.Currency.Gems.Value += 5
+
+				end
+
+				if isValidPlayer(player2) then
+					player2.Currency.Gems.Value += 5
+
+				end
+
+				if isValidPlayer(player1) then 
+					local nameTag = player1.Character:FindFirstChild("Head"):FindFirstChild("Nametag")
+					if nameTag then
+						nameTag.Enabled = false						
+					end
+				end
+				if isValidPlayer(player2) then 
+					local nameTag = player2.Character:FindFirstChild("Head"):FindFirstChild("Nametag")
+					if nameTag then
+						nameTag.Enabled = false						
+					end
+				end
+
+				armorPlayerCharactersStartGame(player1, player2)
+				WeaponManager.giveWeapons(player1)
+				WeaponManager.giveWeapons(player2)
+
+				stopGame(gameNumber)
+
+				safeFireClient(CreateEnemyHighlight, player1, player2)
+				safeFireClient(CreateEnemyHighlight, player2, player1)
+				safeFireClient(SetWeaponPictures, player1)
+				safeFireClient(SetWeaponPictures, player2)
+
+				-- second countdown before round start
+				for i = 9, 1, -1 do
+					updatePing(player1, player2)
+					updatePing(player2, player1)
+					local text = "0:0"..i
+					if timer1 then timer1.Text = text end
+					if timer2 then timer2.Text = text end
+					task.wait(1)
+				end
+
+				safeFireClient(forceEquipLoadout, player1)
+				safeFireClient(forceEquipLoadout, player2)
+				safeFireClient(preRoundRE, player1, false)
+				safeFireClient(preRoundRE, player2, false)
+
+				-- disable barriers based on map
+				if map == "Intensity" then
+					disableIntensityBarriers(gameNumber)
+					safeFireClient(BarrierChange, player1, false, true, map, gameNumber)
+					safeFireClient(BarrierChange, player2, false, false, map, gameNumber)
+				elseif map == "Oasis" then
+					disableJapanBarriers(gameNumber)
+					safeFireClient(BarrierChange, player1, false, true, map, gameNumber)
+					safeFireClient(BarrierChange, player2, false, false, map, gameNumber)
+				elseif map == "Hyperia" then
+					disableHyperiaBarriers(gameNumber)
+					safeFireClient(BarrierChange, player1, false, true, map, gameNumber)
+					safeFireClient(BarrierChange, player2, false, false, map, gameNumber)
+				elseif map == "Cryofrost" then
+					disableCryofrostBarriers(gameNumber)
+					safeFireClient(BarrierChange, player1, false, true, map, gameNumber)
+					safeFireClient(BarrierChange, player2, false, false, map, gameNumber)
+				elseif map == "Etherion" then
+					disableEtherionBarriers(gameNumber)
+					safeFireClient(BarrierChange, player1, false, true, map, gameNumber)
+					safeFireClient(BarrierChange, player2, false, false, map, gameNumber)
+				end
+
+				-- round timer loop
+				RoundTimers[gameNumber] = coroutine.create(function()
+					for i = 90, 0, -1 do
+						updatePing(player1, player2)
+						updatePing(player2, player1)
+
+						local text
+						if i >= 70 then text = "1:"..(i-60)
+						elseif i >= 60 then text = "1:0"..(i-60)
+						elseif i >= 10 then text = "0:"..i
+						else text = "0:0"..i end
+
+						if timer1 then timer1.Text = text end
+						if timer2 then timer2.Text = text end
+
+						task.wait(1)
+						if i == 0 and isValidPlayer(player1) and isValidPlayer(player2) then
+							RoundDraws[gameNumber] = true
+							runNextRound(player1, gameNumber, player1, player2, map)
+						end
+					end
+				end)
+				coroutine.resume(RoundTimers[gameNumber])
+			else
+				GameActive[gameNumber] = false
+				stopGame(gameNumber)
+				resetGame(gameNumber)
+				local allPlayers = {player1, player2}
+				for _, player in ipairs(allPlayers) do
+					safeFireClient(playerDied, player)
+					AllowCrouching:FireClient(player, false)
+					safeFireClient(disableScoreboard, player)
+					safeFireClient(postRoundRE, player, false)
+					pcall(function()
+						for _, tool in ipairs(player.Backpack:GetChildren()) do
+							tool:Destroy()
+						end
+					end)
+				end
+				for _, player in ipairs(allPlayers) do
+					if isValidPlayer(player) then
+						pcall(function()
+							player.GeneralInfo.isInGame.Value = false
+							--player.NameDisplayDistance = 100
+							player.RespawnLocation = workspace:WaitForChild("LobbySpawn")
+							player.CameraMode = Enum.CameraMode.Classic
+							player.GameTeam.playerTeam.Value = "None"
+							player:LoadCharacter()
+						end)
+					end
+				end
+
+				-- Spectate cleanup
+				for _, player in ipairs(allPlayers) do
+					safeFireClient(SpectateOtherPlayer1v1, player, nil, nil, nil, false)
+					safeFireClient(resetEvent, player)
+				end 
+
+				task.delay(0.25, function()
+					for _, player in ipairs(allPlayers) do
+						safeFireClient(NotifyInsufficientPlayers, player)
+					end 
+				end)
+			end
+
+		end)
+	end)
+end
+
+local function gameEndedFunction(losingPlayer, gameNumber, gamePlayer1, gamePlayer2)
+	task.spawn(function()
+		local ok, err = pcall(function()
+			if GameEndedActive[gameNumber] then return end
+			GameActive[gameNumber] = false
+
+			if isValidPlayer(gamePlayer1) then
+				gamePlayer1.SelectedWeapons.selectedPrimary.Value = "Rifle"
+				gamePlayer1.SelectedWeapons.selectedSecondary.Value = "Pistol"
+				gamePlayer1.SelectedWeapons.selectedMelee.Value = "Saber"
+				gamePlayer1.SelectedWeapons.selectedAbility1.Value = "Grenade"
+			end
+			if isValidPlayer(gamePlayer2) then
+				gamePlayer2.SelectedWeapons.selectedPrimary.Value = "Rifle"
+				gamePlayer2.SelectedWeapons.selectedSecondary.Value = "Pistol"
+				gamePlayer2.SelectedWeapons.selectedMelee.Value = "Saber"
+				gamePlayer2.SelectedWeapons.selectedAbility1.Value = "Grenade"
+			end
+			
+			RoundDraws[gameNumber] = false
+
+			GameEndedActive[gameNumber] = true
+			NextRoundActive[gameNumber] = false
+			MapActive[gameNumber].Value = false
+
+			-- Unequip losing player's tools
+			local losingChar = getPlayerCharacter(losingPlayer)
+			if losingChar and losingChar:FindFirstChild("Humanoid") then
+				pcall(function() losingChar.Humanoid:UnequipTools() end)
+			end
+
+			stopGame(gameNumber)
+
+			-- Post-round UI + teleport back to lobby
+			safeFireClient(postRoundRE, gamePlayer1, true)
+			safeFireClient(postRoundRE, gamePlayer2, true)
+
+			for _, plr in ipairs({gamePlayer1, gamePlayer2}) do
+				if isValidPlayer(plr) then
+					local lobbySpawn = workspace:FindFirstChild("LobbySpawn")
+					if lobbySpawn then plr.RespawnLocation = lobbySpawn end
+					--plr.NameDisplayDistance = 100
+				end
+			end
+
+			-- Get scoreboard elements safely
+			local function getSB(player)
+				local elems = {}
+				safePlayerGUI(player, function(gui)
+					local sb = gui:FindFirstChild("Scoreboard")
+					if sb then
+						elems.Victory = sb:FindFirstChild("Victory")
+						elems.Defeat = sb:FindFirstChild("Defeat")
+						local tf = sb:FindFirstChild("TimerFrame")
+						if tf then elems.Timer = tf:FindFirstChild("Timer") end
+					end
+				end)
+				return elems
+			end
+
+			local gui1 = getSB(gamePlayer1)
+			local gui2 = getSB(gamePlayer2)
+
+			-- Victory/defeat screens + stats update
+			if gamePlayer1 == losingPlayer then
+				safeFireClient(SpectateOtherPlayer1v1, gamePlayer1, gamePlayer2, true)
+				if gui1.Defeat then gui1.Defeat.Visible = true end
+				if gui2.Victory then gui2.Victory.Visible = true end
+
+				if isValidPlayer(gamePlayer2) then
+					pcall(function()
+						if gamePlayer2.Statistics.LastWinstreak.Value > 0 then
+							gamePlayer2.Statistics.WinstreakRestores.Value = 0
+						end
+						gamePlayer2.Statistics.LastWinstreak.Value = 0
+						gamePlayer2.leaderstats.Wins.Value += 1
+						gamePlayer2.leaderstats.Winstreak.Value += 1
+						gamePlayer2.Currency.Gems.Value += 7
+						gamePlayer2.Progression.Experience.Value += 100
+					end)
+				end
+				if isValidPlayer(gamePlayer1) then
+					pcall(function()
+						if gamePlayer1.Statistics.LastWinstreak.Value > 0 then
+							gamePlayer1.Statistics.WinstreakRestores.Value = 0
+						end
+						gamePlayer1.Statistics.LastWinstreak.Value = gamePlayer1.leaderstats.Winstreak.Value
+						gamePlayer1.Statistics.Losses.Value += 1
+						gamePlayer1.leaderstats.Winstreak.Value = 0
+						gamePlayer1.Progression.Experience.Value += 35
+	
+					end)
+				end
+			else
+				safeFireClient(SpectateOtherPlayer1v1, gamePlayer2, gamePlayer1, true)
+				if gui2.Defeat then gui2.Defeat.Visible = true end
+				if gui1.Victory then gui1.Victory.Visible = true end
+
+				if isValidPlayer(gamePlayer1) then
+					pcall(function()
+						if gamePlayer1.Statistics.LastWinstreak.Value > 0 then
+							gamePlayer1.Statistics.WinstreakRestores.Value = 0
+						end
+						gamePlayer1.Statistics.LastWinstreak.Value = 0
+						gamePlayer1.leaderstats.Wins.Value += 1
+						gamePlayer1.leaderstats.Winstreak.Value += 1
+						gamePlayer1.Currency.Gems.Value += 7
+						gamePlayer1.Progression.Experience.Value += 100
+					end)
+				end
+				if isValidPlayer(gamePlayer2) then
+					pcall(function()
+						if gamePlayer2.Statistics.LastWinstreak.Value > 0 then
+							gamePlayer2.Statistics.WinstreakRestores.Value = 0
+						end
+						gamePlayer2.Statistics.LastWinstreak.Value = gamePlayer2.leaderstats.Winstreak.Value
+						gamePlayer2.Statistics.Losses.Value += 1
+						gamePlayer2.leaderstats.Winstreak.Value = 0
+						gamePlayer2.Progression.Experience.Value += 35
+					end)
+				end
+			end
+
+			-- Countdown UI
+			for i = 5, 1, -1 do
+				if gui1.Timer then gui1.Timer.Text = "0:0"..i end
+				if gui2.Timer then gui2.Timer.Text = "0:0"..i end
+				task.wait(1)
+
+				if i == 2 then
+					for _, plr in ipairs({gamePlayer1, gamePlayer2}) do
+						safeFireClient(playerDied, plr)
+						local char = getPlayerCharacter(plr)
+						if char and char:FindFirstChild("Humanoid") then
+							pcall(function() char.Humanoid:UnequipTools() end)
+						end
+						task.wait(0.15)
+						if isValidPlayer(plr) then
+							for _, tool in plr.Backpack:GetChildren() do
+								pcall(function() tool:Destroy() end)
+							end
+						end
+					end
+				end
+			end
+
+			-- Reset spectator + tools + characters
+			safeFireClient(SpectateOtherPlayer1v1, gamePlayer1, gamePlayer2, false)
+			safeFireClient(SpectateOtherPlayer1v1, gamePlayer2, gamePlayer1, false)
+
+			UnequipAndDestroyTools(gamePlayer1, gamePlayer2)
+			task.wait(0.02)
+
+			local char1 = getPlayerCharacter(gamePlayer1)
+			if char1 and char1:FindFirstChild("Humanoid") then
+				pcall(function() char1.Humanoid:UnequipTools() end)
+			end
+			local char2 = getPlayerCharacter(gamePlayer2)
+			if char2 and char2:FindFirstChild("Humanoid") then
+				pcall(function() char2.Humanoid:UnequipTools() end)
+			end
+
+			if isValidPlayer(gamePlayer1) then pcall(function() gamePlayer1:LoadCharacter() end) end
+			if isValidPlayer(gamePlayer2) then pcall(function() gamePlayer2:LoadCharacter() end) end
+
+			-- Reset teams
+			if isValidPlayer(gamePlayer1) then
+				pcall(function() gamePlayer1.GameTeam.playerTeam.Value = "None" end)
+			end
+			if isValidPlayer(gamePlayer2) then
+				pcall(function() gamePlayer2.GameTeam.playerTeam.Value = "None" end)
+			end
+
+
+			-- Mark players as out of game
+			if isValidPlayer(gamePlayer1) then
+				pcall(function() gamePlayer1.GeneralInfo.isInGame.Value = false end)
+			end
+			if isValidPlayer(gamePlayer2) then
+				pcall(function() gamePlayer2.GeneralInfo.isInGame.Value = false end)
+			end
+
+			task.wait(0.05)
+
+			-- Reset movement, scoreboard, respawn
+			for _, plr in ipairs({gamePlayer1, gamePlayer2}) do
+				safeFireClient(AllowCrouching, plr, true)
+				safeFireClient(disableScoreboard, plr)
+				safeFireClient(postRoundRE, plr, false)
+				safeFireClient(resetEvent, plr)
+
+				safePlayerGUI(plr, function(gui)
+					local sb = gui:FindFirstChild("Scoreboard")
+					if sb then
+						local p1 = sb:FindFirstChild("Player1Frame")
+						local p2 = sb:FindFirstChild("Player2Frame")
+						if p1 and p1:FindFirstChild("Score1") and p1:FindFirstChild("Player1Score") then
+							p1.Score1.Value = 0
+							p1.Player1Score.Text = "0"
+						end
+						if p2 and p2:FindFirstChild("Score2") and p2:FindFirstChild("Player2Score") then
+							p2.Score2.Value = 0
+							p2.Player2Score.Text = "0"
+						end
+					end
+				end)
+			end
+
+			-- Hide victory/defeat UI
+			if gui1.Defeat then gui1.Defeat.Visible = false end
+			if gui1.Victory then gui1.Victory.Visible = false end
+			if gui2.Defeat then gui2.Defeat.Visible = false end
+			if gui2.Victory then gui2.Victory.Visible = false end
+
+			-- Reset the game state
+			resetGame(gameNumber)
+			GameEndedActive[gameNumber] = false
+			NextRoundActive[gameNumber] = false
+		end)
+
+		if not ok then
+			warn("gameEndedFunction failed for game " .. gameNumber .. ": " .. err)
+			MapActive[gameNumber].Value = false
+			GameEndedActive[gameNumber] = false
+			NextRoundActive[gameNumber] = false
+		end
+	end)
+end
+
+
+-- Centralized game states (per gameNumber)
+
+function runNextRound(deadPlayer, gameNumber, player1, player2, map)
+	task.spawn(function()
+		local okNR, err = pcall(function()
+			NextRoundActive[gameNumber] = true
+
+			-- Disable UI
+			safePlayerGUI(player1, function(gui) gui:FindFirstChild("CoreElements").Enabled = false end)
+			safePlayerGUI(player2, function(gui) gui:FindFirstChild("CoreElements").Enabled = false end)
+
+			-- Stop the current game
+			stopGame(gameNumber)
+
+			-- Toggle player positions
+			regularPlayerPositions[gameNumber] = not regularPlayerPositions[gameNumber]
+
+			-- Respawn locations
+			if regularPlayerPositions[gameNumber] then
+				if isValidPlayer(player1) then player1.RespawnLocation = PlayerTeleportParts[gameNumber+gameNumber-1].SpawnLocation end
+				if isValidPlayer(player2) then player2.RespawnLocation = PlayerTeleportParts[gameNumber+gameNumber].SpawnLocation end
+			else
+				if isValidPlayer(player1) then player1.RespawnLocation = PlayerTeleportParts[gameNumber+gameNumber].SpawnLocation end
+				if isValidPlayer(player2) then player2.RespawnLocation = PlayerTeleportParts[gameNumber+gameNumber-1].SpawnLocation end
+			end
+
+			-- Post-round state
+			safeFireClient(postRoundRE, player1, true)
+			safeFireClient(postRoundRE, player2, true)
+
+			-- Helper: safely get scoreboard UI element
+			local function getElem(player, path)
+				local result
+				safePlayerGUI(player, function(gui)
+					local elem = gui:FindFirstChild("Scoreboard")
+					if elem then
+						for _, name in ipairs(path) do
+							if elem:FindFirstChild(name) then
+								elem = elem[name]
+							else
+								return
+							end
+						end
+						result = elem
+					end
+				end)
+				return result
+			end
+
+			-- Scoreboard elements
+			local player1RoundLost = getElem(player1, {"RoundLost"})
+			local player1RoundWon = getElem(player1, {"RoundWon"})
+			local player2RoundLost = getElem(player2, {"RoundLost"})
+			local player2RoundWon = getElem(player2, {"RoundWon"})
+			local player1RoundDraw = getElem(player1, {"RoundDraw"})
+			local player2RoundDraw = getElem(player2, {"RoundDraw"})
+			local timerTextLabel1 = getElem(player1, {"TimerFrame","Timer"})
+			local timerTextLabel2 = getElem(player2, {"TimerFrame","Timer"})
+
+			-- Reset displays
+			if player1RoundLost then player1RoundLost.Visible = false end
+			if player1RoundWon then player1RoundWon.Visible = false end
+			if player2RoundLost then player2RoundLost.Visible = false end
+			if player2RoundWon then player2RoundWon.Visible = false end
+			if player1RoundDraw then player1RoundDraw.Visible = false end
+			if player2RoundDraw then player2RoundDraw.Visible = false end
+
+			-- Show result
+			if RoundDraws[gameNumber] then
+				if player1RoundDraw then player1RoundDraw.Visible = true end
+				if player2RoundDraw then player2RoundDraw.Visible = true end
+			else
+				if player1 == deadPlayer then
+					if player1RoundLost then player1RoundLost.Visible = true end
+					if player2RoundWon then player2RoundWon.Visible = true end
+					safeFireClient(SpectateOtherPlayer1v1, player1, player2, true)
+				elseif player2 == deadPlayer then
+					if player2RoundLost then player2RoundLost.Visible = true end
+					if player1RoundWon then player1RoundWon.Visible = true end
+					safeFireClient(SpectateOtherPlayer1v1, player2, player1, true)
+				end
+			end
+			
+			RoundDraws[gameNumber] = false
+
+			-- Post-round countdown
+			for i = 5, 1, -1 do
+				if not isValidPlayer(player1) or not isValidPlayer(player2) or NextRoundActive[gameNumber] == false then
+					return -- exit early if game ended
+				end
+				safeUpdateTimers({player1, player2}, "0:0"..tostring(i))
+				task.wait(1)
+
+				if i == 2 then
+					safeFireClient(playerDied, player1)
+					safeFireClient(playerDied, player2)
+
+					local char1 = getPlayerCharacter(player1)
+					if char1 and char1:FindFirstChild("Humanoid") then
+						pcall(function() char1.Humanoid:UnequipTools() end)
+					end
+					local char2 = getPlayerCharacter(player2)
+					if char2 and char2:FindFirstChild("Humanoid") then
+						pcall(function() char2.Humanoid:UnequipTools() end)
+					end
+
+					task.wait(0.15)
+					if isValidPlayer(player1) then
+						for _, tool in player1.Backpack:GetChildren() do pcall(function() tool:Destroy() end) end
+					end
+					if isValidPlayer(player2) then
+						for _, tool in player2.Backpack:GetChildren() do pcall(function() tool:Destroy() end) end
+					end
+				end
+			end
+			
+			NextRoundActive[gameNumber] = false
+
+			if isValidPlayer(player1) and isValidPlayer(player2) then
+				-- Stop spectating
+				safeFireClient(SpectateOtherPlayer1v1, player1, player2, false)
+				safeFireClient(SpectateOtherPlayer1v1, player2, player1, false)
+
+				-- Reset flags
+
+				-- Clean up tools
+				UnequipAndDestroyTools(player1, player2)
+
+				task.wait(0.02)
+
+				-- Reload characters
+				if isValidPlayer(player1) then pcall(function() player1:LoadCharacter() end) end
+				if isValidPlayer(player2) then pcall(function() player2:LoadCharacter() end) end
+
+				task.wait(0.08)
+
+				-- Setup weapons/icons
+				safeFireClient(SetWeaponPictures, player1)
+				safeFireClient(SetWeaponPictures, player2)
+				if isValidPlayer(player1) then SetPlayerIconsVisible(player1) end
+				if isValidPlayer(player2) then SetPlayerIconsVisible(player2) end
+				if isValidPlayer(player1) then WeaponManager.giveWeapons(player1) end
+				if isValidPlayer(player2) then WeaponManager.giveWeapons(player2) end
+
+				-- Barrier setup by map
+				local function handleMap(mapParts, enableFunc, barrierFunc)
+					for _, abilityPart in mapParts[gameNumber+gameNumber].Parent:GetChildren() do
+						if string.match(abilityPart.Name, "Booster") then pcall(function() abilityPart:Destroy() end) end
+					end
+					enableFunc(gameNumber)
+					if regularPlayerPositions[gameNumber] then
+						safeFireClient(BarrierChange, player1, true, true, map, gameNumber)
+						safeFireClient(BarrierChange, player2, true, false, map, gameNumber)
+					else
+						safeFireClient(BarrierChange, player1, true, false, map, gameNumber)
+						safeFireClient(BarrierChange, player2, true, true, map, gameNumber)
+					end
+				end
+
+				if map == "Intensity" then
+					handleMap(IntensityMapTeleports, enableIntensityBarriers, BarrierChange)
+				elseif map == "Oasis" then
+					handleMap(OasisMapTeleports, enableJapanBarriers, BarrierChange)
+				elseif map == "Hyperia" then
+					handleMap(HyperiaMapTeleports, enableHyperiaBarriers, BarrierChange)
+				elseif map == "Cryofrost" then
+					handleMap(CryofrostMapTeleports, enableCryofrostBarriers, BarrierChange)
+				elseif map == "Etherion" then
+					handleMap(EtherionMapTeleports, enableEtherionBarriers, BarrierChange)
+				end
+
+				-- Set health and features
+				local char1 = getPlayerCharacter(player1)
+				if char1 and char1:FindFirstChild("Humanoid") then char1.Humanoid.Health = 250 end
+				local char2 = getPlayerCharacter(player2)
+				if char2 and char2:FindFirstChild("Humanoid") then char2.Humanoid.Health = 250 end
+
+				safeFireClient(AllowCrouching, player1, true)
+				safeFireClient(AllowCrouching, player2, true)
+				safeFireClient(CreateEnemyHighlight, player1, player2)
+				safeFireClient(CreateEnemyHighlight, player2, player1)
+				safeFireClient(equipPrimary, player1)
+				safeFireClient(equipPrimary, player2)
+
+				-- Hide displays
+				safeSetScoreboardVisibility(player1, "RoundDraw", false)
+				safeSetScoreboardVisibility(player2, "RoundDraw", false)
+				safeFireClient(postRoundRE, player1, false)
+				safeFireClient(postRoundRE, player2, false)
+
+				-- Reset draw state
+				if player1RoundLost then player1RoundLost.Visible = false end
+				if player2RoundWon then player2RoundWon.Visible = false end
+				if player2RoundLost then player2RoundLost.Visible = false end
+				if player1RoundWon then player1RoundWon.Visible = false end
+
+				safePlayerGUI(player1, function(gui) gui:FindFirstChild("CoreElements").Enabled = false end)
+				safePlayerGUI(player2, function(gui) gui:FindFirstChild("CoreElements").Enabled = false end)
+
+				armorPlayerCharacters(player1, player2)
+
+				-- Pre-round state
+				safeFireClient(preRoundRE, player1, true)
+				safeFireClient(preRoundRE, player2, true)
+				safeFireClient(SetWeaponPictures, player1)
+				safeFireClient(SetWeaponPictures, player2)
+
+				-- Pre-round countdown
+				for i = 5, 1, -1 do
+					safeUpdateTimers({player1, player2}, "0:0"..tostring(i))
+					task.wait(1)
+				end
+				
+				-- Start round
+				stopGame(gameNumber)
+				safeFireClient(forceEquipLoadout, player1)
+				safeFireClient(forceEquipLoadout, player2)
+				safeFireClient(preRoundRE, player1, false)
+				safeFireClient(preRoundRE, player2, false)
+
+				-- Disable barriers
+				local function disableMap(disableFunc, map)
+					disableFunc(gameNumber)
+					if regularPlayerPositions[gameNumber] then
+						safeFireClient(BarrierChange, player1, false, true, map, gameNumber)
+						safeFireClient(BarrierChange, player2, false, false, map, gameNumber)
+					else
+						safeFireClient(BarrierChange, player1, false, false, map, gameNumber)
+						safeFireClient(BarrierChange, player2, false, true, map, gameNumber)
+					end
+				end
+
+				if map == "Intensity" then
+					disableMap(disableIntensityBarriers, "Intensity")
+				elseif map == "Oasis" then
+					disableMap(disableJapanBarriers, "Oasis")
+				elseif map == "Hyperia" then
+					disableMap(disableHyperiaBarriers, "Hyperia")
+				elseif map == "Cryofrost" then
+					disableMap(disableCryofrostBarriers, "Cryofrost")
+				elseif map == "Etherion" then
+					disableMap(disableEtherionBarriers, "Etherion")
+				end
+
+				-- Round timer
+				RoundTimers[gameNumber] = coroutine.create(function()
+					for i = 90, 0, -1 do
+						-- Update ping displays safely
+						safePlayerGUI(player1, function(gui)
+							local board = gui:FindFirstChild("GameLeaderboard")
+							if board then
+								local two = board:FindFirstChild("TwoPlayerLeaderboard")
+								if two then
+									local bg = two:FindFirstChild("Background")
+									if bg and isValidPlayer(player1) and isValidPlayer(player2) then
+										bg.Player1.Ping.Text = string.format("%.0f", player1:GetNetworkPing() * 2000)
+										bg.Player2.Ping.Text = string.format("%.0f", player2:GetNetworkPing() * 2000)
+									end
+								end
+							end
+						end)
+						safePlayerGUI(player2, function(gui)
+							local board = gui:FindFirstChild("GameLeaderboard")
+							if board then
+								local two = board:FindFirstChild("TwoPlayerLeaderboard")
+								if two then
+									local bg = two:FindFirstChild("Background")
+									if bg and isValidPlayer(player1) and isValidPlayer(player2) then
+										bg.Player1.Ping.Text = string.format("%.0f", player2:GetNetworkPing() * 2000)
+										bg.Player2.Ping.Text = string.format("%.0f", player1:GetNetworkPing() * 2000)
+									end
+								end
+							end
+						end)
+
+						-- Timer display
+						if i >= 70 then
+							safeUpdateTimers({player1, player2}, "1:"..tostring(i-60))
+						elseif i >= 60 then
+							safeUpdateTimers({player1, player2}, "1:0"..tostring(i-60))
+						elseif i >= 10 then
+							safeUpdateTimers({player1, player2}, "0:"..tostring(i))
+						else
+							safeUpdateTimers({player1, player2}, "0:0"..tostring(i))
+						end
+
+						task.wait(1)
+
+						-- Round draw
+						if i == 0 and isValidPlayer(player1) and isValidPlayer(player2) then
+							RoundDraws[gameNumber] = true
+							runNextRound(player1, gameNumber, player1, player2, map)
+						end
+					end
+				end)
+				coroutine.resume(RoundTimers[gameNumber])
+			end
+
+
+		end)
+
+		if not okNR then
+			warn("runNextRound failed for game " .. gameNumber .. ": " .. err)
+			NextRoundActive[gameNumber] = false
+		end
+	end)
+end
+
+local function gameEndedPlayerDC(winningPlayer, gameNumber)
+	if GameEndedActive[gameNumber] or not GameActive[gameNumber] then return end
+	task.spawn(function()
+		GameEndedActive[gameNumber] = true
+		GameActive[gameNumber] = false
+
+		NextRoundActive[gameNumber] = false
+		stopGame(gameNumber)
+		MapActive[gameNumber].Value = false
+		RoundDraws[gameNumber] = false
+
+
+		if isValidPlayer(winningPlayer) then
+			--winningPlayer.NameDisplayDistance = 100
+			winningPlayer.RespawnLocation = workspace:WaitForChild("LobbySpawn")
+			if winningPlayer.Statistics.LastWinstreak.Value > 0 then
+				winningPlayer.Statistics.WinstreakRestores.Value = 0
+			end
+			winningPlayer.Statistics.LastWinstreak.Value = 0 
+			winningPlayer.leaderstats.Wins.Value = winningPlayer.leaderstats.Wins.Value + 1
+			winningPlayer.leaderstats.Winstreak.Value += 1
+			winningPlayer.Currency.Gems.Value += 7
+			winningPlayer.Progression.Experience.Value += 100
+			winningPlayer.SelectedWeapons.selectedPrimary.Value = "Rifle"
+			winningPlayer.SelectedWeapons.selectedSecondary.Value = "Pistol"
+			winningPlayer.SelectedWeapons.selectedMelee.Value = "Saber"
+			winningPlayer.SelectedWeapons.selectedAbility1.Value = "Grenade"
+
+			--gameStarted = false
+
+		end
+		if isValidPlayer(winningPlayer) then
+			winningPlayer:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("Victory").Visible = true
+		end
+		safeFireClient(postRoundRE, winningPlayer, true)
+		safeFireClient(SpectateOtherPlayer1v1, winningPlayer, nil, nil, nil, false)
+
+
+
+		--local function resetViewmodels(player1)
+		---playerDied:FireClient(player1)
+		--AllowCrouching:FireClient(player1, false)
+		--for _, tool in player1.Backpack:GetChildren() do
+		--	tool:Destroy()
+		--end
+		--end
+
+		for i = 5, 1, -1 do
+			if isValidPlayer(winningPlayer) then
+				winningPlayer:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("TimerFrame"):WaitForChild("Timer").Text = "0:0"..tostring(i) 
+				task.wait(1)
+				if i == 2 then
+					playerDied:FireClient(winningPlayer)
+
+					--if winningPlayer.Character.Humanoid then
+					--	winningPlayer.Character.Humanoid:UnequipTools()
+					--end
+					task.wait(0.15) -- Small delay to ensure unequip process completes
+
+					-- Destroy tools
+					for _, tool in winningPlayer.Backpack:GetChildren() do
+						tool:Destroy()
+					end
+				end
+			end
+		end
+		
+		safeFireClient(SpectateOtherPlayer1v1, winningPlayer, nil, nil, nil, false)
+
+		if isValidPlayer(winningPlayer) then
+			UnequipAndDestroyTools(winningPlayer, winningPlayer)
+
+			AllowCrouching:FireClient(winningPlayer, true)
+			disableScoreboard:FireClient(winningPlayer)
+			postRoundRE:FireClient(winningPlayer, false)
+
+			winningPlayer:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("Player1Frame"):WaitForChild("Score1").Value = 0
+			winningPlayer:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("Player2Frame"):WaitForChild("Score2").Value = 0
+			winningPlayer:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("Player1Frame"):WaitForChild("Player1Score").Text = "0"
+			winningPlayer:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("Player2Frame"):WaitForChild("Player2Score").Text = "0"
+			--winningPlayer.NameDisplayDistance = 100
+
+			winningPlayer:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("Victory").Visible = false
+
+			winningPlayer.RespawnLocation = game:WaitForChild("Workspace"):WaitForChild("LobbySpawn")
+			winningPlayer.Character.HumanoidRootPart.CFrame = game:WaitForChild("Workspace"):WaitForChild("LobbySpawn").CFrame
+			winningPlayer.CameraMode = Enum.CameraMode.Classic
+			winningPlayer:LoadCharacter()
+
+			winningPlayer.GameTeam.playerTeam.Value = "None"
+
+			resetEvent:FireClient(winningPlayer)
+			winningPlayer.GeneralInfo.isInGame.Value = false
+
+		end
+		resetGame(gameNumber)
+
+		NextRoundActive[gameNumber] = false
+		GameEndedActive[gameNumber] = false
+
+	end)
+
+end
+
+-- Track players in each zone separately
+local playersIn1v1Queue1Zone1 = {}
+local playersIn1v1Queue1Zone2 = {}
+
+local playersIn1v1Queue2Zone1 = {}
+local playersIn1v1Queue2Zone2 = {}
+
+local playersInBotQueue = {}
+
+local playersInZone1 = {
+	playersIn1v1Queue1Zone1,
+	playersIn1v1Queue2Zone1
+}
+
+local playersInZone2 = {
+	playersIn1v1Queue1Zone2,
+	playersIn1v1Queue2Zone2
+}
+
+-- Put your map states & spectator frames into tables for easy access
+local MapActive = {
+	[1] = Map1Active,
+	[2] = Map2Active,
+	[3] = Map3Active,
+	[4] = Map4Active,
+	[5] = Map5Active,
+	[6] = Map6Active,
+	[7] = Map7Active,
+	[8] = Map8Active,
+	[9] = Map9Active,
+	[10] = Map10Active,
+}
+
+
+
+-- Helper to teleport characters
+local function teleportCharacter(character)
+	if character and character:FindFirstChild("HumanoidRootPart") then
+		character.HumanoidRootPart.CFrame = MapSelectionTeleport.CFrame
+	end
+end
+
+local function withMatchmakingLock(fn)
+	-- simple FIFO-ish spin lock for short critical sections
+	while MatchmakingLocked do task.wait() end
+	MatchmakingLocked = true
+	local ok, result = pcall(fn)
+	MatchmakingLocked = false
+	if not ok then error(result) end
+	return result
+end
+
+-- Reserve a free game slot atomically and mark it active immediately.
+-- Returns gameNumber or nil if none.
+local function reserveGameSlot()
+	return withMatchmakingLock(function()
+		for gameNumber = 1, 10 do
+			if MapActive[gameNumber].Value == false then
+				-- CLAIM the slot *inside* the lock so nobody else can take it
+				MapActive[gameNumber].Value = true
+				return gameNumber
+			end
+		end
+		return nil
+	end)
+end
+
+-- Main function
+function teleportPlayers(queueNumber)
+	if #playersInZone1[queueNumber] == 1 and #playersInZone2[queueNumber] == 1 then
+		-- Find first available map slot
+		local gameNumber = reserveGameSlot()
+		if not gameNumber then
+			-- Optional: notify & retry later if all maps are busy
+			return
+		end
+
+		local randomIndex = math.random(1, 2)
+		local p1, p2
+
+		if randomIndex == 1 then
+			p1 = playersInZone1[queueNumber][1]
+			p2 = playersInZone2[queueNumber][1]
+		else
+			p1 = playersInZone2[queueNumber][1]
+			p2 = playersInZone1[queueNumber][1]
+		end
+
+		-- Save to Games table for consistency
+		Games[gameNumber].Players[1] = p1
+		Games[gameNumber].Players[2] = p2
+
+		-- Assign teams
+		p1.GameTeam.playerTeam.Value = ("Game%dTeam1Players1"):format(gameNumber)
+		p2.GameTeam.playerTeam.Value = ("Game%dTeam2Players1"):format(gameNumber)
+
+		-- Teleport characters
+		teleportCharacter(p1.Character)
+		teleportCharacter(p2.Character)
+
+		-- Update spectator board
+		local frame = SpectatorFrames[gameNumber]
+		frame.Parent.Parent.Team1.Player1.Value = p1.UserId
+		frame.Parent.Parent.Team2.Player1.Value = p2.UserId
+		frame:WaitForChild("LeftIcon1").Image = game.Players:GetUserThumbnailAsync(p1.UserId, ImageType, ImageSize)
+		frame:WaitForChild("RightIcon1").Image = game.Players:GetUserThumbnailAsync(p2.UserId, ImageType, ImageSize)
+
+		-- Start the game
+		startGame(p1, p2, p1.Character, p2.Character, gameNumber)
+
+	end
+
+	-- Reset UI depending on which queue
+	if queueNumber == 1 then
+		playerCount1v1Queue1Label1.Text = "0/1"
+		playerCount1v1Queue1Label2.Text = "0/1"
+		countdownActive1v1Queue1 = false
+		timerTextLabel1v1Queue1.Text = ""
+		OneVsOneQueue1Player1Picture.Image = "rbxassetid://91217805096675"
+		OneVsOneQueue1Player2Picture.Image = "rbxassetid://91217805096675"
+
+	elseif queueNumber == 2 then
+		playerCount1v1Queue2Label1.Text = "0/1"
+		playerCount1v1Queue2Label2.Text = "0/1"
+		countdownActive1v1Queue2 = false
+		timerTextLabel1v1Queue2.Text = ""
+		OneVsOneQueue2Player1Picture.Image = "rbxassetid://91217805096675"
+		OneVsOneQueue2Player2Picture.Image = "rbxassetid://91217805096675"
+	end
+
+	-- Reset player queues
+	playersInZone1[queueNumber] = {}
+	playersInZone2[queueNumber] = {}
+end
+
+
+-- Update these functions to handle separate zones
+function onPlayerEnterZone(player, zoneNumber, padType)
+	AllowCrouching:FireClient(player, false)
+	if padType == "1v1Queue1" then
+		local zonePlayers = zoneNumber == 1 and playersInZone1[1] or playersInZone2[1]
+		if playersInZone1[1][1] == player or playersInZone2[1][1] == player then
+			return 
+		end 
+		if zoneNumber == 1 then
+			OneVsOneQueue1Spot1:WaitForChild("BeamPart1"):WaitForChild("BeamAtt1"):WaitForChild("Beam1").Enabled = true
+			OneVsOneQueue1Spot1:WaitForChild("BeamPart1"):WaitForChild("BeamAtt1"):WaitForChild("Beam2").Enabled = true
+			OneVsOneQueue1Spot1:WaitForChild("LowerNeon1").Color = Color3.fromRGB(3, 137, 255)
+			if OneVsOneQueue1Player1Picture.Image == "rbxassetid://91217805096675" then
+				OneVsOneQueue1Player1Picture.Image = game.Players:GetUserThumbnailAsync(player.UserId, ImageType, ImageSize)
+			end
+
+		elseif zoneNumber == 2 then
+			OneVsOneQueue1Spot2:WaitForChild("BeamPart2"):WaitForChild("BeamAtt1"):WaitForChild("Beam1").Enabled = true
+			OneVsOneQueue1Spot2:WaitForChild("BeamPart2"):WaitForChild("BeamAtt1"):WaitForChild("Beam2").Enabled = true
+			OneVsOneQueue1Spot2:WaitForChild("LowerNeon2").Color = Color3.fromRGB(3, 137, 255)
+			if OneVsOneQueue1Player2Picture.Image == "rbxassetid://91217805096675" then
+				OneVsOneQueue1Player2Picture.Image = game.Players:GetUserThumbnailAsync(player.UserId, ImageType, ImageSize)
+			end
+		end
+
+		if player and not table.find(zonePlayers, player) and #zonePlayers == 0 then
+			EnteredQueue:FireClient(player)
+			table.insert(zonePlayers, player)
+			updatePlayerCount(zoneNumber, padType)
+		end
+	elseif padType == "1v1Queue2" then
+		local zonePlayers = zoneNumber == 1 and playersInZone1[2] or playersInZone2[2]
+		if playersInZone1[2][1] == player or playersInZone2[2][1] == player then
+			return 
+		end 
+		if zoneNumber == 1 then
+			OneVsOneQueue2Spot1:WaitForChild("BeamPart1"):WaitForChild("BeamAtt1"):WaitForChild("Beam1").Enabled = true
+			OneVsOneQueue2Spot1:WaitForChild("BeamPart1"):WaitForChild("BeamAtt1"):WaitForChild("Beam2").Enabled = true
+			OneVsOneQueue2Spot1:WaitForChild("LowerNeon1").Color = Color3.fromRGB(3, 137, 255)
+			if OneVsOneQueue2Player1Picture.Image == "rbxassetid://91217805096675" then
+				OneVsOneQueue2Player1Picture.Image = game.Players:GetUserThumbnailAsync(player.UserId, ImageType, ImageSize)
+			end
+
+		elseif zoneNumber == 2 then
+			OneVsOneQueue2Spot2:WaitForChild("BeamPart2"):WaitForChild("BeamAtt1"):WaitForChild("Beam1").Enabled = true
+			OneVsOneQueue2Spot2:WaitForChild("BeamPart2"):WaitForChild("BeamAtt1"):WaitForChild("Beam2").Enabled = true
+			OneVsOneQueue2Spot2:WaitForChild("LowerNeon2").Color = Color3.fromRGB(3, 137, 255)
+			if OneVsOneQueue2Player2Picture.Image == "rbxassetid://91217805096675" then
+				OneVsOneQueue2Player2Picture.Image = game.Players:GetUserThumbnailAsync(player.UserId, ImageType, ImageSize)
+			end
+		end
+
+		if player and not table.find(zonePlayers, player) and #zonePlayers == 0 then
+			EnteredQueue:FireClient(player)
+			table.insert(zonePlayers, player)
+			updatePlayerCount(zoneNumber, padType)
+		end
+	elseif padType == "BotQueue" then
+		local zonePlayers = zoneNumber == 1 and playersInBotQueue
+
+		Bot1v1QueueSpot:WaitForChild("BeamPart1"):WaitForChild("BeamAtt1"):WaitForChild("Beam1").Enabled = true
+		Bot1v1QueueSpot:WaitForChild("BeamPart1"):WaitForChild("BeamAtt1"):WaitForChild("Beam2").Enabled = true
+		Bot1v1QueueSpot:WaitForChild("LowerNeon1").Color = Color3.fromRGB(3, 137, 255)
+		if Bot1v1QueuePicture.Image == "rbxassetid://91217805096675" then
+			Bot1v1QueuePicture.Image = game.Players:GetUserThumbnailAsync(player.UserId, ImageType, ImageSize)
+		end
+
+		if player and not table.find(zonePlayers, player) and #zonePlayers == 0 then
+			EnteredQueue:FireClient(player)
+			table.insert(zonePlayers, player)
+			updatePlayerCount(zoneNumber, padType)
+		end
+	end
+
+end
+
+function onPlayerLeaveZone(player, zoneNumber, padType)
+	AllowCrouching:FireClient(player, true)
+	if padType == "1v1Queue1" then
+		local zonePlayers = zoneNumber == 1 and playersInZone1[1] or playersInZone2[1]
+
+		if player and table.find(zonePlayers, player) then
+			table.remove(zonePlayers, table.find(zonePlayers, player))
+			updatePlayerCount(zoneNumber, padType)
+		end
+
+		if zoneNumber == 1 then
+			if #playersInZone1[1] < 1 then
+				OneVsOneQueue1Spot1:WaitForChild("BeamPart1"):WaitForChild("BeamAtt1"):WaitForChild("Beam1").Enabled = false
+				OneVsOneQueue1Spot1:WaitForChild("BeamPart1"):WaitForChild("BeamAtt1"):WaitForChild("Beam2").Enabled = false
+				OneVsOneQueue1Spot1:WaitForChild("LowerNeon1").Color = Color3.fromRGB(255, 255, 255)
+				OneVsOneQueue1Player1Picture.Image = "rbxassetid://91217805096675"
+			end
+		elseif zoneNumber == 2 then
+			if #playersInZone2[1] < 1 then
+				OneVsOneQueue1Spot2:WaitForChild("BeamPart2"):WaitForChild("BeamAtt1"):WaitForChild("Beam1").Enabled = false
+				OneVsOneQueue1Spot2:WaitForChild("BeamPart2"):WaitForChild("BeamAtt1"):WaitForChild("Beam2").Enabled = false
+				OneVsOneQueue1Spot2:WaitForChild("LowerNeon2").Color = Color3.fromRGB(255, 255, 255)
+				OneVsOneQueue1Player2Picture.Image = "rbxassetid://91217805096675"
+			end
+		end
+
+
+	elseif padType == "1v1Queue2" then
+		local zonePlayers = zoneNumber == 1 and playersInZone1[2] or playersInZone2[2]
+
+		if player and table.find(zonePlayers, player) then
+			table.remove(zonePlayers, table.find(zonePlayers, player))
+			updatePlayerCount(zoneNumber, padType)
+		end
+
+		if zoneNumber == 1 then
+			if #playersInZone1[2] < 1 then
+				OneVsOneQueue2Spot1:WaitForChild("BeamPart1"):WaitForChild("BeamAtt1"):WaitForChild("Beam1").Enabled = false
+				OneVsOneQueue2Spot1:WaitForChild("BeamPart1"):WaitForChild("BeamAtt1"):WaitForChild("Beam2").Enabled = false
+				OneVsOneQueue2Spot1:WaitForChild("LowerNeon1").Color = Color3.fromRGB(255, 255, 255)
+				OneVsOneQueue2Player1Picture.Image = "rbxassetid://91217805096675"
+			end
+		elseif zoneNumber == 2 then
+			if #playersInZone2[2] < 1 then
+				OneVsOneQueue2Spot2:WaitForChild("BeamPart2"):WaitForChild("BeamAtt1"):WaitForChild("Beam1").Enabled = false
+				OneVsOneQueue2Spot2:WaitForChild("BeamPart2"):WaitForChild("BeamAtt1"):WaitForChild("Beam2").Enabled = false
+				OneVsOneQueue2Spot2:WaitForChild("LowerNeon2").Color = Color3.fromRGB(255, 255, 255)
+				OneVsOneQueue2Player2Picture.Image = "rbxassetid://91217805096675"
+			end
+		end
+
+	elseif padType == "BotQueue" then
+		local zonePlayers = zoneNumber == 1 and playersInBotQueue
+
+		if player and table.find(zonePlayers, player) then
+			table.remove(zonePlayers, table.find(zonePlayers, player))
+			updatePlayerCount(zoneNumber, padType)
+		end
+
+		if #playersInBotQueue < 1 then
+			Bot1v1QueueSpot:WaitForChild("BeamPart1"):WaitForChild("BeamAtt1"):WaitForChild("Beam1").Enabled = false
+			Bot1v1QueueSpot:WaitForChild("BeamPart1"):WaitForChild("BeamAtt1"):WaitForChild("Beam2").Enabled = false
+			Bot1v1QueueSpot:WaitForChild("LowerNeon1").Color = Color3.fromRGB(255, 255, 255)
+			Bot1v1QueuePicture.Image = "rbxassetid://91217805096675"
+		end
+	end
+
+end
+
+function startCountdown(padType)
+	if padType == "1v1Queue1" then
+		countdownActive1v1Queue1 = true
+		local timeLeft = countdownTime
+		timerTextLabel1v1Queue1.Text = tostring(timeLeft)
+		countdownCoroutine = coroutine.create(function()
+			while timeLeft > 0 and countdownActive1v1Queue1 do
+				task.wait(1)
+				timeLeft = timeLeft - 1
+				if countdownActive1v1Queue1 then
+					timerTextLabel1v1Queue1.Text = tostring(timeLeft)
+				end
+			end
+			if timeLeft == 0 then
+				teleportPlayers(1)
+			end
+		end)
+		coroutine.resume(countdownCoroutine)
+	elseif padType == "1v1Queue2" then
+		countdownActive1v1Queue2 = true
+		local timeLeft = countdownTime
+		timerTextLabel1v1Queue2.Text = tostring(timeLeft)
+		countdownCoroutine = coroutine.create(function()
+			while timeLeft > 0 and countdownActive1v1Queue2 do
+				task.wait(1)
+				timeLeft = timeLeft - 1
+				if countdownActive1v1Queue2 then
+					timerTextLabel1v1Queue2.Text = tostring(timeLeft)
+				end
+			end
+			if timeLeft == 0 then
+				teleportPlayers(2)
+			end
+		end)
+		coroutine.resume(countdownCoroutine)
+	elseif padType == "BotQueue" then
+		countdownActiveBotQueue = true
+		local timeLeft = countdownTime
+		timerTextLabelBotQueue.Text = tostring(timeLeft) 
+		countdownCoroutine = coroutine.create(function()
+			while timeLeft > 0 and countdownActiveBotQueue do
+				task.wait(1)
+				timeLeft = timeLeft - 1
+				if countdownActiveBotQueue then
+					timerTextLabelBotQueue.Text = tostring(timeLeft)
+				end
+			end
+			if timeLeft == 0 then
+				teleportPlayers(3)
+			end
+		end)
+		coroutine.resume(countdownCoroutine)
+	end
+end
+
+function stopCountdown(padType)
+	if padType == "1v1Queue1" then
+		countdownActive1v1Queue1 = false
+		timerTextLabel1v1Queue1.Text = ""
+	elseif padType == "1v1Queue2" then
+		countdownActive1v1Queue2 = false
+		timerTextLabel1v1Queue2.Text = ""
+	elseif padType == "BotQueue" then
+		countdownActiveBotQueue = false
+		timerTextLabelBotQueue.Text = ""
+	end
+
+end
+
+function updatePlayerCount(zoneNumber, padType)
+	if padType == "1v1Queue1" then
+		local zonePlayers = zoneNumber == 1 and playersInZone1[1] or playersInZone2[1]
+		if zoneNumber == 1 then
+			playerCount1v1Queue1Label1.Text = #zonePlayers.. "/1"
+		elseif zoneNumber == 2 then
+			playerCount1v1Queue1Label2.Text = #zonePlayers.. "/1"
+		end
+		-- Check if both zones have exactly one player each
+		if #playersInZone1[1] == 1 and #playersInZone2[1] == 1 and not countdownActive1v1Queue1 and playersInZone1[1][1] ~= playersInZone2[1][1] then
+			startCountdown(padType)
+		else
+			stopCountdown(padType)
+		end
+	elseif padType == "1v1Queue2" then 
+		local zonePlayers = zoneNumber == 1 and playersInZone1[2] or playersInZone2[2]
+		if zoneNumber == 1 then
+			playerCount1v1Queue2Label1.Text = #zonePlayers.. "/1"
+		elseif zoneNumber == 2 then
+			playerCount1v1Queue2Label2.Text = #zonePlayers.. "/1"
+		end
+
+		-- Check if both zones have exactly one player each
+		if #playersInZone1[2] == 1 and #playersInZone2[2] == 1 and not countdownActive1v1Queue2 and playersInZone1[2][1] ~= playersInZone2[2][1]  then
+			startCountdown(padType)
+		else
+			stopCountdown(padType)
+		end
+
+	elseif padType == "BotQueue" then 
+		local zonePlayers = zoneNumber == 1 and playersInBotQueue
+		playerCountBotQueue.Text = #zonePlayers.. "/1"
+
+		-- Check if both zones have exactly one player each
+		if #playersInBotQueue == 1 and not countdownActiveBotQueue then
+			startCountdown(padType)
+		else
+			stopCountdown(padType)
+		end
+	end
+
+end
+
+-- Assume you already have your Games table like this:
+-- Games[1] = {Players = {player1, player2}}
+-- Games[2] = {Players = {player3, player4}}
+-- ...
+-- Games[10] = {Players = {player19, player20}}
+
+local PLACEHOLDER = "rbxassetid://91217805096675"
+
+local function clearOldIcons(p1, p2, iconImage)
+	for _, plr in ipairs({p1, p2}) do
+		local gui = plr:FindFirstChild("PlayerGui")
+		if gui then
+			local mapSelector = gui:FindFirstChild("MapSelector")
+			if mapSelector then
+				for _, icon in ipairs(mapSelector:GetDescendants()) do
+					if icon.Name == "Icon1" or icon.Name == "Icon2" then
+						if icon.Image == PLACEHOLDER or icon.Image == iconImage then
+							icon.Image = PLACEHOLDER
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
+local function setPlayerVote(voter, p1, p2, map, iconImage)
+	if isValidPlayer(p1) and isValidPlayer(p2) then
+		local gui1 = p1:WaitForChild("PlayerGui"):WaitForChild("MapSelector")
+		local gui2 = p2:WaitForChild("PlayerGui"):WaitForChild("MapSelector")
+
+		if voter == p1 then
+			gui1[map].Icon1.Image = iconImage
+			gui2[map].Icon1.Image = iconImage
+		elseif voter == p2 then
+			gui1[map].Icon2.Image = iconImage
+			gui2[map].Icon2.Image = iconImage
+		end
+	end
+end
+
+MapSelectorVote.OnServerEvent:Connect(function(player, map, iconImage)
+	for gameNumber, eachGame in ipairs(Games) do
+		local p1, p2 = eachGame.Players[1], eachGame.Players[2]
+		--print("map selector Player: ".. tostring(player).. " p1: ".. tostring(p1).. " p2: ".. tostring(p2))
+		if player == p1 or player == p2 then
+			-- Update votes in your logic
+			updatePlayerVotes(player, map, iconImage, gameNumber)
+
+			-- Reset old icons for both players
+			clearOldIcons(p1, p2, iconImage)
+
+			-- Apply the new vote for this player
+			setPlayerVote(player, p1, p2, map, iconImage)
+			break
+		end
+	end
+end)
+
+
+disableWeaponSelector.OnServerEvent:Connect(function(plr)
+	WeaponManager.giveWeapons(plr)
+	disableWeaponSelector:FireClient(plr)
+end)
+
+OneVsOneQueue1Zone1.playerEntered:Connect(function(player)
+	onPlayerEnterZone(player, 1, "1v1Queue1") -- Specify which zone the player entered
+end)
+
+OneVsOneQueue1Zone1.playerExited:Connect(function(player)
+	ExitedQueue:FireClient(player)
+	onPlayerLeaveZone(player, 1, "1v1Queue1")
+end)
+
+OneVsOneQueue1Zone2.playerEntered:Connect(function(player)
+	onPlayerEnterZone(player, 2, "1v1Queue1") -- Specify which zone the player entered
+end)
+
+OneVsOneQueue1Zone2.playerExited:Connect(function(player)
+	ExitedQueue:FireClient(player)
+	onPlayerLeaveZone(player, 2, "1v1Queue1")
+end)
+
+Bot1v1QueueZone.playerEntered:Connect(function(player)
+	--onPlayerEnterZone(player, 1, "BotQueue") -- Specify which zone the player entered
+end)
+
+Bot1v1QueueZone.playerExited:Connect(function(player)
+	--ExitedQueue:FireClient(player)
+	--onPlayerLeaveZone(player, 1, "BotQueue")
+end)
+
+OneVsOneQueue2Zone1.playerEntered:Connect(function(player)
+	onPlayerEnterZone(player, 1, "1v1Queue2") -- Specify which zone the player entered
+end)
+
+OneVsOneQueue2Zone1.playerExited:Connect(function(player)
+	ExitedQueue:FireClient(player)
+	onPlayerLeaveZone(player, 1, "1v1Queue2")
+end)
+
+OneVsOneQueue2Zone2.playerEntered:Connect(function(player)
+	onPlayerEnterZone(player, 2, "1v1Queue2") -- Specify which zone the player entered
+end)
+
+OneVsOneQueue2Zone2.playerExited:Connect(function(player)
+	ExitedQueue:FireClient(player)
+	onPlayerLeaveZone(player, 2, "1v1Queue2")
+end)
+
+PlayerDisconnectedServer.Event:Connect(function(player)
+	for _, playerID in SpectatorBoard1:GetDescendants() do
+		if playerID:IsA("IntValue") then
+			if playerID.Value == player.UserId then
+				playerID.Value = 0
+			end
+		end
+	end
+
+	for _, playerID in SpectatorBoard2:GetDescendants() do
+		if playerID:IsA("IntValue") then
+			if playerID.Value == player.UserId then
+				playerID.Value = 0
+			end
+		end
+	end
+
+	-- Find which game they belong to
+	for gameNumber, eachGame in ipairs(Games) do
+		local p1, p2 = eachGame.Players[1], eachGame.Players[2]
+
+		if p1 and p2 then
+			if player == p1 then
+				gameEndedPlayerDC(p2, gameNumber)
+				break
+			elseif player == p2 then
+				gameEndedPlayerDC(p1, gameNumber)
+				break
+			end
+		end
+	end
+	
+	if OneVsOneQueue1Player1Picture.Image == game.Players:GetUserThumbnailAsync(player.UserId, ImageType, ImageSize) then
+		OneVsOneQueue1Player1Picture.Image = "rbxassetid://91217805096675"
+	elseif OneVsOneQueue1Player2Picture.Image == game.Players:GetUserThumbnailAsync(player.UserId, ImageType, ImageSize) then
+		OneVsOneQueue1Player2Picture.Image = "rbxassetid://91217805096675"
+	elseif OneVsOneQueue2Player1Picture.Image == game.Players:GetUserThumbnailAsync(player.UserId, ImageType, ImageSize) then
+		OneVsOneQueue2Player1Picture.Image = "rbxassetid://91217805096675"
+	elseif OneVsOneQueue2Player2Picture.Image == game.Players:GetUserThumbnailAsync(player.UserId, ImageType, ImageSize) then
+		OneVsOneQueue2Player2Picture.Image = "rbxassetid://91217805096675"
+	end
+
+end)
+
+local function updateScore(deadPlayer, winner, loser, gameNumber, p1, p2)
+	-- winner gets +1 on their Score2
+	local winnerGui = winner:WaitForChild("PlayerGui"):WaitForChild("Scoreboard")
+	local loserGui = loser:WaitForChild("PlayerGui"):WaitForChild("Scoreboard")
+
+	loserGui:WaitForChild("Player2Frame"):WaitForChild("Score2").Value += 1
+	loserGui:WaitForChild("Player2Frame"):WaitForChild("Player2Score").Text = tostring(loserGui:WaitForChild("Player2Frame"):WaitForChild("Score2").Value)
+	winnerGui:WaitForChild("Player1Frame"):WaitForChild("Score1").Value += 1
+	winnerGui:WaitForChild("Player1Frame"):WaitForChild("Player1Score").Text = tostring(winnerGui:WaitForChild("Player1Frame"):WaitForChild("Score1").Value)
+	print("Updating Score. Gamenumber: ".. tostring(gameNumber).. " team 1 score: ".. tostring(Scores[gameNumber].Team1Score.Value).. " team 2 score: ".. tostring(Scores[gameNumber].Team2Score.Value))
+	--	if winnerGui:WaitForChild("Player1Frame"):WaitForChild("Score1").Value < 5 and loserGui:WaitForChild("Player2Frame"):WaitForChild("Score2").Value < 5 then
+	if Scores[gameNumber].Team1Score.Value < 5 and Scores[gameNumber].Team2Score.Value < 5 then
+		print("scores under 5, and nextroundactive: ".. tostring(NextRoundActive[gameNumber]))
+		if not NextRoundActive[gameNumber] then
+			RoundDraws[gameNumber] = false
+			runNextRound(deadPlayer, gameNumber, p1, p2, SelectedMaps[gameNumber])
+		end
+	else
+		if not NextRoundActive[gameNumber] then
+			gameEndedFunction(loser, gameNumber, winner, loser)
+		end
+	end
+end
+
+local function onPlayerDeath(deadPlayer)
+	print(Games)
+	for gameNumber, eachGame in ipairs(Games) do
+		print("Gamenumber: ".. tostring(gameNumber).. " eachGame: ".. tostring(eachGame).. " Player1: ".. tostring(eachGame.Players[1]).. " Player2: ".. tostring(eachGame.Players[2]))
+		local p1, p2 = eachGame.Players[1], eachGame.Players[2]
+		print("Player1: ".. tostring(p1).. " Player2: ".. tostring(p2).. " DeadPlayer: ".. tostring(deadPlayer).. " RoundDrawStatus: ".. tostring(RoundDraws[gameNumber]))
+		if p1 and p2 then
+			if deadPlayer == p1 or deadPlayer == p2 then
+				print("deadplayer matches DeathCheck: ".. tostring(DeathCheckInProgress[gameNumber]))
+				if DeathCheckInProgress[gameNumber] == true then return end
+				DeathCheckInProgress[gameNumber] = true
+				
+				print("past Deadplayer check")
+				-- Delay the check slightly
+				task.delay(0.12, function()
+					DeathCheckInProgress[gameNumber] = false
+
+					SetDeadPlayerIcons(p1, deadPlayer)
+					SetDeadPlayerIcons(p2, deadPlayer)
+					print("in Delay and NextRoundActive: ".. tostring(NextRoundActive[gameNumber]))
+					
+					-- Check for draw
+					if (p1.Character and p1.Character:FindFirstChild("Humanoid") and p1.Character.Humanoid.Health <= 0) and
+						(p2.Character and p2.Character:FindFirstChild("Humanoid") and p2.Character.Humanoid.Health <= 0) then
+						
+						RoundDraws[gameNumber] = true
+						if not NextRoundActive[gameNumber] then
+							stopGame(gameNumber)
+							runNextRound(deadPlayer, gameNumber, p1, p2, SelectedMaps[gameNumber])
+						end
+					else
+						-- Award score to the surviving player
+						if deadPlayer == p1 then
+							stopGame(gameNumber)
+							Scores[gameNumber].Team2Score.Value += 1
+							updateScore(deadPlayer, p2, p1, gameNumber, p1, p2)
+						elseif deadPlayer == p2 then
+							stopGame(gameNumber)
+							Scores[gameNumber].Team1Score.Value += 1
+							updateScore(deadPlayer, p1, p2, gameNumber, p1, p2)
+						end
+					end
+
+				end)
+
+				return -- only one game should match
+			end
+		end
+	end
+end
+
+PlayerDiedServer.Event:Connect(function(player)
+	onPlayerDeath(player)
+
+end)
+
+
+--[[
+Players.PlayerAdded:Connect(function(player)
+	--player.RespawnLocation = workspace:WaitForChild("LobbySpawn")
+	player.CharacterAdded:Connect(function(char)
+		--WeaponManager.giveWeapons(player)
+
+		local humanoid = char:WaitForChild("Humanoid")
+
+
+		if not humanoid then
+			warn("Humanoid missing for " .. player.Name)
+			return
+		end
+
+		--if player == player1 or player == player2 or player == player3 or player == player4 or player == player5 or player == player6 or player == player7 or player == player8 or player == player9 or player == player10 or player == player11 or player == player12 or player == player13 or player == player14 or player == player15 or player == player16 or player == player17 or player == player18 or player == player19 or player == player20 then
+		--	equipPrimary:FireClient(player)
+		--end
+		humanoid.Died:Connect(function()
+			print("1v1 player died: ".. tostring(player.Name))
+		end)
+		
+
+	end)
+end)
+]]
