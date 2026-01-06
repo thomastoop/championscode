@@ -1,0 +1,118 @@
+local player = game.Players.LocalPlayer
+local Settings = player:WaitForChild("PlayerGui"):WaitForChild("Slider")
+local CrosshairMenu = Settings:WaitForChild("CrosshairMenu")
+
+local centerDotButton = CrosshairMenu:WaitForChild("CenterDotToggle")
+
+local updateCenterDot = game:WaitForChild("ReplicatedStorage"):WaitForChild("UpdateCrosshair"):WaitForChild("CenterDotEnable")
+local Camera = workspace.CurrentCamera
+
+local linesButton = CrosshairMenu:WaitForChild("LinesToggle")
+local updateLines = game:WaitForChild("ReplicatedStorage"):WaitForChild("UpdateCrosshair"):WaitForChild("LinesEnable")
+
+local dotOutlineButton = CrosshairMenu:WaitForChild("CenterDotOutlineToggle")
+local updateDotOutline = game:WaitForChild("ReplicatedStorage"):WaitForChild("UpdateCrosshair"):WaitForChild("DotOutlineEnable")
+
+local lineOutlinesButton = CrosshairMenu:WaitForChild("LinesOutlineToggle")
+local updateLineOutlines = game:WaitForChild("ReplicatedStorage"):WaitForChild("UpdateCrosshair"):WaitForChild("LineOutlinesEnable")
+
+function centerDotToggle()
+	if player.CrosshairData.centerDotEnabled.Value then
+		centerDotButton.BackgroundColor3 = Color3.new(33/255,33/255,33/255)
+		player.PlayerGui:WaitForChild("Crosshair"):WaitForChild("CenterDot").Visible = false
+		updateCenterDot:FireServer(false)
+	else
+		centerDotButton.BackgroundColor3 = Color3.new(255/255,255/255,255/255)
+		player.PlayerGui:WaitForChild("Crosshair"):WaitForChild("CenterDot").Visible = true
+		updateCenterDot:FireServer(true)
+	end
+end
+
+function dotOutlineToggle()
+	if player.CrosshairData.dotOutlineEnabled.Value then
+		dotOutlineButton.BackgroundColor3 = Color3.new(33/255,33/255,33/255)
+		player.PlayerGui:WaitForChild("Crosshair"):WaitForChild("CenterDot"):WaitForChild("Outline").Enabled = false
+		updateDotOutline:FireServer(false)
+	else
+		dotOutlineButton.BackgroundColor3 = Color3.new(255/255,255/255,255/255)
+		player.PlayerGui:WaitForChild("Crosshair"):WaitForChild("CenterDot"):WaitForChild("Outline").Enabled = true
+		updateDotOutline:FireServer(true)
+	end
+end
+
+function linesToggle()
+	if player.CrosshairData.linesEnabled.Value then
+		linesButton.BackgroundColor3 = Color3.new(33/255,33/255,33/255)
+		player.PlayerGui:WaitForChild("Crosshair"):WaitForChild("Lines").Enabled = false
+		updateLines:FireServer(false)
+	else
+		linesButton.BackgroundColor3 = Color3.new(255/255,255/255,255/255)
+		player.PlayerGui:WaitForChild("Crosshair"):WaitForChild("Lines").Enabled = true
+		updateLines:FireServer(true)
+	end
+end
+
+function lineOutlinesToggle()
+	if player.CrosshairData.lineOutlinesEnabled.Value then
+		lineOutlinesButton.BackgroundColor3 = Color3.new(33/255,33/255,33/255)
+		player.PlayerGui:WaitForChild("Crosshair"):WaitForChild("Lines"):WaitForChild("Line1"):WaitForChild("Outline").Enabled = false
+		player.PlayerGui:WaitForChild("Crosshair"):WaitForChild("Lines"):WaitForChild("Line2"):WaitForChild("Outline").Enabled = false
+		player.PlayerGui:WaitForChild("Crosshair"):WaitForChild("Lines"):WaitForChild("Line3"):WaitForChild("Outline").Enabled = false
+		player.PlayerGui:WaitForChild("Crosshair"):WaitForChild("Lines"):WaitForChild("Line4"):WaitForChild("Outline").Enabled = false
+		updateLineOutlines:FireServer(false)
+	else
+		lineOutlinesButton.BackgroundColor3 = Color3.new(255/255,255/255,255/255)
+		player.PlayerGui:WaitForChild("Crosshair"):WaitForChild("Lines"):WaitForChild("Line1"):WaitForChild("Outline").Enabled = true
+		player.PlayerGui:WaitForChild("Crosshair"):WaitForChild("Lines"):WaitForChild("Line2"):WaitForChild("Outline").Enabled = true
+		player.PlayerGui:WaitForChild("Crosshair"):WaitForChild("Lines"):WaitForChild("Line3"):WaitForChild("Outline").Enabled = true
+		player.PlayerGui:WaitForChild("Crosshair"):WaitForChild("Lines"):WaitForChild("Line4"):WaitForChild("Outline").Enabled = true
+		updateLineOutlines:FireServer(true)
+	end
+end
+
+centerDotButton.Activated:Connect(function()
+	centerDotToggle()
+end)
+
+linesButton.Activated:Connect(function()
+	linesToggle()
+end)
+
+dotOutlineButton.Activated:Connect(function()
+	dotOutlineToggle()
+end)
+
+lineOutlinesButton.Activated:Connect(function()
+	lineOutlinesToggle()
+end)
+
+game:GetService("RunService").RenderStepped:Connect(function()
+	if player.Character then
+		if player.Character:WaitForChild('Head').LocalTransparencyModifier == 1 or player:WaitForChild("PlayerGui"):WaitForChild("Slider"):WaitForChild("CrosshairMenu").Enabled then
+			if Camera.FieldOfView ~= 20 then
+				if player.CrosshairData.linesEnabled.Value then
+					player.PlayerGui.Crosshair.Lines.Enabled = true
+				else
+					player.PlayerGui.Crosshair.Lines.Enabled = false
+				end
+
+				if player.CrosshairData.centerDotEnabled.Value then
+					player.PlayerGui.Crosshair.CenterDot.Visible = true
+				else
+					player.PlayerGui.Crosshair.CenterDot.Visible = false
+				end
+			end
+
+			if player:WaitForChild("PlayerGui"):WaitForChild("Slider"):WaitForChild("CrosshairMenu").Enabled then
+				player.PlayerGui.Crosshair.DisplayOrder = 5
+				player.PlayerGui.Crosshair.Lines.DisplayOrder = 5
+			else
+				player.PlayerGui.Crosshair.DisplayOrder = 0
+				player.PlayerGui.Crosshair.Lines.DisplayOrder = -1
+			end
+		else
+			player.PlayerGui.Crosshair.Lines.Enabled = false
+			player.PlayerGui.Crosshair.CenterDot.Visible = false
+		end
+	end
+end)
