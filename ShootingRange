@@ -1,0 +1,121 @@
+local lobbyTPpart = workspace:WaitForChild("Lobby"):WaitForChild("RangeLobbyTP")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local disableScoreboard = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("DisableScoreboard")
+local resetEvent = ReplicatedStorage:FindFirstChild("ResetJoints")
+local postRoundRE = ReplicatedStorage:WaitForChild("PostRound")
+local LeaveShootingRangeEvent = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("LeaveShootingRange")
+local proximityprompt = workspace:WaitForChild("Lobby"):WaitForChild("Prince Boy"):WaitForChild("EnterRangePrompt")
+local rangeTPpart = workspace:WaitForChild("ShootingRange"):WaitForChild("ShootingRangeTeleportPart")
+local enableWeaponSelector = ReplicatedStorage:WaitForChild("EnableWeaponSelector")
+local EnteredShootingRange = ReplicatedStorage:WaitForChild("EnteredShootingRange")
+local enableScoreboard = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("EnableScoreboard")
+local playerDied = ReplicatedStorage:WaitForChild("Died")
+
+local back1 = workspace:WaitForChild("ShootingRange"):WaitForChild("LobbyReturn1"):WaitForChild("Back")
+local back2 = workspace:WaitForChild("ShootingRange"):WaitForChild("LobbyReturn2"):WaitForChild("Back")
+local back3 = workspace:WaitForChild("ShootingRange"):WaitForChild("LobbyReturn3"):WaitForChild("Back")
+
+local function leaveRangeFromBlock(hit)
+	local player
+	if Players:GetPlayerFromCharacter(hit.Parent) then
+		player = Players:GetPlayerFromCharacter(hit.Parent)
+		local character = player.Character
+		local humanoid = character:WaitForChild("Humanoid")
+		local root = character:WaitForChild("HumanoidRootPart")
+		if player.Character:WaitForChild("Humanoid").Health > 0 and character and humanoid then
+			--postRoundRE:FireClient(player, true)
+			humanoid:UnequipTools()
+			--player.NameDisplayDistance = 100
+			player.GeneralInfo.isInGame.Value = false
+			player.GameTeam.playerTeam.Value = "None"
+			character.HumanoidRootPart.CFrame = lobbyTPpart.CFrame
+			task.wait(0.1)
+			humanoid:UnequipTools()
+			player:LoadCharacter()
+			disableScoreboard:FireClient(player)
+			resetEvent:FireClient(player)
+			postRoundRE:FireClient(player, false)
+			player.SelectedWeapons.selectedPrimary.Value = "Rifle"
+			player.SelectedWeapons.selectedSecondary.Value = "Pistol"
+			player.SelectedWeapons.selectedMelee.Value = "Saber"
+			player.SelectedWeapons.selectedAbility1.Value = "None"
+			
+		end
+	end
+end
+
+proximityprompt.Triggered:Connect(function(player)
+	-- Set default weapons first
+	player.GeneralInfo.isInGame.Value = true
+	player.GameTeam.playerTeam.Value = "ShootingRange"
+
+	local character = player.Character
+	local humanoid = character:WaitForChild("Humanoid")
+	local root = character:WaitForChild("HumanoidRootPart")
+
+	if player.Character:WaitForChild("Humanoid").Health > 0 and character and humanoid then
+		-- Teleport first
+		character.HumanoidRootPart.CFrame = rangeTPpart.CFrame
+		if (root.Position - rangeTPpart.Position).Magnitude > 10 then
+			task.wait(0.1)
+			character.HumanoidRootPart.CFrame = rangeTPpart.CFrame
+		end
+		player.SelectedWeapons.selectedPrimary.Value = "Rifle"
+		player.SelectedWeapons.selectedSecondary.Value = "Pistol"
+		player.SelectedWeapons.selectedMelee.Value = "Saber"
+		player.SelectedWeapons.selectedAbility1.Value = "Grenade"
+		-- Set health properties
+		humanoid.MaxHealth = 250
+		humanoid.Health = 250
+		humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
+
+		-- Disable UI elements
+		player:WaitForChild("PlayerGui"):WaitForChild("CoreElements").Enabled = false
+		enableScoreboard:FireClient(player)
+
+		-- Fire events in sequence with proper waiting
+		EnteredShootingRange:FireClient(player) -- Let client know we're in shooting range
+		
+		-- Then enable weapon selector
+		enableWeaponSelector:FireClient(player)
+	end
+end)
+
+
+LeaveShootingRangeEvent.OnServerEvent:Connect(function(player)
+	local character = player.Character
+	local humanoid = character:WaitForChild("Humanoid")
+	local root = character:WaitForChild("HumanoidRootPart")
+	if player.Character:WaitForChild("Humanoid").Health > 0 and character and humanoid then
+		--postRoundRE:FireClient(player, true)
+		humanoid:UnequipTools()
+		--player.NameDisplayDistance = 100
+		player.GeneralInfo.isInGame.Value = false
+		player.GameTeam.playerTeam.Value = "None"
+		--character.HumanoidRootPart.CFrame = lobbyTPpart.CFrame
+		task.wait(0.1)
+		humanoid:UnequipTools()
+		player:LoadCharacter()
+		disableScoreboard:FireClient(player)
+		resetEvent:FireClient(player)
+		postRoundRE:FireClient(player, false)
+		player.SelectedWeapons.selectedPrimary.Value = "Rifle"
+		player.SelectedWeapons.selectedSecondary.Value = "Pistol"
+		player.SelectedWeapons.selectedMelee.Value = "Saber"
+		player.SelectedWeapons.selectedAbility1.Value = "Grenade"
+		playerDied:FireClient(player)
+	end
+end)
+
+back1.Touched:Connect(function(hit)
+	leaveRangeFromBlock(hit)
+end)
+
+back2.Touched:Connect(function(hit)
+	leaveRangeFromBlock(hit)
+end)
+
+back3.Touched:Connect(function(hit)
+	leaveRangeFromBlock(hit)
+end)
