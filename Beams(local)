@@ -1,0 +1,138 @@
+local player = game.Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
+local Bullet = require(game:GetService("ReplicatedStorage"):WaitForChild("BulletBeams"):WaitForChild("BulletBeam"))
+local SniperShootRemote = game:GetService("ReplicatedStorage"):WaitForChild("WeaponActions"):WaitForChild("SniperShootRemote")
+local bulletBeamEvent = game:GetService("ReplicatedStorage"):WaitForChild("BulletBeams"):WaitForChild("BulletBeamGun")
+local bulletHole = game.ReplicatedStorage:WaitForChild("BulletHole")
+local hole1 = game.ReplicatedStorage:WaitForChild("HoleWithDecal")
+
+local holeLocal = game:GetService("ReplicatedStorage"):WaitForChild("Hole")
+local debris = game:GetService("Debris")
+local BulletHoleLocalEvent = game:GetService("ReplicatedStorage"):WaitForChild("BulletBeams"):WaitForChild("BulletHoleLocal")
+
+local function tweenProperty(object, property, endValue, duration)
+	local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+	local tween = TweenService:Create(object, tweenInfo, {[property] = endValue})
+	tween:Play()
+end
+
+
+local function createFadeTween(part)
+	local tweenInfo = TweenInfo.new(
+		0.5, -- Duration (adjust to control how fast it fades)
+		Enum.EasingStyle.Linear, -- Easing style
+		Enum.EasingDirection.Out -- Easing direction
+	)
+	local tweenGoal = { Transparency = 1 } -- Set transparency to 1 (fully transparent)
+	return TweenService:Create(part, tweenInfo, tweenGoal)
+end
+
+bulletBeamEvent.OnClientEvent:Connect(function(gunBarrelPos, hitPos, aimDirection, distance)
+	Bullet(gunBarrelPos, hitPos, aimDirection, distance)
+end)
+
+SniperShootRemote.OnClientEvent:Connect(function(beamInfo)
+	local beam1 = Instance.new("Part")
+	beam1.Name = "Beam1"
+	beam1.Shape = Enum.PartType.Cylinder
+	beam1.Anchored = true
+	beam1.CanCollide = false
+	beam1.CanQuery = false
+	beam1.CanTouch = false
+	beam1.Transparency = 0.15
+	beam1.Color = Color3.new(1, 0.94902, 0.235294)
+	beam1.Material = Enum.Material.Neon
+	beam1.Size = beamInfo.beam1Size
+	beam1.CFrame = beamInfo.beam1CFrame  -- Rotate 90 degrees on Z-axis
+	beam1.Parent = workspace
+
+	local beam2 = Instance.new("Part")
+	beam2.Name = "Beam2"
+	beam2.Shape = Enum.PartType.Cylinder
+	beam2.Anchored = true
+	beam2.CanCollide = false
+	beam2.CanQuery = false
+	beam2.CanTouch = false
+	beam2.Transparency = 0.15
+	beam2.Color = Color3.new(1, 0.94902, 0.235294)
+	beam2.Material = Enum.Material.Neon
+	beam2.Size = beamInfo.beam2Size
+	beam2.CFrame = beamInfo.beam2CFrame -- Rotate 90 degrees on Z-axis
+	beam2.Parent = workspace
+	
+	local tween1 = createFadeTween(beam1)
+	local tween2 = createFadeTween(beam2)
+
+	tween1:Play()
+	tween2:Play()
+
+	-- Wait for the fade-out duration, then destroy parts and lights
+	task.delay(0.5, function()
+		beam1:Destroy()
+		beam2:Destroy()
+	end)
+
+end)
+
+bulletHole.OnClientEvent:Connect(function(plr, resultInst, resultNor, resultPos)
+	if plr == player then return end
+	if resultInst then
+		local parent = resultInst.Parent
+		local grandparent = parent and parent.Parent
+		local greatGrandparent = grandparent and grandparent.Parent
+
+		local hasHumanoid = (parent and parent:FindFirstChild("Humanoid")) or
+			(grandparent and grandparent:FindFirstChild("Humanoid")) or
+			(greatGrandparent and greatGrandparent:FindFirstChild("Humanoid"))
+
+		if resultInst.Name ~= "DefaultGrenadeMesh" and resultInst.Name ~= "LocalDefaultLightningBombSinglePart" and not hasHumanoid and parent and parent.Name ~= "PlayerArmor" and parent.Name ~= "PlayerArmorHelmet" and parent.Name ~= "HeadTargets" then
+			local hole = hole1:Clone()
+			hole.CanCollide = false
+			hole.CanQuery = false
+			hole.CanTouch = false
+			hole.Name = "Hole"
+			hole.Parent = resultInst
+			hole.Position = resultPos
+			hole.CFrame = CFrame.new(hole.Position, hole.Position + resultNor)
+			local wc = Instance.new("WeldConstraint", hole)
+			wc.Part0 = hole
+			wc.Part1 = resultInst
+			tweenProperty(hole.SurfaceGui.HolePicture, "ImageColor3", Color3.fromRGB(0, 0, 0), 0.85)
+			tweenProperty(hole.SurfaceGui.HolePicture, "ImageTransparency", 0.4, 0.85)
+			debris:AddItem(hole, 5)
+			hole.Attachment.Debris:Emit(6)
+			hole.Attachment.Sparks:Emit(6)
+		end
+	end
+end)
+
+BulletHoleLocalEvent.Event:Connect(function(resultInst, resultNor, resultPos)
+	if resultInst then
+		local parent = resultInst.Parent
+		local grandparent = parent and parent.Parent
+		local greatGrandparent = grandparent and grandparent.Parent
+
+		local hasHumanoid = (parent and parent:FindFirstChild("Humanoid")) or
+			(grandparent and grandparent:FindFirstChild("Humanoid")) or
+			(greatGrandparent and greatGrandparent:FindFirstChild("Humanoid"))
+
+		if resultInst.Name ~= "DefaultGrenadeMesh" and resultInst.Name ~= "LocalDefaultLightningBombSinglePart" and not hasHumanoid and parent and parent.Name ~= "PlayerArmor" and parent.Name ~= "PlayerArmorHelmet" and parent.Name ~= "HeadTargets" then
+			local hole = holeLocal:Clone()
+			hole.CanCollide = false
+			hole.CanQuery = false
+			hole.CanTouch = false
+			hole.Name = "Hole"
+			hole.Parent = resultInst
+			hole.Position = resultPos
+			hole.CFrame = CFrame.new(hole.Position, hole.Position + resultNor)
+			local wc = Instance.new("WeldConstraint", hole)
+			wc.Part0 = hole
+			wc.Part1 = resultInst
+			tweenProperty(hole.SurfaceGui.HolePicture, "ImageColor3", Color3.fromRGB(0, 0, 0), 0.85)
+			tweenProperty(hole.SurfaceGui.HolePicture, "ImageTransparency", 0.4, 0.85)
+			debris:AddItem(hole, 5)
+			hole.Attachment.Debris:Emit(6)
+			hole.Attachment.Sparks:Emit(6)
+		end
+	end
+end)
