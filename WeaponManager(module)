@@ -1,0 +1,180 @@
+-- ModuleScript: WeaponManager
+local WeaponManager = {}
+
+-- Dependencies (if any)
+local DestroyViewmodels = game:GetService("ReplicatedStorage"):WaitForChild("Viewmodels"):WaitForChild("DestroyViewmodels")
+local setWeapons = game:GetService("ReplicatedStorage"):WaitForChild("SetWeapons")
+local ToolsFolder = game:GetService("ServerStorage"):WaitForChild("Tools") -- Reference to the folder containing the tools
+local Rifle = ToolsFolder:WaitForChild("Rifles"):WaitForChild("DefaultRifle")
+local Pistol = ToolsFolder:WaitForChild("Pistols"):WaitForChild("DefaultPistol")
+local Revolver = ToolsFolder:WaitForChild("Revolvers"):WaitForChild("DefaultRevolver")
+local Pistol = ToolsFolder:WaitForChild("AutoPistols"):WaitForChild("DefaultAutoPistol")
+local Sniper = ToolsFolder:WaitForChild("Snipers"):WaitForChild("DefaultSniper")
+local Melee = ToolsFolder:WaitForChild("Melees"):WaitForChild("DefaultMelee")
+local Karambit = ToolsFolder:WaitForChild("Karambit")
+local SMG = ToolsFolder:WaitForChild("SMGs"):WaitForChild("DefaultSMG")
+local Booster = ToolsFolder:WaitForChild("Abilities"):WaitForChild("DefaultBooster")
+local lightningBomb = ToolsFolder:WaitForChild("Abilities"):WaitForChild("LightningBomb")
+local Shotgun = ToolsFolder:WaitForChild("Shotguns"):WaitForChild("DefaultShotgun")
+local OverdriveVial = ToolsFolder:WaitForChild("Abilities"):WaitForChild("OverdriveVial")
+local Grenade = ToolsFolder:WaitForChild("Abilities"):WaitForChild("DefaultGrenade")
+local RegenPot = ToolsFolder:WaitForChild("Abilities"):WaitForChild("RegenPot")
+
+local function isValidPlayer(player)
+	return player and player:IsA("Player") and player:IsDescendantOf(game)
+end
+
+-- Function to give weapons to the player
+function WeaponManager.giveWeapons(player)
+	if not isValidPlayer(player) then return end
+	
+	player.Character:WaitForChild("Humanoid"):UnequipTools()
+	task.wait(0.08)
+	--DestroyViewmodels:FireClient(player)
+	
+	-- Clear existing tools in the backpack
+	for _, tool in player.Backpack:GetChildren() do
+		tool:Destroy()
+	end
+
+	-- Determine weapon skins
+	local Rifle, Sniper, Shotgun, Pistol, Revolver, AutoPistol, Melee, SMG, Booster
+
+	if player.Skins.RifleWeaponSkin.Value == "Default" then
+		Rifle = ToolsFolder:WaitForChild("Rifles"):WaitForChild("DefaultRifle")
+	elseif player.Skins.RifleWeaponSkin.Value == "Laser" then
+		Rifle = ToolsFolder:WaitForChild("Rifles"):WaitForChild("LaserRifle")
+	else
+		Rifle = ToolsFolder:WaitForChild("Rifles"):WaitForChild("DefaultRifle")
+	end
+
+	if player.Skins.SniperWeaponSkin.Value == "Default" then
+		Sniper = ToolsFolder:WaitForChild("Snipers"):WaitForChild("DefaultSniper")
+	elseif player.Skins.SniperWeaponSkin.Value == "Laser" then
+		Sniper = ToolsFolder:WaitForChild("Snipers"):WaitForChild("LaserSniper")
+	else
+		Sniper = ToolsFolder:WaitForChild("Snipers"):WaitForChild("DefaultSniper")
+	end
+
+	if player.Skins.ShotgunWeaponSkin.Value == "Default" then
+		Shotgun = ToolsFolder:WaitForChild("Shotguns"):WaitForChild("DefaultShotgun")
+	else
+		Shotgun = ToolsFolder:WaitForChild("Shotguns"):WaitForChild("DefaultShotgun")
+	end
+
+	if player.Skins.PistolWeaponSkin.Value == "Default" then
+		Pistol = ToolsFolder:WaitForChild("Pistols"):WaitForChild("DefaultPistol")
+	else
+		Pistol = ToolsFolder:WaitForChild("Pistols"):WaitForChild("DefaultPistol")
+	end
+	
+	if player.Skins.AutoPistolWeaponSkin.Value == "Default" then
+		AutoPistol = ToolsFolder:WaitForChild("AutoPistols"):WaitForChild("DefaultAutoPistol")
+	else
+		AutoPistol = ToolsFolder:WaitForChild("AutoPistols"):WaitForChild("DefaultAutoPistol")
+	end
+
+	if player.Skins.RevolverWeaponSkin.Value == "Default" then
+		Revolver = ToolsFolder:WaitForChild("Revolvers"):WaitForChild("DefaultRevolver")
+	elseif player.Skins.RevolverWeaponSkin.Value == "Laser" then
+		Revolver = ToolsFolder:WaitForChild("Revolvers"):WaitForChild("LaserRevolver")
+	else
+		Revolver = ToolsFolder:WaitForChild("Revolvers"):WaitForChild("LaserRevolver")
+	end
+
+	if player.Skins.MeleeWeaponSkin.Value == "Default" then
+		Melee = ToolsFolder:WaitForChild("Melees"):WaitForChild("DefaultMelee")
+	elseif player.Skins.MeleeWeaponSkin.Value == "Saber" then
+		Melee = ToolsFolder:WaitForChild("Melees"):WaitForChild("SaberMelee")
+	else
+		Melee = ToolsFolder:WaitForChild("Melees"):WaitForChild("DefaultMelee")
+	end
+
+	if player.Skins.SMGWeaponSkin.Value == "Default" then
+		SMG = ToolsFolder:WaitForChild("SMGs"):WaitForChild("DefaultSMG")
+	else
+		SMG = ToolsFolder:WaitForChild("SMGs"):WaitForChild("DefaultSMG")
+	end
+
+	if player.Skins.BoosterSkin.Value == "Default" then
+		Booster = ToolsFolder:WaitForChild("Abilities"):WaitForChild("DefaultBooster")
+	else
+		Booster = ToolsFolder:WaitForChild("Abilities"):WaitForChild("DefaultBooster")
+	end
+	
+	if player.Skins.GrenadeSkin.Value == "Default" then
+		Grenade = ToolsFolder:WaitForChild("Abilities"):WaitForChild("DefaultGrenade")
+	else
+		Grenade = ToolsFolder:WaitForChild("Abilities"):WaitForChild("DefaultGrenade")
+	end
+
+	-- Determine selected weapons
+	local backpack = player:WaitForChild("Backpack")
+	local primary, secondary, ability
+
+	if player.SelectedWeapons.selectedPrimary.Value == "Rifle" then
+		primary = Rifle
+	elseif player.SelectedWeapons.selectedPrimary.Value == "Sniper" then
+		primary = Sniper
+	elseif player.SelectedWeapons.selectedPrimary.Value == "SMG" then
+		primary = SMG
+	elseif player.SelectedWeapons.selectedPrimary.Value == "Shotgun" then
+		primary = Shotgun
+	else
+		primary = Rifle
+	end
+
+	if player.SelectedWeapons.selectedSecondary.Value == "Pistol" then
+		secondary = Pistol
+	elseif player.SelectedWeapons.selectedSecondary.Value == "Revolver" then
+		secondary = Revolver
+	elseif player.SelectedWeapons.selectedSecondary.Value == "AutoPistol" then
+		secondary = AutoPistol
+	else
+		secondary = Pistol
+	end
+
+	if player.SelectedWeapons.selectedAbility1.Value == "Booster" then
+		ability = Booster
+	elseif player.SelectedWeapons.selectedAbility1.Value == "LightningBomb" then
+		ability = lightningBomb
+	elseif player.SelectedWeapons.selectedAbility1.Value == "OverdriveVial" then
+		ability = OverdriveVial
+	elseif player.SelectedWeapons.selectedAbility1.Value == "Grenade" then
+		ability = Grenade
+	elseif player.SelectedWeapons.selectedAbility1.Value == "RegenPot" then
+		ability = RegenPot
+	else
+		ability = Grenade
+	end
+
+	-- Add weapons to the backpack if they don't already exist
+	local weapons = {
+		[primary] = false,
+		[secondary] = false,
+		[Melee] = false,
+		[ability] = false
+	}
+
+	for _, item in backpack:GetChildren() do
+		for tool, hasTool in weapons do
+			if item.Name == tool.Name then
+				weapons[tool] = true
+				break
+			end
+		end
+	end
+
+	for tool, hasTool in weapons do
+		if not hasTool then
+			local toolClone = tool:Clone()
+			toolClone.Parent = backpack
+		end
+	end
+
+	task.wait(0.01)
+	setWeapons:FireClient(player)
+end
+
+-- Return the module table
+return WeaponManager
