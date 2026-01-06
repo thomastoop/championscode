@@ -1,0 +1,605 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local player = game.Players.LocalPlayer
+
+local sniperFireRemote = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("SniperFireSound")
+local sniperReloadRemote = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("SniperReloadSound")
+
+local pistolShootRemote = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("PistolFireSound")
+local pistolReloadRemote = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("PistolReloadSound")
+
+local revolverSoundRemote = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("RevolverFireSound")
+local revolverReloadRemote = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("RevolverReloadSound")
+
+local autoPistolShootRemote = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("AutoPistolFireSound")
+local autoPistolReloadRemote = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("AutoPistolReloadSound")
+
+local meleeLeftHitSoundRemote = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("MeleeLeftHitSound")
+local meleeRightHitSoundRemote = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("MeleeRightHitSound")
+
+local rifleShootRemote = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("RifleFireSound")
+local rifleReloadRemote = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("RifleReloadSound")
+
+local SMGShootRemote = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("SMGFireSound")
+local SMGReloadRemote = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("SMGReloadSound")
+
+local ShotgunShootSound = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("ShotgunFireSound")
+local ShotgunShellIn = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("ShotgunReloadSound")
+
+local LightningBombZap = ReplicatedStorage:WaitForChild("AbilityActions"):WaitForChild("LightningBombZap")
+local activateSyringeSoundRemote = ReplicatedStorage:WaitForChild("AbilityActions"):WaitForChild("SyringeSound")
+local activateRegenSoundRemote = ReplicatedStorage:WaitForChild("AbilityActions"):WaitForChild("RegenPotSound")
+
+local GrenadeThrowSound = ReplicatedStorage:WaitForChild("AbilityActions"):WaitForChild("GrenadeSound")
+
+local hit = ReplicatedStorage:WaitForChild("Hit")
+local hs = ReplicatedStorage:WaitForChild("Headshot")
+local skinDmgIndicator = ReplicatedStorage:WaitForChild("SkinDamageIndicator")
+
+local SlideSound = ReplicatedStorage:WaitForChild("SlideSound")
+
+
+hit.OnClientEvent:Connect(function(plr, h, hp)
+	ReplicatedStorage.hitsound:Play()
+end)
+
+hs.OnClientEvent:Connect(function(plr, h, hp)
+	ReplicatedStorage.headshotSound:Play()
+end)
+
+skinDmgIndicator.OnClientEvent:Connect(function(plr, h, hp)
+	ReplicatedStorage.headshotSound:Play()
+end)
+
+sniperFireRemote.OnClientEvent:Connect(function(position, otherPlayer)
+	if player == otherPlayer or (player.GameTeam.playerTeam.Value ~= otherPlayer.GameTeam.playerTeam.Value and otherPlayer.GeneralInfo.PreRound.Value) then return end
+
+	local soundPart = Instance.new("Part")
+	soundPart.Name = "Sound"
+	soundPart.Position = position
+	soundPart.Anchored = true
+	soundPart.CanCollide = false
+	soundPart.CanQuery = false
+	soundPart.CanTouch = false
+	soundPart.Transparency = 1
+	soundPart.Parent = otherPlayer.Character.HumanoidRootPart
+
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxassetid://111953738962953"
+	sound.Volume = 1.3
+	sound.RollOffMaxDistance = 500
+	sound.Parent = soundPart
+	sound:Play()
+
+	sound.Ended:Connect(function()
+		sound:Destroy()
+		soundPart:Destroy()
+	end)
+end)
+
+sniperReloadRemote.OnClientEvent:Connect(function(position, otherPlayer)
+	if player == otherPlayer or (player.GameTeam.playerTeam.Value ~= otherPlayer.GameTeam.playerTeam.Value and otherPlayer.GeneralInfo.PreRound.Value) then return end
+
+	local soundPart = Instance.new("Part")
+	soundPart.Name = "Sound"
+	soundPart.Position = position
+	soundPart.Anchored = true
+	soundPart.CanCollide = false
+	soundPart.CanQuery = false
+	soundPart.CanTouch = false	
+	soundPart.Transparency = 1
+	soundPart.Parent = otherPlayer.Character.HumanoidRootPart
+
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxassetid://18475288939"
+	sound.RollOffMaxDistance = 500
+	sound.Volume = 1
+	sound.Parent = soundPart
+	sound:Play()
+
+	sound.Ended:Connect(function()
+		sound:Destroy()
+		soundPart:Destroy()
+	end)
+end)
+
+pistolShootRemote.OnClientEvent:Connect(function(position, otherPlayer)
+	if player == otherPlayer or (player.GameTeam.playerTeam.Value ~= otherPlayer.GameTeam.playerTeam.Value and otherPlayer.GeneralInfo.PreRound.Value) then return end
+
+	local soundPart = Instance.new("Part")
+	soundPart.Name = "Sound"
+	soundPart.Position = position
+	soundPart.Anchored = true
+	soundPart.CanCollide = false
+	soundPart.CanQuery = false
+	soundPart.CanTouch = false	
+	soundPart.Transparency = 1
+	soundPart.Parent = otherPlayer.Character.HumanoidRootPart
+
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxassetid://118639488013016"
+	sound.Volume = 2
+	sound.RollOffMaxDistance = 500
+	sound.PlaybackSpeed = 1
+	sound.Parent = soundPart
+	sound:Play()
+
+	sound.Ended:Connect(function()
+		sound:Destroy()
+		soundPart:Destroy()
+	end)
+end)
+
+pistolReloadRemote.OnClientEvent:Connect(function(position, otherPlayer)
+	if player == otherPlayer or (player.GameTeam.playerTeam.Value ~= otherPlayer.GameTeam.playerTeam.Value and otherPlayer.GeneralInfo.PreRound.Value) then return end
+
+	local soundPart = Instance.new("Part")
+	soundPart.Name = "Sound"
+	soundPart.Position = position
+	soundPart.Anchored = true
+	soundPart.CanCollide = false
+	soundPart.CanQuery = false
+	soundPart.CanTouch = false	
+	soundPart.Transparency = 1
+	soundPart.Parent = otherPlayer.Character.HumanoidRootPart
+
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxassetid://116345595757194"
+	sound.Volume = 1
+	sound.RollOffMaxDistance = 500
+	sound.Parent = soundPart
+	sound:Play()
+
+	sound.Ended:Connect(function()
+		sound:Destroy()
+		soundPart:Destroy()
+	end)
+end)
+
+revolverSoundRemote.OnClientEvent:Connect(function(position, otherPlayer)
+	if player == otherPlayer or (player.GameTeam.playerTeam.Value ~= otherPlayer.GameTeam.playerTeam.Value and otherPlayer.GeneralInfo.PreRound.Value) then return end
+
+	local soundPart = Instance.new("Part")
+	soundPart.Name = "Sound"
+	soundPart.Position = position
+	soundPart.Anchored = true
+	soundPart.CanCollide = false
+	soundPart.CanQuery = false
+	soundPart.CanTouch = false	
+	soundPart.Transparency = 1
+	soundPart.Parent = otherPlayer.Character.HumanoidRootPart
+
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxassetid://121216038084445"
+	sound.Volume = 0.7
+	sound.PlaybackSpeed = 1
+	sound.RollOffMaxDistance = 500
+	sound.Parent = soundPart
+	sound:Play()
+
+	sound.Ended:Connect(function()
+		sound:Destroy()
+		soundPart:Destroy()
+	end)
+end)
+
+revolverReloadRemote.OnClientEvent:Connect(function(position, otherPlayer)
+	if player == otherPlayer or (player.GameTeam.playerTeam.Value ~= otherPlayer.GameTeam.playerTeam.Value and otherPlayer.GeneralInfo.PreRound.Value) then return end
+
+	local soundPart = Instance.new("Part")
+	soundPart.Name = "Sound"
+	soundPart.Position = position
+	soundPart.Anchored = true
+	soundPart.CanCollide = false
+	soundPart.CanQuery = false
+	soundPart.CanTouch = false	
+	soundPart.Transparency = 1
+	soundPart.Parent = otherPlayer.Character.HumanoidRootPart
+
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxassetid://18476892521"
+	sound.Volume = 1
+	sound.Parent = soundPart
+	sound.RollOffMaxDistance = 500
+	sound:Play()
+
+	sound.Ended:Connect(function()
+		sound:Destroy()
+		soundPart:Destroy()
+	end)
+end)
+
+autoPistolShootRemote.OnClientEvent:Connect(function(position, otherPlayer)
+	if player == otherPlayer or (player.GameTeam.playerTeam.Value ~= otherPlayer.GameTeam.playerTeam.Value and otherPlayer.GeneralInfo.PreRound.Value) then return end
+
+	local soundPart = Instance.new("Part")
+	soundPart.Name = "Sound"
+	soundPart.Position = position
+	soundPart.Anchored = true
+	soundPart.CanCollide = false
+	soundPart.CanQuery = false
+	soundPart.CanTouch = false	
+	soundPart.Transparency = 1
+	soundPart.Parent = otherPlayer.Character.HumanoidRootPart
+
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxassetid://78245041369196"
+	sound.Volume = 0.9
+	sound.PlaybackSpeed = 1
+	sound.RollOffMaxDistance = 500
+	sound.Parent = soundPart
+	sound:Play()
+
+	sound.Ended:Connect(function()
+		sound:Destroy()
+		soundPart:Destroy()
+	end)
+end)
+
+autoPistolReloadRemote.OnClientEvent:Connect(function(position, otherPlayer)
+	if player == otherPlayer or (player.GameTeam.playerTeam.Value ~= otherPlayer.GameTeam.playerTeam.Value and otherPlayer.GeneralInfo.PreRound.Value) then return end
+
+	local soundPart = Instance.new("Part")
+	soundPart.Name = "Sound"
+	soundPart.Position = position
+	soundPart.Anchored = true
+	soundPart.CanCollide = false
+	soundPart.CanQuery = false
+	soundPart.CanTouch = false	
+	soundPart.Transparency = 1
+	soundPart.Parent = otherPlayer.Character.HumanoidRootPart
+
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxassetid://81292541921149"
+	sound.Volume = 1.3
+	sound.Parent = soundPart
+	sound.RollOffMaxDistance = 500
+	sound:Play()
+
+	sound.Ended:Connect(function()
+		sound:Destroy()
+		soundPart:Destroy()
+	end)
+end)
+
+
+meleeLeftHitSoundRemote.OnClientEvent:Connect(function(position, otherPlayer)
+	if player == otherPlayer or (player.GameTeam.playerTeam.Value ~= otherPlayer.GameTeam.playerTeam.Value and otherPlayer.GeneralInfo.PreRound.Value) then return end
+
+	local soundPart = Instance.new("Part")
+	soundPart.Name = "Sound"
+	soundPart.Position = position
+	soundPart.Anchored = true
+	soundPart.CanCollide = false
+	soundPart.CanQuery = false
+	soundPart.CanTouch = false	
+	soundPart.Transparency = 1
+	soundPart.Parent = otherPlayer.Character.HumanoidRootPart
+
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxassetid://18655444620"
+	sound.Volume = 1
+	sound.RollOffMaxDistance = 500
+	sound.Parent = soundPart
+	sound:Play()
+
+	sound.Ended:Connect(function()
+		sound:Destroy()
+		soundPart:Destroy()
+	end)
+end)
+
+meleeRightHitSoundRemote.OnClientEvent:Connect(function(position, otherPlayer)
+	if player == otherPlayer or (player.GameTeam.playerTeam.Value ~= otherPlayer.GameTeam.playerTeam.Value and otherPlayer.GeneralInfo.PreRound.Value) then return end
+
+	local soundPart = Instance.new("Part")
+	soundPart.Name = "Sound"
+	soundPart.Position = position
+	soundPart.Anchored = true
+	soundPart.CanCollide = false
+	soundPart.CanQuery = false
+	soundPart.CanTouch = false	
+	soundPart.Transparency = 1
+	soundPart.Parent = otherPlayer.Character.HumanoidRootPart
+
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxassetid://18655444620"
+	sound.Volume = 1
+	sound.Parent = soundPart
+	sound.RollOffMaxDistance = 500
+	sound.PlaybackSpeed = 0.9
+	sound:Play()
+
+	sound.Ended:Connect(function()
+		sound:Destroy()
+		soundPart:Destroy()
+	end)
+end)
+
+rifleShootRemote.OnClientEvent:Connect(function(position, otherPlayer)
+	if player == otherPlayer or (player.GameTeam.playerTeam.Value ~= otherPlayer.GameTeam.playerTeam.Value and otherPlayer.GeneralInfo.PreRound.Value) then return end
+
+	local soundPart = Instance.new("Part")
+	soundPart.Name = "Sound"
+	soundPart.Position = position
+	soundPart.Anchored = true
+	soundPart.CanCollide = false
+	soundPart.CanQuery = false
+	soundPart.CanTouch = false	
+	soundPart.Transparency = 1
+	soundPart.Parent = otherPlayer.Character.HumanoidRootPart
+
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxassetid://116428120221568"
+	sound.Volume = 0.8
+	sound.RollOffMaxDistance = 500
+	sound.Parent = soundPart
+	sound:Play()
+
+	sound.Ended:Connect(function()
+		sound:Destroy()
+		soundPart:Destroy()
+	end)
+end)
+
+rifleReloadRemote.OnClientEvent:Connect(function(position, otherPlayer)
+	if player == otherPlayer or (player.GameTeam.playerTeam.Value ~= otherPlayer.GameTeam.playerTeam.Value and otherPlayer.GeneralInfo.PreRound.Value) then return end
+
+	local soundPart = Instance.new("Part")
+	soundPart.Name = "Sound"
+	soundPart.Position = position
+	soundPart.Anchored = true
+	soundPart.CanCollide = false
+	soundPart.CanQuery = false
+	soundPart.CanTouch = false	
+	soundPart.Transparency = 1
+	soundPart.Parent = otherPlayer.Character.HumanoidRootPart
+
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxassetid://104349578559641"
+	sound.Volume = 1
+	sound.RollOffMaxDistance = 500
+	sound.Parent = soundPart
+	sound:Play()
+
+	sound.Ended:Connect(function()
+		sound:Destroy()
+		soundPart:Destroy()
+	end)
+end)
+
+SMGShootRemote.OnClientEvent:Connect(function(position, otherPlayer)
+	if player == otherPlayer or (player.GameTeam.playerTeam.Value ~= otherPlayer.GameTeam.playerTeam.Value and otherPlayer.GeneralInfo.PreRound.Value) then return end
+
+	local soundPart = Instance.new("Part")
+	soundPart.Name = "Sound"
+	soundPart.Position = position
+	soundPart.Anchored = true
+	soundPart.CanCollide = false
+	soundPart.CanQuery = false
+	soundPart.CanTouch = false	
+	soundPart.Transparency = 1
+	soundPart.Parent = otherPlayer.Character.HumanoidRootPart
+
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxassetid://74085494974884"
+	sound.Volume = 0.6
+	sound.RollOffMaxDistance = 500
+	sound.Parent = soundPart
+	sound:Play()
+
+	sound.Ended:Connect(function()
+		sound:Destroy()
+		soundPart:Destroy()
+	end)
+end)
+
+SMGReloadRemote.OnClientEvent:Connect(function(position, otherPlayer)
+	if player == otherPlayer or (player.GameTeam.playerTeam.Value ~= otherPlayer.GameTeam.playerTeam.Value and otherPlayer.GeneralInfo.PreRound.Value) then return end
+	
+	local soundPart = Instance.new("Part")
+	soundPart.Name = "Sound"
+	soundPart.Position = position
+	soundPart.Anchored = true
+	soundPart.CanCollide = false
+	soundPart.CanQuery = false
+	soundPart.CanTouch = false	
+	soundPart.Transparency = 1
+	soundPart.Parent = otherPlayer.Character.HumanoidRootPart
+
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxassetid://109941738363256"
+	sound.Volume = 1
+	sound.RollOffMaxDistance = 500
+	sound.Parent = soundPart
+	sound:Play()
+
+	sound.Ended:Connect(function()
+		sound:Destroy()
+		soundPart:Destroy()
+	end)
+end)
+
+ShotgunShootSound.OnClientEvent:Connect(function(position, otherPlayer)
+	if player == otherPlayer or (player.GameTeam.playerTeam.Value ~= otherPlayer.GameTeam.playerTeam.Value and otherPlayer.GeneralInfo.PreRound.Value) then return end
+
+	local soundPart = Instance.new("Part")
+	soundPart.Name = "Sound"
+	soundPart.Position = position
+	soundPart.Anchored = true
+	soundPart.CanCollide = false
+	soundPart.CanQuery = false
+	soundPart.CanTouch = false	
+	soundPart.Transparency = 1
+	soundPart.Parent = otherPlayer.Character.HumanoidRootPart
+
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxassetid://113213760978782"
+	sound.Volume = 1
+	sound.RollOffMaxDistance = 500
+	sound.Parent = soundPart
+	sound:Play()
+
+	sound.Ended:Connect(function()
+		sound:Destroy()
+		soundPart:Destroy()
+	end)
+end)
+
+ShotgunShellIn.OnClientEvent:Connect(function(position, otherPlayer)
+	if player == otherPlayer or (player.GameTeam.playerTeam.Value ~= otherPlayer.GameTeam.playerTeam.Value and otherPlayer.GeneralInfo.PreRound.Value) then return end
+
+	local soundPart = Instance.new("Part")
+	soundPart.Name = "Sound"
+	soundPart.Position = position
+	soundPart.Anchored = true
+	soundPart.CanCollide = false
+	soundPart.CanQuery = false
+	soundPart.CanTouch = false	
+
+	soundPart.Transparency = 1
+	soundPart.Parent = otherPlayer.Character.HumanoidRootPart
+
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxassetid://130036242171211"
+	sound.Volume = 1
+	sound.RollOffMaxDistance = 500
+	sound.Parent = soundPart
+	sound:Play()
+
+	sound.Ended:Connect(function()
+		sound:Destroy()
+		soundPart:Destroy()
+	end)
+end)
+
+LightningBombZap.OnClientEvent:Connect(function(position, otherPlayer)
+	if player == otherPlayer or (player.GameTeam.playerTeam.Value ~= otherPlayer.GameTeam.playerTeam.Value and otherPlayer.GeneralInfo.PreRound.Value) then return end
+
+	local soundPart = Instance.new("Part")
+	soundPart.Name = "Sound"
+	soundPart.Position = position
+	soundPart.Anchored = true
+	soundPart.CanCollide = false
+	soundPart.CanQuery = false
+	soundPart.CanTouch = false	
+	soundPart.Transparency = 1
+	soundPart.Parent = otherPlayer.Character.HumanoidRootPart
+
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxassetid://91587479351609"
+	sound.Volume = .75
+	sound.RollOffMaxDistance = 500
+	sound.Parent = soundPart
+	sound:Play()
+
+	sound.Ended:Connect(function()
+		sound:Destroy()
+		soundPart:Destroy()
+	end)
+end)
+
+activateSyringeSoundRemote.OnClientEvent:Connect(function(position, otherPlayer)
+	if player == otherPlayer or (player.GameTeam.playerTeam.Value ~= otherPlayer.GameTeam.playerTeam.Value and otherPlayer.GeneralInfo.PreRound.Value) then return end
+
+	local soundPart = Instance.new("Part")
+	soundPart.Name = "Sound"
+	soundPart.Position = position
+	soundPart.Anchored = true
+	soundPart.CanCollide = false
+	soundPart.CanQuery = false
+	soundPart.CanTouch = false	
+	soundPart.Transparency = 1
+	soundPart.Parent = otherPlayer.Character.HumanoidRootPart
+
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxassetid://128972415516135"
+	sound.Volume = 1
+	sound.RollOffMaxDistance = 500
+	sound.Parent = soundPart
+	sound:Play()
+
+	sound.Ended:Connect(function()
+		sound:Destroy()
+		soundPart:Destroy()
+	end)
+end)
+
+activateRegenSoundRemote.OnClientEvent:Connect(function(position, otherPlayer)
+	if player == otherPlayer or (player.GameTeam.playerTeam.Value ~= otherPlayer.GameTeam.playerTeam.Value and otherPlayer.GeneralInfo.PreRound.Value) then return end
+
+	local soundPart = Instance.new("Part")
+	soundPart.Name = "Sound"
+	soundPart.Position = position
+	soundPart.Anchored = true
+	soundPart.CanCollide = false
+	soundPart.CanQuery = false
+	soundPart.CanTouch = false	
+	soundPart.Transparency = 1
+	soundPart.Parent = otherPlayer.Character.HumanoidRootPart
+
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxassetid://121083871738667"
+	sound.Volume = 1
+	sound.RollOffMaxDistance = 500
+	sound.Parent = soundPart
+	sound:Play()
+
+	sound.Ended:Connect(function()
+		sound:Destroy()
+		soundPart:Destroy()
+	end)
+end)
+
+GrenadeThrowSound.OnClientEvent:Connect(function(position, otherPlayer)
+	if player == otherPlayer or (player.GameTeam.playerTeam.Value ~= otherPlayer.GameTeam.playerTeam.Value and otherPlayer.GeneralInfo.PreRound.Value) then return end
+
+	local soundPart = Instance.new("Part")
+	soundPart.Name = "Sound"
+	soundPart.Position = position
+	soundPart.Anchored = true
+	soundPart.CanCollide = false
+	soundPart.CanQuery = false
+	soundPart.CanTouch = false	
+	soundPart.Transparency = 1
+	soundPart.Parent = otherPlayer.Character.HumanoidRootPart
+
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxassetid://70520581778528"
+	sound.Volume = .75
+	sound.RollOffMaxDistance = 500
+	sound.Parent = soundPart
+	sound:Play()
+
+	sound.Ended:Connect(function()
+		sound:Destroy()
+		soundPart:Destroy()
+	end)
+end)
+
+
+
+SlideSound.OnClientEvent:Connect(function(position, otherPlayer)
+	if player == otherPlayer or (player.GameTeam.playerTeam.Value ~= otherPlayer.GameTeam.playerTeam.Value and otherPlayer.GeneralInfo.PreRound.Value) then return end
+
+	local soundPart = Instance.new("Part")
+	soundPart.Name = "Sound"
+	soundPart.Position = position
+	soundPart.Anchored = true
+	soundPart.CanCollide = false
+	soundPart.CanQuery = false
+	soundPart.CanTouch = false	
+	soundPart.Transparency = 1
+	soundPart.Parent = otherPlayer.Character.HumanoidRootPart
+
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxassetid://6429226498"
+	sound.Volume = .8
+	sound.RollOffMaxDistance = 500
+	sound.Parent = soundPart
+	sound:Play()
+
+	sound.Ended:Connect(function()
+		sound:Destroy()
+		soundPart:Destroy()
+	end)
+end)
