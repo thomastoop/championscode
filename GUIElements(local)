@@ -1,0 +1,4429 @@
+local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ClickSound = ReplicatedStorage:WaitForChild("Click")
+local HoverSound = ReplicatedStorage:WaitForChild("Hover")
+local ErrorSound = ReplicatedStorage:WaitForChild("Error")
+local player = game.Players.LocalPlayer
+local camera = workspace.CurrentCamera
+local debris = game:GetService("Debris")
+local SetWeaponPictures = ReplicatedStorage:WaitForChild("SetWeaponPictures")
+local BannerNotificationModule = require(game:GetService("ReplicatedStorage").BannerNotification_Storage.BannerNotificationModule)
+
+local OpenShopPrompt = workspace:WaitForChild("Lobby"):WaitForChild("Shopkeeper"):WaitForChild("OpenShopPrompt")
+
+local NotifyInsufficientPlayers = ReplicatedStorage:WaitForChild("Notifications"):WaitForChild("NotifyInsufficientPlayers")
+
+local PurchasedProductEvent = ReplicatedStorage:WaitForChild("Products"):WaitForChild("PurchasedProduct")
+
+local RedeemCodeCooldown = false
+
+local MarketplaceService = game:GetService("MarketplaceService")
+
+local FullWeaponSelector = player:WaitForChild("PlayerGui"):WaitForChild("FullWeaponSelector")
+
+local inventoryScene = workspace:WaitForChild("InventoryScene")
+
+local UnlockSound = ReplicatedStorage:WaitForChild("Sounds"):WaitForChild("Unlock")
+
+local CoreElements = player:WaitForChild("PlayerGui"):WaitForChild("CoreElements")
+local InventoryGui = player:WaitForChild("PlayerGui"):WaitForChild("Inventory")
+local ShopGui = player:WaitForChild("PlayerGui"):WaitForChild("Shop")
+local BonusesGui = player:WaitForChild("PlayerGui"):WaitForChild("Bonuses")
+local SettingsGui = player:WaitForChild("PlayerGui"):WaitForChild("Slider")
+local RestoreWinstreakGui = player:WaitForChild("PlayerGui"):WaitForChild("RestoreWinstreak")
+
+local ClaimFavoriteButton = BonusesGui:WaitForChild("BonusesFrame"):WaitForChild("Favorite"):WaitForChild("Claim")
+local ClaimLikeButton = BonusesGui:WaitForChild("BonusesFrame"):WaitForChild("Like"):WaitForChild("Claim")
+local RedeemCodeButton = BonusesGui:WaitForChild("BonusesFrame"):WaitForChild("Redeem"):WaitForChild("Claim")
+local RedeemCodeBox = BonusesGui:WaitForChild("BonusesFrame"):WaitForChild("Redeem"):WaitForChild("ClaimCodeBox")
+local RedeemCodeEvent = ReplicatedStorage:WaitForChild("Bonuses"):WaitForChild("RedeemCode")
+
+if player.GeneralInfo.claimedFavoriteBonus.Value then
+	ClaimFavoriteButton.BackgroundColor3 = Color3.fromRGB(0, 43, 71)
+	ClaimFavoriteButton.UIStroke.Color = Color3.fromRGB(0, 43, 71)
+	ClaimFavoriteButton.Claim.Text = "CLAIMED"
+else
+	ClaimFavoriteButton.BackgroundColor3 = Color3.fromRGB(0, 149, 249)
+	ClaimFavoriteButton.UIStroke.Color = Color3.fromRGB(0, 153, 255)
+	ClaimFavoriteButton.Claim.Text = "CLAIM"
+end
+
+if player.GeneralInfo.claimedLikeBonus.Value then
+	ClaimLikeButton.BackgroundColor3 = Color3.fromRGB(0, 43, 71)
+	ClaimLikeButton.UIStroke.Color = Color3.fromRGB(0, 43, 71)
+	ClaimLikeButton.Claim.Text = "CLAIMED"
+else
+	ClaimLikeButton.BackgroundColor3 = Color3.fromRGB(0, 149, 249)
+	ClaimLikeButton.UIStroke.Color = Color3.fromRGB(0, 153, 255)
+	ClaimLikeButton.Claim.Text = "CLAIM"
+end
+
+local CoreElementsCurrencyButton = CoreElements:WaitForChild("Currency")
+
+local WeaponsShopButton = ShopGui:WaitForChild("Weapons")
+local SkinsShopButton = ShopGui:WaitForChild("Skins")
+local GemsShopButton = ShopGui:WaitForChild("Gems")
+
+local GemShopFrame = ShopGui:WaitForChild("GemFrame")
+
+local SkinShopFrame = ShopGui:WaitForChild("SkinsFrame")
+HyperlightBundleButton = SkinShopFrame:WaitForChild("HyperlightBundle")
+HyperlightRifleSkinButton = SkinShopFrame:WaitForChild("HyperlightRifle")
+HyperlightSniperSkinButton = SkinShopFrame:WaitForChild("HyperlightSniper")
+HyperlightRevolverSkinButton = SkinShopFrame:WaitForChild("HyperlightRevolver")
+HyperlightMeleeSkinButton = SkinShopFrame:WaitForChild("HyperlightMelee")
+
+HyperlightBundlePicture = HyperlightBundleButton:WaitForChild("BundlePic")
+ViewBlueVariant = SkinShopFrame:WaitForChild("ViewBlueVariant")
+ViewRedVariant = SkinShopFrame:WaitForChild("ViewRedVariant")
+ViewPurpleVariant = SkinShopFrame:WaitForChild("ViewPurpleVariant")
+
+local SpectateGui = player:WaitForChild("PlayerGui"):WaitForChild("Spectate")
+local StopSpectatingButton = SpectateGui:WaitForChild("StopSpectating")
+
+local PlayGui = player:WaitForChild("PlayerGui"):WaitForChild("Play")
+
+local ImageSize = Enum.ThumbnailSize.Size420x420 -- Thumbnail Size
+local ImageType = Enum.ThumbnailType.HeadShot -- Thumbnail Type
+
+
+local WeaponModelsFolder = ReplicatedStorage:WaitForChild("WeaponModels")
+local ChangeRifleSkin = ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeRifleSkin")
+local ChangeSniperSkin = ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeSniperSkin")
+local ChangeSMGSkin = ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeSMGSkin")
+local ChangeShotgunSkin = ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeShotgunSkin")
+local ChangePistolSkin = ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangePistolSkin")
+local ChangeRevolverSkin = ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeRevolverSkin")
+local ChangeMeleeSkin = ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeMeleeSkin")
+local ChangeCharacterSkin = ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeCharacterSkin")
+local ChangeHandSkin = ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeHandSkin")
+
+local SelectedMenu = "Primaries"
+local SelectedPrimary = "Rifle"
+local SelectedSecondary = "Pistol"
+local SelectedMelee = "Saber"
+local SelectedAbility = "Booster"
+local SelectedCharacterSkin = "Character"
+
+local PrimarySkins = InventoryGui:WaitForChild("PrimarySkins")
+local SecondarySkins = InventoryGui:WaitForChild("SecondarySkins")
+local MeleeSkins = InventoryGui:WaitForChild("MeleeSkins")
+local AbilitySkins = InventoryGui:WaitForChild("AbilitySkins")
+local ArmorSkins = InventoryGui:WaitForChild("ArmorSkins")
+
+local UnlockWeaponsFolder = InventoryGui:WaitForChild("UnlockWeapon")
+local UnlockSniperButton = UnlockWeaponsFolder:WaitForChild("UnlockSniper")
+local UnlockSMGButton = UnlockWeaponsFolder:WaitForChild("UnlockSMG")
+local UnlockShotgunButton = UnlockWeaponsFolder:WaitForChild("UnlockShotgun")
+local UnlockRevolverButton = UnlockWeaponsFolder:WaitForChild("UnlockRevolver")
+local UnlockAutoPistolButton = UnlockWeaponsFolder:WaitForChild("UnlockAutoPistol")
+
+local UnlockBoosterButton = UnlockWeaponsFolder:WaitForChild("UnlockBooster")
+local UnlockLightningBombButton = UnlockWeaponsFolder:WaitForChild("UnlockLightningBomb")
+local UnlockOverdriveVialButton = UnlockWeaponsFolder:WaitForChild("UnlockOverdriveVial")
+local UnlockRegenPotButton = UnlockWeaponsFolder:WaitForChild("UnlockRegenPot")
+
+local UnlockWeaponEvent = ReplicatedStorage:WaitForChild("UnlockWeapon")
+
+local DefaultRifleSkinButton = PrimarySkins:WaitForChild("RifleSkins"):WaitForChild("DefaultRifleSkin")
+local DefaultRifleDefaultVariantButton = PrimarySkins:WaitForChild("RifleSkins"):WaitForChild("DefaultRifleVariants"):WaitForChild("DefaultRifleVariantDefault")
+local LaserRifleSkinButton = PrimarySkins:WaitForChild("RifleSkins"):WaitForChild("LaserRifleSkin")
+local LaserRifleBlueVariantButton = PrimarySkins:WaitForChild("RifleSkins"):WaitForChild("LaserRifleVariants"):WaitForChild("LaserRifleVariantBlue")
+local LaserRifleRedVariantButton = PrimarySkins:WaitForChild("RifleSkins"):WaitForChild("LaserRifleVariants"):WaitForChild("LaserRifleVariantRed")
+local LaserRiflePurpleVariantButton = PrimarySkins:WaitForChild("RifleSkins"):WaitForChild("LaserRifleVariants"):WaitForChild("LaserRifleVariantPurple")
+
+local DefaultSniperSkinButton = PrimarySkins:WaitForChild("SniperSkins"):WaitForChild("DefaultSniperSkin")
+local DefaultSniperDefaultVariantSkinButton = PrimarySkins:WaitForChild("SniperSkins"):WaitForChild("DefaultSniperVariants"):WaitForChild("DefaultSniperVariantDefault")
+local LaserSniperSkinButton = PrimarySkins:WaitForChild("SniperSkins"):WaitForChild("LaserSniperSkin")
+local LaserSniperBlueVariantButton = PrimarySkins:WaitForChild("SniperSkins"):WaitForChild("LaserSniperVariants"):WaitForChild("LaserSniperVariantBlue")
+local LaserSniperRedVariantButton = PrimarySkins:WaitForChild("SniperSkins"):WaitForChild("LaserSniperVariants"):WaitForChild("LaserSniperVariantRed")
+local LaserSniperPurpleVariantButton = PrimarySkins:WaitForChild("SniperSkins"):WaitForChild("LaserSniperVariants"):WaitForChild("LaserSniperVariantPurple")
+
+local DefaultSMGSkinButton = PrimarySkins:WaitForChild("SMGSkins"):WaitForChild("DefaultSMGSkin")
+local DefaultSMGDefaultVariantButton = PrimarySkins:WaitForChild("SMGSkins"):WaitForChild("DefaultSMGVariants"):WaitForChild("DefaultSMGVariantDefault")
+
+local DefaultShotgunSkinButton = PrimarySkins:WaitForChild("ShotgunSkins"):WaitForChild("DefaultShotgunSkin")
+local DefaultShotgunDefaultVariantButton = PrimarySkins:WaitForChild("ShotgunSkins"):WaitForChild("DefaultShotgunVariants"):WaitForChild("DefaultShotgunVariantDefault")
+
+local DefaultPistolSkinButton = SecondarySkins:WaitForChild("PistolSkins"):WaitForChild("DefaultPistolSkin")
+local DefaultPistolDefaultVariantButton = SecondarySkins:WaitForChild("PistolSkins"):WaitForChild("DefaultPistolVariants"):WaitForChild("DefaultPistolVariantDefault")
+
+local DefaultRevolverSkinButton = SecondarySkins:WaitForChild("RevolverSkins"):WaitForChild("DefaultRevolverSkin")
+local DefaultRevolverDefaultVariantButton = SecondarySkins:WaitForChild("RevolverSkins"):WaitForChild("DefaultRevolverVariants"):WaitForChild("DefaultRevolverVariantDefault")
+local LaserRevolverSkinButton = SecondarySkins:WaitForChild("RevolverSkins"):WaitForChild("LaserRevolverSkin")
+local LaserRevolverBlueVariantButton = SecondarySkins:WaitForChild("RevolverSkins"):WaitForChild("LaserRevolverVariants"):WaitForChild("LaserRevolverVariantBlue")
+local LaserRevolverRedVariantButton = SecondarySkins:WaitForChild("RevolverSkins"):WaitForChild("LaserRevolverVariants"):WaitForChild("LaserRevolverVariantRed")
+local LaserRevolverPurpleVariantButton = SecondarySkins:WaitForChild("RevolverSkins"):WaitForChild("LaserRevolverVariants"):WaitForChild("LaserRevolverVariantPurple")
+
+local DefaultAutoPistolSkinButton = SecondarySkins:WaitForChild("AutoPistolSkins"):WaitForChild("DefaultAutoPistolSkin")
+local DefaultAutoPistolDefaultVariantButton = SecondarySkins:WaitForChild("AutoPistolSkins"):WaitForChild("DefaultAutoPistolVariants"):WaitForChild("DefaultAutoPistolVariantDefault")
+
+local DefaultMeleeSkinButton = MeleeSkins:WaitForChild("MeleeSkins"):WaitForChild("DefaultMeleeSkin")
+local DefaultMeleeDefaultVariantButton = MeleeSkins:WaitForChild("MeleeSkins"):WaitForChild("DefaultMeleeVariants"):WaitForChild("DefaultMeleeVariantDefault")
+local SaberSkinButton = MeleeSkins:WaitForChild("MeleeSkins"):WaitForChild("SaberSkin")
+local SaberBlueVariantButton = MeleeSkins:WaitForChild("MeleeSkins"):WaitForChild("SaberVariants"):WaitForChild("SaberVariantBlue")
+local SaberRedVariantButton = MeleeSkins:WaitForChild("MeleeSkins"):WaitForChild("SaberVariants"):WaitForChild("SaberVariantRed")
+local SaberPurpleVariantButton = MeleeSkins:WaitForChild("MeleeSkins"):WaitForChild("SaberVariants"):WaitForChild("SaberVariantPurple")
+
+local DefaultGrenadeSkinButton = AbilitySkins:WaitForChild("GrenadeSkins"):WaitForChild("DefaultGrenadeSkin")
+local DefaultBoosterSkinButton = AbilitySkins:WaitForChild("BoosterSkins"):WaitForChild("DefaultBoosterSkin")
+local DefaultLightningBombSkinButton = AbilitySkins:WaitForChild("LightningBombSkins"):WaitForChild("DefaultLightningBombSkin")
+local DefaultOverdriveVialSkinButton = AbilitySkins:WaitForChild("OverdriveVialSkins"):WaitForChild("DefaultOverdriveVialSkin")
+local DefaultRegenPotSkinButton = AbilitySkins:WaitForChild("RegenPotSkins"):WaitForChild("DefaultRegenPotSkin")
+
+local DefaultCenterArmorSkinButton = ArmorSkins:WaitForChild("CenterArmorSkins"):WaitForChild("DefaultCenterArmorSkin")
+local GemCenterArmorSkinButton = ArmorSkins:WaitForChild("CenterArmorSkins"):WaitForChild("GemCenterArmorSkin")
+
+local DefaultTopArmorSkinButton = ArmorSkins:WaitForChild("TopArmorSkins"):WaitForChild("DefaultTopArmorSkin")
+local GemTopArmorSkinButton = ArmorSkins:WaitForChild("TopArmorSkins"):WaitForChild("GemTopArmorSkin")
+
+local PlayButton = CoreElements:WaitForChild("Play")
+
+local PrimariesButton = InventoryGui:WaitForChild("Primaries")
+local SecondariesButton = InventoryGui:WaitForChild("Secondaries")
+local MeleeButton = InventoryGui:WaitForChild("Melee")
+local AbilitiesButton = InventoryGui:WaitForChild("Abilities")
+local ArmorSkinsButton = InventoryGui:WaitForChild("ArmorSkinsButton")
+
+local PrimaryWeapons = InventoryGui:WaitForChild("PrimaryWeapons")
+local SecondaryWeapons = InventoryGui:WaitForChild("SecondaryWeapons")
+local MeleeWeapons = InventoryGui:WaitForChild("MeleeWeapons")
+local AbilityWeapons = InventoryGui:WaitForChild("AbilityWeapons")
+local ArmorCosmetics = InventoryGui:WaitForChild("ArmorCosmetics")
+
+local RifleButton = PrimaryWeapons:WaitForChild("Rifle")
+local SniperButton = PrimaryWeapons:WaitForChild("Sniper")
+local SMGButton = PrimaryWeapons:WaitForChild("SMG")
+local ShotgunButton = PrimaryWeapons:WaitForChild("Shotgun")
+
+local PistolButton = SecondaryWeapons:WaitForChild("Pistol")
+local RevolverButton = SecondaryWeapons:WaitForChild("Revolver")
+local AutoPistolButton = SecondaryWeapons:WaitForChild("AutoPistol")
+
+local MeleeWeaponButton = MeleeWeapons:WaitForChild("Melee")
+
+local GrenadeButton = AbilityWeapons:WaitForChild("Grenade")
+local BoosterButton = AbilityWeapons:WaitForChild("Booster")
+local LightningBombButton = AbilityWeapons:WaitForChild("LightningBomb")
+local OverdriveVialButton = AbilityWeapons:WaitForChild("OverdriveVial")
+local RegenPotButton = AbilityWeapons:WaitForChild("RegenPot")
+
+local CenterArmorButton = ArmorCosmetics:WaitForChild("CenterArmorCosmetic")
+local TopArmorButton = ArmorCosmetics:WaitForChild("TopArmorCosmetic")
+
+local QueueGui = player:WaitForChild("PlayerGui"):WaitForChild("Queue")
+local QueueTime = QueueGui:WaitForChild("Queueing"):WaitForChild("Time")
+local CancelQueue = QueueGui:WaitForChild("Queueing"):WaitForChild("Cancel")
+
+local EnteredShootingRange = ReplicatedStorage:WaitForChild("EnteredShootingRange")
+
+local CloseButton = InventoryGui:WaitForChild("Close")
+local ShopCloseButton = ShopGui:WaitForChild("Close")
+local BonusesCloseButton = BonusesGui:WaitForChild("Close")
+local SettingsCloseButton = player:WaitForChild("PlayerGui"):WaitForChild("Slider"):WaitForChild("Close")
+local InventoryButton = CoreElements:WaitForChild("Inventory")
+local ShopButton = CoreElements:WaitForChild("Shop")
+local BonusesButton = CoreElements:WaitForChild("Bonuses")
+local RestoreWinstreakButton = CoreElements:WaitForChild("RestoreWinstreak")
+
+local SettingsButton = CoreElements:WaitForChild("Settings")
+
+local InsufficientFunds = InventoryGui:WaitForChild("InsufficientFunds")
+
+CurrencyButtonStartSize = UDim2.new(0.065, 0, 0.04, 0)
+CurrencyButtonHoverSize = UDim2.new(0.0715, 0, 0.044, 0)
+
+ClaimStartSize = UDim2.new(0.149, 0, 0.424, 0)
+ClaimHoverSize = UDim2.new(0.1639, 0, 0.4664, 0)
+
+WeaponsStartSize = UDim2.new(0.149, 0, 0.055, 0)
+WeaponsHoverSize = UDim2.new(0.173, 0, 0.062, 0)
+
+SkinStartSize = UDim2.new(0.073, 0, 0.084, 0)
+SkinHoverSize = UDim2.new(0.085, 0, 0.094, 0)
+
+SmallGemPackStartSize = UDim2.new(0.134, 0, 0.164, 0)
+SmallGemPackHoverSize = UDim2.new(0.1474, 0, 0.1804, 0)
+
+BigGemPackStartSize = UDim2.new(0.22, 0, 0.164, 0)
+BigGemPackHoverSize = UDim2.new(0.242, 0, 0.1804, 0)
+
+ShopButtonStartSize = UDim2.new(0.064, 0, 0.047, 0)
+ShopButtonHoverSize = UDim2.new(0.074, 0, 0.052, 0)
+
+InventoryStartSize = UDim2.new(0.085, 0 , 0.146, 0)
+InventoryHoverSize = UDim2.new(0.099, 0, 0.163, 0)
+
+BundleStartSize = UDim2.new(0.522, 0, 0.579, 0)
+BundleHoverSize = UDim2.new(0.53244, 0, 0.59058, 0)
+
+SkinPurchaseStartSize = UDim2.new(0.176, 0, 0.13, 0)
+SkinPurchaseHoverSize = UDim2.new(0.1848, 0, 0.1365, 0)
+
+UnlockStartSize = UDim2.new(0.149, 0, 0.124, 0)
+UnlockHoverSize = UDim2.new(0.179, 0, 0.149, 0)
+
+PrimaryTextStartSize = UDim2.new(1, 0, 0.589, 0)
+PrimaryTextHoverSize = UDim2.new(1, 0, 0.68, 0)
+
+SmallTextStartSize = UDim2.new(1, 0, 0.466, 0)
+SmallTextHoverSize = UDim2.new(1, 0, 0.51, 0)
+
+StopSpectatingStartSize = UDim2.new(0.233, 0, 0.051, 0)
+StopSpectatingHoverSize = UDim2.new(0.2563, 0, 0.0561, 0)
+
+CloseStartSize = UDim2.new(0.063, 0, 0.051, 0)
+CloseHoverSize = UDim2.new(0.073, 0, 0.057, 0)
+
+PlayStartSize = UDim2.new(0.091, 0, 0.051, 0)
+PlayHoverSize = UDim2.new(0.105, 0, 0.059, 0)
+
+local redeemOrBoughtConfig = {
+	.4, 							-- Background Transparency
+	Color3.fromRGB(42, 52, 100), 		-- Background Color
+
+	0, 								-- Content Transparency
+	Color3.fromRGB(255, 255, 255), -- Content Color
+}
+
+local greenConfig = {
+	.2, 							-- Background Transparency
+	Color3.fromRGB(16, 211, 12), 		-- Background Color
+
+	0, 								-- Content Transparency
+	Color3.fromRGB(255, 255, 255), -- Content Color
+}
+
+local errorConfig = {
+	.4, 							-- Background Transparency
+	Color3.fromRGB(199, 25, 25), 		-- Background Color
+
+	0, 								-- Content Transparency
+	Color3.fromRGB(255, 255, 255), -- Content Color
+}
+
+NotifyInsufficientPlayers.OnClientEvent:Connect(function()
+	BannerNotificationModule:Notify("Game Not Started!", "Insufficient players to start the game.", "rbxassetid://99740313377038", 3, errorConfig)
+end)
+
+PurchasedProductEvent.OnClientEvent:Connect(function(product)
+	UnlockSound:Play()
+	if product == "20Gems" then
+		BannerNotificationModule:Notify("Purchase Completed!", "You have obtained: 20 GEMS.", "rbxassetid://82108757958615", 3, greenConfig)
+	elseif product == "110Gems" then
+		BannerNotificationModule:Notify("Purchase Completed!", "You have obtained: 110 GEMS.", "rbxassetid://82108757958615", 3, greenConfig)
+	elseif product == "375Gems" then
+		BannerNotificationModule:Notify("Purchase Completed!", "You have obtained: 375 GEMS.", "rbxassetid://82108757958615", 3, greenConfig)
+	elseif product == "1000Gems" then
+		BannerNotificationModule:Notify("Purchase Completed!", "You have obtained: 1000 GEMS.", "rbxassetid://82108757958615", 3, greenConfig)
+
+	elseif product == "2500Gems" then
+		BannerNotificationModule:Notify("Purchase Completed!", "You have obtained: 2500 GEMS.", "rbxassetid://82108757958615", 3, greenConfig)
+
+	elseif product == "7000Gems" then
+		BannerNotificationModule:Notify("Purchase Completed!", "You have obtained: 7000 GEMS.", "rbxassetid://82108757958615", 3, greenConfig)
+
+	elseif product == "20000Gems" then
+		BannerNotificationModule:Notify("Purchase Completed!", "You have obtained: 20000 GEMS.", "rbxassetid://82108757958615", 3, greenConfig)
+
+	elseif product == "HyperlightRifle" then
+		BannerNotificationModule:Notify("Purchase Completed!", "You have obtained: HYPERLIGHT RIFLE.", "rbxassetid://82108757958615", 3, greenConfig)
+
+	elseif product == "HyperlightSniper" then
+		BannerNotificationModule:Notify("Purchase Completed!", "You have obtained: HYPERLIGHT SNIPER.", "rbxassetid://82108757958615", 3, greenConfig)
+
+	elseif product == "HyperlightRevolver" then
+		BannerNotificationModule:Notify("Purchase Completed!", "You have obtained: HYPERLIGHT REVOLVER.", "rbxassetid://82108757958615", 3, greenConfig)
+
+	elseif product == "HyperlightMelee" then
+		BannerNotificationModule:Notify("Purchase Completed!", "You have obtained: HYPERLIGHT MELEE.", "rbxassetid://82108757958615", 3, greenConfig)
+
+	elseif product == "HyperlightBundle" then
+		BannerNotificationModule:Notify("Purchase Completed!", "You have obtained: HYPERLIGHT BUNDLE.", "rbxassetid://82108757958615", 3, greenConfig)
+
+	end
+end)
+
+
+--CoreElements.Enabled = true
+
+local function CountHyperlightSkins()
+	local count = 0
+	if player.Skins.hasLaserRifle.Value then
+		count += 1
+	end
+	if player.Skins.hasLaserSniper.Value then
+		count += 1
+	end
+	if player.Skins.hasLaserRevolver.Value then
+		count += 1
+	end
+	if player.Skins.hasSaber.Value then
+		count += 1
+	end
+	return count
+end
+
+
+local function ScriptCamera()
+	local inventoryCamera = inventoryScene:WaitForChild("CAMERA")
+	camera.CameraType = Enum.CameraType.Scriptable
+	camera.CFrame = inventoryCamera.CFrame
+end
+
+local function CustomCamera()
+	camera.CameraType = Enum.CameraType.Custom
+end
+
+local function closeGUIs()
+	game.StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, true)
+	player.PlayerGui:WaitForChild("Stamina").Enabled = true
+	player.PlayerGui:WaitForChild("HealthBar").Enabled = true
+	BonusesGui.Enabled = false
+	BonusesCloseButton.Size = CloseStartSize
+	BonusesButton.Size = InventoryStartSize
+	ShopGui.Enabled = false
+	ShopCloseButton.Size = CloseStartSize
+	ShopButton.Size = InventoryStartSize
+	InventoryGui.Enabled = false
+	InventoryButton.Size = InventoryStartSize
+	CloseButton.Size = CloseStartSize
+	CoreElements.Enabled = false
+	RestoreWinstreakGui.Enabled = false
+	RestoreWinstreakButton.Size = InventoryStartSize
+	RestoreWinstreakGui:WaitForChild("Close").UIStroke.Color = Color3.fromRGB(199, 25, 25)
+	RestoreWinstreakGui:WaitForChild("RestoreButton").UIStroke.Color = Color3.fromRGB(43, 178, 199)
+	CustomCamera()
+end
+
+local function disableUnlockButtons()
+	for _, button in UnlockWeaponsFolder:GetChildren() do
+		if button:IsA("TextButton") then
+			button.Visible = false
+		end
+	end
+end
+
+-- Disables GUI when in queue
+ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("EnteredQueue").OnClientEvent:Connect(function()
+	closeGUIs()
+end)
+
+EnteredShootingRange.OnClientEvent:Connect(function()
+	if player.Character:FindFirstChild("Head"):FindFirstChild("Nametag") then
+		player.Character:FindFirstChild("Head"):FindFirstChild("Nametag").Enabled = false
+	end
+	closeGUIs()
+end)
+
+-- Locked functions set APPEARANCE of lockframes on locked skins.
+local function SetLockedRifleSkins()
+	if player.Skins.hasLaserRifle.Value then
+		LaserRifleSkinButton:WaitForChild("LockFrame").Visible = false
+	else
+		LaserRifleSkinButton:WaitForChild("LockFrame").Visible = true
+	end
+end
+
+local function SetLockedSniperSkins()
+	if player.Skins.hasLaserSniper.Value then
+		LaserSniperSkinButton:WaitForChild("LockFrame").Visible = false
+	else
+		LaserSniperSkinButton:WaitForChild("LockFrame").Visible = true
+	end
+end
+
+local function SetLockedPistolSkins()
+	-- add once pistol skins are added
+end
+
+local function SetLockedRevolverSkins()
+	if player.Skins.hasLaserRevolver.Value then
+		LaserRevolverSkinButton:WaitForChild("LockFrame").Visible = false
+	else
+		LaserRevolverSkinButton:WaitForChild("LockFrame").Visible = true
+	end
+end
+
+local function SetLockedMeleeSkins()
+	if player.Skins.hasSaber.Value then
+		SaberSkinButton:WaitForChild("LockFrame").Visible = false
+	else
+		SaberSkinButton:WaitForChild("LockFrame").Visible = true
+	end
+end
+
+local function SetLockedAbilitySkins()
+
+end
+
+local function SetLockedCenterArmorSkins()
+	if player.Skins.hasLebronCharacter.Value then
+		GemCenterArmorSkinButton:WaitForChild("LockFrame").Visible = false
+	else
+		GemCenterArmorSkinButton:WaitForChild("LockFrame").Visible = true
+	end
+end
+
+local function SetLockedTopArmorSkins()
+	if player.Skins.hasLebronCharacter.Value then
+		GemTopArmorSkinButton:WaitForChild("LockFrame").Visible = false
+	else
+		GemTopArmorSkinButton:WaitForChild("LockFrame").Visible = true
+	end
+end
+
+local function SetOwnedSkinGreenBackgrounds()
+	if player.Skins.hasLaserRifle.Value then
+		HyperlightRifleSkinButton.BackgroundColor3 = Color3.fromRGB(87, 200, 115)
+		HyperlightRifleSkinButton.UIStroke.Color = Color3.fromRGB(87, 200, 115)
+		HyperlightRifleSkinButton.Robux.Visible = false
+		HyperlightRifleSkinButton.RifleSkin.Visible = false
+		HyperlightRifleSkinButton.Price.Visible = false
+		HyperlightRifleSkinButton.Owned.Visible = true
+	else
+		HyperlightRifleSkinButton.BackgroundColor3 = Color3.fromRGB(77, 77, 77)
+		HyperlightRifleSkinButton.UIStroke.Color = Color3.fromRGB(112, 112, 112)
+		HyperlightRifleSkinButton.Robux.Visible = true
+		HyperlightRifleSkinButton.RifleSkin.Visible = true
+		HyperlightRifleSkinButton.Price.Visible = true
+		HyperlightRifleSkinButton.Owned.Visible = false
+	end
+	if player.Skins.hasLaserSniper.Value then
+		HyperlightSniperSkinButton.BackgroundColor3 = Color3.fromRGB(87, 200, 115)
+		HyperlightSniperSkinButton.UIStroke.Color = Color3.fromRGB(87, 200, 115)
+		HyperlightSniperSkinButton.Robux.Visible = false
+		HyperlightSniperSkinButton.SKINS.Visible = false
+		HyperlightSniperSkinButton.Price.Visible = false
+		HyperlightSniperSkinButton.Owned.Visible = true
+	else
+		HyperlightSniperSkinButton.BackgroundColor3 = Color3.fromRGB(77, 77, 77)
+		HyperlightSniperSkinButton.UIStroke.Color = Color3.fromRGB(112, 112, 112)
+		HyperlightSniperSkinButton.Robux.Visible = true
+		HyperlightSniperSkinButton.SKINS.Visible = true
+		HyperlightSniperSkinButton.Price.Visible = true
+		HyperlightSniperSkinButton.Owned.Visible = false
+	end
+	if player.Skins.hasLaserRevolver.Value then
+		HyperlightRevolverSkinButton.BackgroundColor3 = Color3.fromRGB(87, 200, 115)
+		HyperlightRevolverSkinButton.UIStroke.Color = Color3.fromRGB(87, 200, 115)
+		HyperlightRevolverSkinButton.Robux.Visible = false
+		HyperlightRevolverSkinButton.SKINS.Visible = false
+		HyperlightRevolverSkinButton.Price.Visible = false
+		HyperlightRevolverSkinButton.Owned.Visible = true
+	else
+		HyperlightRevolverSkinButton.BackgroundColor3 = Color3.fromRGB(77, 77, 77)
+		HyperlightRevolverSkinButton.UIStroke.Color = Color3.fromRGB(112, 112, 112)
+		HyperlightRevolverSkinButton.Robux.Visible = true
+		HyperlightRevolverSkinButton.SKINS.Visible = true
+		HyperlightRevolverSkinButton.Price.Visible = true
+		HyperlightRevolverSkinButton.Owned.Visible = false
+	end
+	if player.Skins.hasSaber.Value then
+		HyperlightMeleeSkinButton.BackgroundColor3 = Color3.fromRGB(87, 200, 115)
+		HyperlightMeleeSkinButton.UIStroke.Color = Color3.fromRGB(87, 200, 115)
+		HyperlightMeleeSkinButton.Robux.Visible = false
+		HyperlightMeleeSkinButton.SKINS.Visible = false
+		HyperlightMeleeSkinButton.Price.Visible = false
+		HyperlightMeleeSkinButton.Owned.Visible = true
+	else
+		HyperlightMeleeSkinButton.BackgroundColor3 = Color3.fromRGB(77, 77, 77)
+		HyperlightMeleeSkinButton.UIStroke.Color = Color3.fromRGB(112, 112, 112)
+		HyperlightMeleeSkinButton.Robux.Visible = true
+		HyperlightMeleeSkinButton.SKINS.Visible = true
+		HyperlightMeleeSkinButton.Price.Visible = true
+		HyperlightMeleeSkinButton.Owned.Visible = false
+	end
+	if CountHyperlightSkins() == 4 then
+		HyperlightBundleButton.Owned.Visible = true
+		HyperlightBundleButton.Price.Visible = false
+		HyperlightBundleButton.Robux.Visible = false
+	elseif CountHyperlightSkins() == 3 then
+		HyperlightBundleButton.Owned.Visible = false
+		HyperlightBundleButton.Price.Visible = true
+		HyperlightBundleButton.Robux.Visible = true
+		HyperlightBundleButton.Price.Text = "374 (25% OFF)"
+	elseif CountHyperlightSkins() == 2 then
+		HyperlightBundleButton.Owned.Visible = false
+		HyperlightBundleButton.Price.Visible = true
+		HyperlightBundleButton.Robux.Visible = true
+		HyperlightBundleButton.Price.Text = "749 (25% OFF)"
+	elseif CountHyperlightSkins() == 1 then
+		HyperlightBundleButton.Owned.Visible = false
+		HyperlightBundleButton.Price.Visible = true
+		HyperlightBundleButton.Robux.Visible = true
+		HyperlightBundleButton.Price.Text = "1123 (25% OFF)"
+	elseif CountHyperlightSkins() == 0 then
+		HyperlightBundleButton.Owned.Visible = false
+		HyperlightBundleButton.Price.Visible = true
+		HyperlightBundleButton.Robux.Visible = true
+		HyperlightBundleButton.Price.Text = "1499 (25% OFF)"
+	end
+end
+
+local function ShopGuiButtonActivate(PressedButton)
+	ClickSound:Play()
+	PressedButton.BackgroundColor3 = Color3.fromRGB(32, 39, 76)
+	PressedButton.UIStroke.Color = Color3.fromRGB(42, 52, 100)
+	for _, button in ShopGui:GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "Close" and button.Name ~= PressedButton.Name then
+			button.BackgroundColor3 = Color3.fromRGB(33, 33, 33)
+			button.UIStroke.Color = Color3.fromRGB(15, 15, 15)
+		end
+	end
+end
+
+-- This turns off the skins of the guns that are not currently selected while enabling the skins GUI for the selected weapon
+local function SetSkinFrameVisibility(primaryBool, secondaryBool, meleeBool, armorSkinBool, abilityBool)
+	disableUnlockButtons()
+	
+	for _, skinFrame in PrimarySkins:GetChildren() do
+		if skinFrame:IsA("Frame") then
+			skinFrame.Visible = false
+			if SelectedPrimary == "Rifle" then
+				PrimarySkins:WaitForChild("RifleSkins").Visible = primaryBool
+				SetLockedRifleSkins()
+			elseif SelectedPrimary == "Sniper" then
+				PrimarySkins:WaitForChild("SniperSkins").Visible = primaryBool
+				SetLockedSniperSkins()
+				if player.Weapons.hasSniper.Value then
+					for _, button in PrimarySkins:WaitForChild("SniperSkins"):GetChildren() do
+						if button:IsA("TextButton") then
+							button.Visible = true
+						end
+					end
+				else
+					UnlockSniperButton.Visible = primaryBool
+
+					for _, button in PrimarySkins:WaitForChild("SniperSkins"):GetChildren() do
+						if button:IsA("TextButton") then
+							button.Visible = false
+						end
+					end
+				end
+			elseif SelectedPrimary == "SMG" then
+				PrimarySkins:WaitForChild("SMGSkins").Visible = primaryBool
+				if player.Weapons.hasSMG.Value then
+					for _, button in PrimarySkins:WaitForChild("SMGSkins"):GetChildren() do
+						if button:IsA("TextButton") then
+							button.Visible = true
+						end
+					end
+				else
+					UnlockSMGButton.Visible = primaryBool
+
+					for _, button in PrimarySkins:WaitForChild("SMGSkins"):GetChildren() do
+						if button:IsA("TextButton") then
+							button.Visible = false
+						end
+					end
+				end
+			elseif SelectedPrimary == "Shotgun" then
+				PrimarySkins:WaitForChild("ShotgunSkins").Visible = primaryBool
+				if player.Weapons.hasShotgun.Value then
+					for _, button in PrimarySkins:WaitForChild("ShotgunSkins"):GetChildren() do
+						if button:IsA("TextButton") then
+							button.Visible = true
+						end
+					end
+				else
+					UnlockShotgunButton.Visible = primaryBool
+
+					for _, button in PrimarySkins:WaitForChild("ShotgunSkins"):GetChildren() do
+						if button:IsA("TextButton") then
+							button.Visible = false
+						end
+					end
+				end
+			end
+		end
+	end
+	for _, skinFrame in SecondarySkins:GetChildren() do
+		if skinFrame:IsA("Frame") then
+			skinFrame.Visible = false
+			if SelectedSecondary == "Pistol" then
+				SecondarySkins:WaitForChild("PistolSkins").Visible = secondaryBool
+			elseif SelectedSecondary == "Revolver" then
+				SecondarySkins:WaitForChild("RevolverSkins").Visible = secondaryBool
+				SetLockedRevolverSkins()
+				if player.Weapons.hasRevolver.Value then
+					for _, button in SecondarySkins:WaitForChild("RevolverSkins"):GetChildren() do
+						if button:IsA("TextButton") then
+							button.Visible = true
+						end
+					end
+				else
+					UnlockRevolverButton.Visible = secondaryBool
+
+					for _, button in SecondarySkins:WaitForChild("RevolverSkins"):GetChildren() do
+						if button:IsA("TextButton") then
+							button.Visible = false
+						end
+					end
+				end
+			elseif SelectedSecondary == "AutoPistol" then
+				SecondarySkins:WaitForChild("AutoPistolSkins").Visible = secondaryBool
+				
+				if player.Weapons.hasAutoPistol.Value then
+					for _, button in SecondarySkins:WaitForChild("AutoPistolSkins"):GetChildren() do
+						if button:IsA("TextButton") then
+							button.Visible = true
+						end
+					end
+				else
+					UnlockAutoPistolButton.Visible = secondaryBool
+
+					for _, button in SecondarySkins:WaitForChild("AutoPistolSkins"):GetChildren() do
+						if button:IsA("TextButton") then
+							button.Visible = false
+						end
+					end
+				end
+			end
+		end
+	end
+	for _, skinFrame in MeleeSkins:GetChildren() do
+		if skinFrame:IsA("Frame") then
+			skinFrame.Visible = meleeBool
+			SetLockedMeleeSkins()
+		end
+	end
+	for _, skinFrame in AbilitySkins:GetChildren() do
+		if skinFrame:IsA("Frame") then
+			skinFrame.Visible = false
+			SetLockedAbilitySkins()
+			if SelectedMenu == "Abilities" then
+				if SelectedAbility == "Booster" then
+					AbilitySkins:WaitForChild("BoosterSkins").Visible = abilityBool
+					if player.Weapons.hasBooster.Value then
+						UnlockBoosterButton.Visible = false
+					else
+						UnlockBoosterButton.Visible = true
+					end
+				elseif SelectedAbility == "LightningBomb" then
+					AbilitySkins:WaitForChild("LightningBombSkins").Visible = abilityBool
+					if player.Weapons.hasLightningBomb.Value then
+						UnlockLightningBombButton.Visible = false
+					else
+						UnlockLightningBombButton.Visible = true
+					end
+				elseif SelectedAbility == "OverdriveVial" then
+					AbilitySkins:WaitForChild("OverdriveVialSkins").Visible = abilityBool
+					if player.Weapons.hasOverdriveVial.Value then
+						UnlockOverdriveVialButton.Visible = false
+					else
+						UnlockOverdriveVialButton.Visible = true
+					end
+				elseif SelectedAbility == "RegenPot" then
+					AbilitySkins:WaitForChild("RegenPotSkins").Visible = abilityBool
+					if player.Weapons.hasRegenPot.Value then
+						UnlockRegenPotButton.Visible = false
+					else
+						UnlockRegenPotButton.Visible = true
+					end
+				elseif SelectedAbility == "Grenade" then
+					AbilitySkins:WaitForChild("GrenadeSkins").Visible = abilityBool
+				end
+
+			else
+				UnlockBoosterButton.Visible = false
+				UnlockLightningBombButton.Visible = false
+				UnlockOverdriveVialButton.Visible = false
+				UnlockRegenPotButton.Visible = false
+			end
+		end
+
+	end
+
+	for _, skinFrame in ArmorSkins:GetChildren() do
+		if skinFrame:IsA("Frame") then
+			skinFrame.Visible = false
+			if SelectedCharacterSkin == "Character" then
+				ArmorSkins:WaitForChild("CenterArmorSkins").Visible = armorSkinBool
+				SetLockedCenterArmorSkins()
+			elseif SelectedCharacterSkin == "Hand" then
+				ArmorSkins:WaitForChild("TopArmorSkins").Visible = armorSkinBool
+				SetLockedTopArmorSkins()
+			end
+		end
+	end
+end
+
+-- This sets the visibility of all of the weapons in the category that is selected
+local function SetWeaponButtonVisibility(primaryBool, secondaryBool, meleeBool, armorSkinsBool, abilityBool)
+	for _, weapon in PrimaryWeapons:GetChildren() do
+		if weapon:IsA("TextButton") then
+			weapon.Visible = primaryBool
+		end
+	end
+	for _, weapon in SecondaryWeapons:GetChildren() do
+		if weapon:IsA("TextButton") then
+			weapon.Visible = secondaryBool
+		end
+	end
+	for _, weapon in MeleeWeapons:GetChildren() do
+		if weapon:IsA("TextButton") then
+			weapon.Visible = meleeBool
+		end
+	end
+	for _, weapon in AbilityWeapons:GetChildren() do
+		if weapon:IsA("TextButton") then
+			weapon.Visible = abilityBool
+		end
+	end
+	for _, weapon in ArmorCosmetics:GetChildren() do
+		if weapon:IsA("TextButton") then
+			weapon.Visible = armorSkinsBool
+		end
+	end
+end
+
+-- These Set__WeaponSkinBackgroundAndBorderColor functions set the skin GUI button of the selected 
+-- skin to be blue and the others to be gray
+local function SetRifleWeaponSkinBackgroundAndBorderColor()
+	if player.Skins.RifleWeaponSkin.Value == "Default" then
+		DefaultRifleSkinButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)	
+		DefaultRifleSkinButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		for _, button in PrimarySkins:WaitForChild("RifleSkins"):GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "DefaultRifleSkin" then
+				button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)	
+				button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+			end
+		end
+	elseif player.Skins.RifleWeaponSkin.Value == "Laser" then
+		LaserRifleSkinButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)	
+		LaserRifleSkinButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		for _, button in PrimarySkins:WaitForChild("RifleSkins"):GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "LaserRifleSkin" then
+				button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)	
+				button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+			end
+		end
+	end
+end
+
+local function SetSniperWeaponSkinBackgroundAndBorderColor()
+	if player.Skins.SniperWeaponSkin.Value == "Default" then
+		DefaultSniperSkinButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)	
+		DefaultSniperSkinButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		for _, button in PrimarySkins:WaitForChild("SniperSkins"):GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "DefaultSniperSkin" then
+				button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)	
+				button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+			end
+		end
+	elseif player.Skins.SniperWeaponSkin.Value == "Laser" then
+		LaserSniperSkinButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)	
+		LaserSniperSkinButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		for _, button in PrimarySkins:WaitForChild("SniperSkins"):GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "LaserSniperSkin" then
+				button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)	
+				button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+			end
+		end
+	end
+end
+
+local function SetSMGWeaponSkinBackgroundAndBorderColor()
+	if player.Skins.SMGWeaponSkin.Value == "Default" then
+		DefaultSMGSkinButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)	
+		DefaultSMGSkinButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		for _, button in PrimarySkins:WaitForChild("SMGSkins"):GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "DefaultSMGSkin" then
+				button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)	
+				button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+			end
+		end
+	end
+end
+
+local function SetShotgunWeaponSkinBackgroundAndBorderColor()
+	if player.Skins.ShotgunWeaponSkin.Value == "Default" then
+		DefaultShotgunSkinButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)	
+		DefaultShotgunSkinButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		for _, button in PrimarySkins:WaitForChild("ShotgunSkins"):GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "DefaultShotgunSkin" then
+				button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)	
+				button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+			end
+		end
+	end
+end
+
+
+local function SetPistolWeaponSkinBackgroundAndBorderColor()
+	if player.Skins.PistolWeaponSkin.Value == "Default" then
+		DefaultPistolSkinButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)	
+		DefaultPistolSkinButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		for _, button in SecondarySkins:WaitForChild("PistolSkins"):GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "DefaultPistolSkin" then
+				button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)	
+				button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+			end
+		end
+	end
+end
+
+local function SetAutoPistolWeaponSkinBackgroundAndBorderColor()
+	if player.Skins.AutoPistolWeaponSkin.Value == "Default" then
+		DefaultAutoPistolSkinButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)	
+		DefaultAutoPistolSkinButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		for _, button in SecondarySkins:WaitForChild("AutoPistolSkins"):GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "DefaultAutoPistolSkin" then
+				button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)	
+				button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+			end
+		end
+	end
+end
+
+local function SetRevolverWeaponSkinBackgroundAndBorderColor()
+	if player.Skins.RevolverWeaponSkin.Value == "Default" then
+		DefaultRevolverSkinButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)	
+		DefaultRevolverSkinButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		for _, button in SecondarySkins:WaitForChild("RevolverSkins"):GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "DefaultRevolverSkin" then
+				button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)	
+				button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+			end
+		end
+	elseif player.Skins.RevolverWeaponSkin.Value == "Laser" then
+		LaserRevolverSkinButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)	
+		LaserRevolverSkinButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		for _, button in SecondarySkins:WaitForChild("RevolverSkins"):GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "LaserRevolverSkin" then
+				button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)	
+				button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+			end
+		end
+	end
+end
+
+local function SetMeleeWeaponSkinBackgroundAndBorderColor()
+	if player.Skins.MeleeWeaponSkin.Value == "Default" then
+		DefaultMeleeSkinButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)	
+		DefaultMeleeSkinButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		for _, button in MeleeSkins:WaitForChild("MeleeSkins"):GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "DefaultMeleeSkin" then
+				button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)	
+				button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+			end
+		end
+	elseif player.Skins.MeleeWeaponSkin.Value == "Saber" then
+		SaberSkinButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)	
+		SaberSkinButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		for _, button in MeleeSkins:WaitForChild("MeleeSkins"):GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "SaberSkin" then
+				button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)	
+				button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+			end
+		end
+	end
+end
+
+local function SetAbilitiesSkinBackgroundAndBorderColor()
+	if player.Skins.BoosterSkin.Value == "Default" then 
+		DefaultBoosterSkinButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)	
+		DefaultBoosterSkinButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		for _, button in AbilitySkins:WaitForChild("BoosterSkins"):GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "DefaultBoosterSkin" then
+				button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)	
+				button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+			end
+		end
+	end
+	if player.Skins.LightningBombSkin.Value == "Default" then 
+		DefaultLightningBombSkinButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)	
+		DefaultLightningBombSkinButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		for _, button in AbilitySkins:WaitForChild("LightningBombSkins"):GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "DefaultLightningBombSkin" then
+				button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)	
+				button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+			end
+		end
+	end
+	if player.Skins.OverdriveVialSkin.Value == "Default" then 
+		DefaultOverdriveVialSkinButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)	
+		DefaultOverdriveVialSkinButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		for _, button in AbilitySkins:WaitForChild("OverdriveVialSkins"):GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "DefaultOverdriveVialSkin" then
+				button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)	
+				button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+			end
+		end
+	end
+	if player.Skins.RegenPotSkin.Value == "Default" then 
+		DefaultRegenPotSkinButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)	
+		DefaultRegenPotSkinButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		for _, button in AbilitySkins:WaitForChild("RegenPotSkins"):GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "DefaultRegenPotSkin" then
+				button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)	
+				button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+			end
+		end
+	end
+	if player.Skins.GrenadeSkin.Value == "Default" then 
+		DefaultGrenadeSkinButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)	
+		DefaultGrenadeSkinButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		for _, button in AbilitySkins:WaitForChild("GrenadeSkins"):GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "DefaultGrenadeSkin" then
+				button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)	
+				button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+			end
+		end
+	end
+end
+
+local function SetCenterArmorWeaponSkinBackgroundAndBorderColor()
+	if player.Skins.CharacterSkin.Value == "Lebron" then
+		GemCenterArmorSkinButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)	
+		GemCenterArmorSkinButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		for _, button in ArmorSkins:WaitForChild("CenterArmorSkins"):GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "GemCenterArmorSkin" then
+				button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)	
+				button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+			end
+		end
+
+	else
+		DefaultCenterArmorSkinButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)	
+		DefaultCenterArmorSkinButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		for _, button in ArmorSkins:WaitForChild("CenterArmorSkins"):GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "DefaultCenterArmorSkin" then
+				button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)	
+				button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+			end
+		end
+	end
+end
+
+local function SetTopArmorWeaponSkinBackgroundAndBorderColor()
+	if player.Skins.HandSkin.Value == "Lebron" then
+		GemTopArmorSkinButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)	
+		GemTopArmorSkinButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		for _, button in ArmorSkins:WaitForChild("TopArmorSkins"):GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "GemTopArmorSkin" then
+				button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)	
+				button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+			end
+		end
+
+	else
+		DefaultTopArmorSkinButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)	
+		DefaultTopArmorSkinButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		for _, button in ArmorSkins:WaitForChild("TopArmorSkins"):GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "DefaultTopArmorSkin" then
+				button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)	
+				button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+			end
+		end
+	end
+end
+
+-- These buttonpicture functions set the pictures of the skin for the weapon buttons in the inventory and weapon selection screens.
+-- (Currently bugged as the weapon selection screen may not properly display laser skins.)
+local function SetPrimaryButtonPictures(RifleSkin, SniperSkin, SMGSkin, ShotgunSkin, PLACEHOLDER1, PLACEHOLDER2, PLACEHOLDER3, PLACEHOLDER4)
+	for _, pic in PrimaryWeapons:GetDescendants() do
+		if pic:IsA("ImageLabel") then
+			pic.Visible = false
+		end
+	end
+	for _, pic in FullWeaponSelector:WaitForChild("Primaries"):GetDescendants() do
+		if pic:IsA("ImageLabel") then
+			pic.Visible = false
+		end
+	end
+	if RifleSkin == "Default" then
+		PrimaryWeapons:WaitForChild("Rifle"):WaitForChild("DefaultRiflePic").Visible = true
+		FullWeaponSelector:WaitForChild("Primaries"):WaitForChild("Rifle"):WaitForChild("DefaultRiflePic").Visible = true
+		PrimarySkins:WaitForChild("RifleSkins"):WaitForChild("DefaultRifleVariants").Visible = true
+		PrimarySkins:WaitForChild("RifleSkins"):WaitForChild("LaserRifleVariants").Visible = false
+	elseif RifleSkin == "Laser" then
+		PrimaryWeapons:WaitForChild("Rifle"):WaitForChild("LaserRiflePic").Visible = true
+		FullWeaponSelector:WaitForChild("Primaries"):WaitForChild("Rifle"):WaitForChild("LaserRiflePic").Visible = true
+		PrimarySkins:WaitForChild("RifleSkins"):WaitForChild("DefaultRifleVariants").Visible = false
+		PrimarySkins:WaitForChild("RifleSkins"):WaitForChild("LaserRifleVariants").Visible = true
+		if player.Skins.LaserRifleVariant.Value == "Blue" then
+			LaserRifleBlueVariantButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+			LaserRifleBlueVariantButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+			for _, button in PrimarySkins:WaitForChild("RifleSkins"):WaitForChild("LaserRifleVariants"):GetChildren() do
+				if button:IsA("TextButton") and button.Name ~= "LaserRifleVariantBlue" then
+					button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)
+					button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+				end
+			end
+		elseif player.Skins.LaserRifleVariant.Value == "Red" then
+			LaserRifleRedVariantButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+			LaserRifleRedVariantButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+			for _, button in PrimarySkins:WaitForChild("RifleSkins"):WaitForChild("LaserRifleVariants"):GetChildren() do
+				if button:IsA("TextButton") and button.Name ~= "LaserRifleVariantRed" then
+					button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)
+					button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+				end
+			end
+		elseif player.Skins.LaserRifleVariant.Value == "Purple" then
+			LaserRiflePurpleVariantButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+			LaserRiflePurpleVariantButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+			for _, button in PrimarySkins:WaitForChild("RifleSkins"):WaitForChild("LaserRifleVariants"):GetChildren() do
+				if button:IsA("TextButton") and button.Name ~= "LaserRifleVariantPurple" then
+					button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)
+					button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+				end
+			end
+		end
+	end
+	
+	if SniperSkin == "Default" then
+		PrimaryWeapons:WaitForChild("Sniper"):WaitForChild("DefaultSniperPic").Visible = true
+		FullWeaponSelector:WaitForChild("Primaries"):WaitForChild("Sniper"):WaitForChild("DefaultSniperPic").Visible = true
+		PrimarySkins:WaitForChild("SniperSkins"):WaitForChild("DefaultSniperVariants").Visible = true
+		PrimarySkins:WaitForChild("SniperSkins"):WaitForChild("LaserSniperVariants").Visible = false
+	elseif SniperSkin == "Laser" then
+		PrimaryWeapons:WaitForChild("Sniper"):WaitForChild("LaserSniperPic").Visible = true
+		FullWeaponSelector:WaitForChild("Primaries"):WaitForChild("Sniper"):WaitForChild("LaserSniperPic").Visible = true
+		PrimarySkins:WaitForChild("SniperSkins"):WaitForChild("DefaultSniperVariants").Visible = false
+		PrimarySkins:WaitForChild("SniperSkins"):WaitForChild("LaserSniperVariants").Visible = true
+		if player.Skins.LaserSniperVariant.Value == "Blue" then
+			LaserSniperBlueVariantButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+			LaserSniperBlueVariantButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+			for _, button in PrimarySkins:WaitForChild("SniperSkins"):WaitForChild("LaserSniperVariants"):GetChildren() do
+				if button:IsA("TextButton") and button.Name ~= "LaserSniperVariantBlue" then
+					button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)
+					button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+				end
+			end
+		elseif player.Skins.LaserSniperVariant.Value == "Red" then
+			LaserSniperRedVariantButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+			LaserSniperRedVariantButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+			for _, button in PrimarySkins:WaitForChild("SniperSkins"):WaitForChild("LaserSniperVariants"):GetChildren() do
+				if button:IsA("TextButton") and button.Name ~= "LaserSniperVariantRed" then
+					button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)
+					button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+				end
+			end
+		elseif player.Skins.LaserSniperVariant.Value == "Purple" then
+			LaserSniperPurpleVariantButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+			LaserSniperPurpleVariantButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+			for _, button in PrimarySkins:WaitForChild("SniperSkins"):WaitForChild("LaserSniperVariants"):GetChildren() do
+				if button:IsA("TextButton") and button.Name ~= "LaserSniperVariantPurple" then
+					button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)
+					button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+				end
+			end
+		end
+	end
+	
+	if SMGSkin == "Default" then
+		PrimaryWeapons:WaitForChild("SMG"):WaitForChild("DefaultSMGPic").Visible = true
+		FullWeaponSelector:WaitForChild("Primaries"):WaitForChild("SMG"):WaitForChild("DefaultSMGPic").Visible = true
+		PrimarySkins:WaitForChild("SMGSkins"):WaitForChild("DefaultSMGVariants").Visible = true
+	end
+	if ShotgunSkin == "Default" then
+		PrimaryWeapons:WaitForChild("Shotgun"):WaitForChild("DefaultShotgunPic").Visible = true
+		FullWeaponSelector:WaitForChild("Primaries"):WaitForChild("Shotgun"):WaitForChild("DefaultShotgunPic").Visible = true
+		PrimarySkins:WaitForChild("ShotgunSkins"):WaitForChild("DefaultShotgunVariants").Visible = true
+	end
+end
+
+local function SetSecondaryButtonPictures(PistolSkin, RevolverSkin, AutoPistolSkin, a, b, c, d, e, f, g)
+	for _, pic in SecondaryWeapons:GetDescendants() do
+		if pic:IsA("ImageLabel") then
+			pic.Visible = false
+		end
+	end
+	for _, pic in FullWeaponSelector:WaitForChild("Secondaries"):GetDescendants() do
+		if pic:IsA("ImageLabel") then
+			pic.Visible = false
+		end
+	end
+	
+	if PistolSkin == "Default" then
+		SecondaryWeapons:WaitForChild("Pistol"):WaitForChild("DefaultPistolPic").Visible = true
+		FullWeaponSelector:WaitForChild("Secondaries"):WaitForChild("Pistol"):WaitForChild("DefaultPistolPic").Visible = true
+		SecondarySkins:WaitForChild("PistolSkins"):WaitForChild("DefaultPistolVariants").Visible = true
+	end
+	
+	if RevolverSkin == "Default" then
+		SecondaryWeapons:WaitForChild("Revolver"):WaitForChild("DefaultRevolverPic").Visible = true
+		FullWeaponSelector:WaitForChild("Secondaries"):WaitForChild("Revolver"):WaitForChild("DefaultRevolverPic").Visible = true
+		SecondarySkins:WaitForChild("RevolverSkins"):WaitForChild("DefaultRevolverVariants").Visible = true
+		SecondarySkins:WaitForChild("RevolverSkins"):WaitForChild("LaserRevolverVariants").Visible = false
+	elseif RevolverSkin == "Laser" then
+		SecondaryWeapons:WaitForChild("Revolver"):WaitForChild("LaserRevolverPic").Visible = true
+		FullWeaponSelector:WaitForChild("Secondaries"):WaitForChild("Revolver"):WaitForChild("LaserRevolverPic").Visible = true
+		SecondarySkins:WaitForChild("RevolverSkins"):WaitForChild("DefaultRevolverVariants").Visible = false
+		SecondarySkins:WaitForChild("RevolverSkins"):WaitForChild("LaserRevolverVariants").Visible = true
+		if player.Skins.LaserRevolverVariant.Value == "Blue" then
+			LaserRevolverBlueVariantButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+			LaserRevolverBlueVariantButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+			for _, button in SecondarySkins:WaitForChild("RevolverSkins"):WaitForChild("LaserRevolverVariants"):GetChildren() do
+				if button:IsA("TextButton") and button.Name ~= "LaserRevolverVariantBlue" then
+					button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)
+					button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+				end
+			end
+		elseif player.Skins.LaserRevolverVariant.Value == "Red" then
+			LaserRevolverRedVariantButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+			LaserRevolverRedVariantButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+			for _, button in SecondarySkins:WaitForChild("RevolverSkins"):WaitForChild("LaserRevolverVariants"):GetChildren() do
+				if button:IsA("TextButton") and button.Name ~= "LaserRevolverVariantRed" then
+					button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)
+					button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+				end
+			end
+		elseif player.Skins.LaserRevolverVariant.Value == "Purple" then
+			LaserRevolverPurpleVariantButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+			LaserRevolverPurpleVariantButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+			for _, button in SecondarySkins:WaitForChild("RevolverSkins"):WaitForChild("LaserRevolverVariants"):GetChildren() do
+				if button:IsA("TextButton") and button.Name ~= "LaserRevolverVariantPurple" then
+					button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)
+					button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+				end
+			end
+		end
+	end
+	
+	if AutoPistolSkin == "Default" then
+		SecondaryWeapons:WaitForChild("AutoPistol"):WaitForChild("DefaultAutoPistolPic").Visible = true
+		FullWeaponSelector:WaitForChild("Secondaries"):WaitForChild("AutoPistol"):WaitForChild("DefaultAutoPistolPic").Visible = true
+		SecondarySkins:WaitForChild("AutoPistolSkins"):WaitForChild("DefaultAutoPistolVariants").Visible = true
+	end
+end
+
+local function SetMeleeButtonPictures(MeleeSkin)
+	for _, pic in MeleeWeapons:GetDescendants() do
+		if pic:IsA("ImageLabel") then
+			pic.Visible = false
+		end
+	end
+	if MeleeSkin == "Default" then
+		MeleeWeapons:WaitForChild("Melee"):WaitForChild("DefaultMeleePic").Visible = true
+		MeleeSkins:WaitForChild("MeleeSkins"):WaitForChild("DefaultMeleeVariants").Visible = true
+		MeleeSkins:WaitForChild("MeleeSkins"):WaitForChild("SaberVariants").Visible = false
+	elseif MeleeSkin == "Saber" then
+		MeleeWeapons:WaitForChild("Melee"):WaitForChild("SaberPic").Visible = true
+		MeleeSkins:WaitForChild("MeleeSkins"):WaitForChild("DefaultMeleeVariants").Visible = false
+		MeleeSkins:WaitForChild("MeleeSkins"):WaitForChild("SaberVariants").Visible = true
+		if player.Skins.SaberVariant.Value == "Blue" then
+			SaberBlueVariantButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+			SaberBlueVariantButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+			for _, button in MeleeSkins:WaitForChild("MeleeSkins"):WaitForChild("SaberVariants"):GetChildren() do
+				if button:IsA("TextButton") and button.Name ~= "SaberVariantBlue" then
+					button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)
+					button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+				end
+			end
+		elseif player.Skins.SaberVariant.Value == "Red" then
+			SaberRedVariantButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+			SaberRedVariantButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+			for _, button in MeleeSkins:WaitForChild("MeleeSkins"):WaitForChild("SaberVariants"):GetChildren() do
+				if button:IsA("TextButton") and button.Name ~= "SaberVariantRed" then
+					button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)
+					button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+				end
+			end
+		elseif player.Skins.SaberVariant.Value == "Purple" then
+			SaberPurpleVariantButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+			SaberPurpleVariantButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+			for _, button in MeleeSkins:WaitForChild("MeleeSkins"):WaitForChild("SaberVariants"):GetChildren() do
+				if button:IsA("TextButton") and button.Name ~= "SaberVariantPurple" then
+					button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)
+					button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+				end
+			end
+		end
+	end
+end
+
+local function SetAbilityButtonPictures(BoosterSkin, LightningBombSkin, OverdriveVialSkin, GrenadeSkin, RegenPotSkin)
+	for _, pic in AbilityWeapons:GetDescendants() do
+		if pic:IsA("ImageLabel") then
+			pic.Visible = false
+		end
+	end
+	
+	for _, pic in FullWeaponSelector:WaitForChild("Abilities"):GetDescendants() do
+		if pic:IsA("ImageLabel") then
+			pic.Visible = false
+		end
+	end
+
+	if GrenadeSkin == "Default" then
+		AbilityWeapons:WaitForChild("Grenade"):WaitForChild("DefaultGrenadePic").Visible = true
+		FullWeaponSelector:WaitForChild("Abilities"):WaitForChild("Grenade"):WaitForChild("DefaultGrenadePic").Visible = true
+		AbilitySkins:WaitForChild("GrenadeSkins"):WaitForChild("DefaultGrenadeVariants").Visible = true
+	end
+	if BoosterSkin == "Default" then
+		AbilityWeapons:WaitForChild("Booster"):WaitForChild("DefaultBoosterPic").Visible = true
+		FullWeaponSelector:WaitForChild("Abilities"):WaitForChild("Booster"):WaitForChild("DefaultBoosterPic").Visible = true
+		AbilitySkins:WaitForChild("BoosterSkins"):WaitForChild("DefaultBoosterVariants").Visible = true
+	end
+	if LightningBombSkin == "Default" then
+		AbilityWeapons:WaitForChild("LightningBomb"):WaitForChild("DefaultLightningBombPic").Visible = true
+		FullWeaponSelector:WaitForChild("Abilities"):WaitForChild("LightningBomb"):WaitForChild("DefaultLightningBombPic").Visible = true
+		AbilitySkins:WaitForChild("LightningBombSkins"):WaitForChild("DefaultLightningBombVariants").Visible = true
+	end
+	if OverdriveVialSkin == "Default" then
+		AbilityWeapons:WaitForChild("OverdriveVial"):WaitForChild("DefaultOverdriveVialPic").Visible = true
+		FullWeaponSelector:WaitForChild("Abilities"):WaitForChild("OverdriveVial"):WaitForChild("DefaultOverdriveVialPic").Visible = true
+		AbilitySkins:WaitForChild("OverdriveVialSkins"):WaitForChild("DefaultOverdriveVialVariants").Visible = true
+	end
+	if RegenPotSkin == "Default" then
+		AbilityWeapons:WaitForChild("RegenPot"):WaitForChild("DefaultRegenPotPic").Visible = true
+		FullWeaponSelector:WaitForChild("Abilities"):WaitForChild("RegenPot"):WaitForChild("DefaultRegenPotPic").Visible = true
+		AbilitySkins:WaitForChild("RegenPotSkins"):WaitForChild("DefaultRegenPotVariants").Visible = true
+	end
+end
+
+local function SetAllPictures()
+	SetPrimaryButtonPictures(player.Skins.RifleWeaponSkin.Value, player.Skins.SniperWeaponSkin.Value, player.Skins.SMGWeaponSkin.Value, player.Skins.ShotgunWeaponSkin.Value, 1, 1, 1, 1)
+	SetSecondaryButtonPictures(player.Skins.PistolWeaponSkin.Value, player.Skins.RevolverWeaponSkin.Value, player.Skins.AutoPistolWeaponSkin.Value, 1, 2, 3, 4, 5, 6, 7)
+	SetMeleeButtonPictures(player.Skins.MeleeWeaponSkin.Value)
+	SetAbilityButtonPictures(player.Skins.BoosterSkin.Value, player.Skins.LightningBombSkin.Value, player.Skins.OverdriveVialSkin.Value, player.Skins.GrenadeSkin.Value, player.Skins.RegenPotSkin.Value)
+end
+
+SetAllPictures()
+
+
+SetWeaponPictures.OnClientEvent:Connect(function()
+	SetAllPictures()
+
+end)
+
+ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("EnableScoreboard").OnClientEvent:Connect(function()
+	SetAllPictures()
+
+end)
+
+ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("EnableScoreboard2v2").OnClientEvent:Connect(function()
+	SetAllPictures()
+
+end)
+
+local function PrimariesButtonActivate()
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	SelectedMenu = "Primaries"
+
+	SetSkinFrameVisibility(true, false, false, false, false)
+	SetWeaponButtonVisibility(true, false, false, false, false)
+	SetRifleWeaponSkinBackgroundAndBorderColor()
+	SetSniperWeaponSkinBackgroundAndBorderColor()
+	SetSMGWeaponSkinBackgroundAndBorderColor()
+	SetShotgunWeaponSkinBackgroundAndBorderColor()
+	SetPrimaryButtonPictures(player.Skins.RifleWeaponSkin.Value, player.Skins.SniperWeaponSkin.Value, player.Skins.SMGWeaponSkin.Value, player.Skins.ShotgunWeaponSkin.Value, 1, 1, 1, 1)
+	if SelectedPrimary == "Rifle" then
+		local clonedRifle
+		if player.Skins.RifleWeaponSkin.Value == "Default" then
+			clonedRifle = WeaponModelsFolder:WaitForChild("DefaultRifle"):Clone()
+		elseif player.Skins.RifleWeaponSkin.Value == "Laser" then
+			if player.Skins.LaserRifleVariant.Value == "Blue" then
+				clonedRifle = WeaponModelsFolder:WaitForChild("LaserRifle"):Clone()
+			elseif player.Skins.LaserRifleVariant.Value == "Red" then
+				clonedRifle = WeaponModelsFolder:WaitForChild("LaserRifleRed"):Clone()
+			elseif player.Skins.LaserRifleVariant.Value == "Purple" then
+				clonedRifle = WeaponModelsFolder:WaitForChild("LaserRiflePurple"):Clone()
+			end
+		end
+		clonedRifle.Parent = inventoryScene
+		RifleButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+		RifleButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		for _, button in PrimaryWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "Rifle" then
+				button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)
+				button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+			end
+		end
+	elseif SelectedPrimary == "Sniper" then
+		if player.Weapons.hasSniper.Value then
+			local clonedSniper
+			if player.Skins.SniperWeaponSkin.Value == "Default" then
+				clonedSniper = WeaponModelsFolder:WaitForChild("DefaultSniper"):Clone()
+			elseif player.Skins.SniperWeaponSkin.Value == "Laser" then
+				if player.Skins.LaserSniperVariant.Value == "Blue" then
+					clonedSniper = WeaponModelsFolder:WaitForChild("LaserSniper"):Clone()
+				elseif player.Skins.LaserSniperVariant.Value == "Red" then
+					clonedSniper = WeaponModelsFolder:WaitForChild("LaserSniperRed"):Clone()
+				elseif player.Skins.LaserSniperVariant.Value == "Purple" then
+					clonedSniper = WeaponModelsFolder:WaitForChild("LaserSniperPurple"):Clone()
+				end
+			end
+			clonedSniper.Parent = inventoryScene
+			SniperButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+			SniperButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+			for _, button in PrimaryWeapons:GetChildren() do
+				if button:IsA("TextButton") and button.Name ~= "Sniper" then
+					button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)
+					button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+				end
+			end
+		else
+			local clonedLock
+			clonedLock = WeaponModelsFolder:WaitForChild("Lock"):Clone()
+			clonedLock.Parent = inventoryScene
+			for _, button in PrimaryWeapons:GetChildren() do
+				if button:IsA("TextButton") and button.Name ~= "Sniper" then
+					button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)
+					button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+				end
+			end
+		end
+	elseif SelectedPrimary == "SMG" then
+		if player.Weapons.hasSMG.Value then
+			local clonedSMG
+			if player.Skins.SMGWeaponSkin.Value == "Default" then
+				clonedSMG = WeaponModelsFolder:WaitForChild("DefaultSMG"):Clone()
+			end
+			clonedSMG.Parent = inventoryScene
+			SMGButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+			SMGButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+			for _, button in PrimaryWeapons:GetChildren() do
+				if button:IsA("TextButton") and button.Name ~= "SMG" then
+					button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)
+					button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+				end
+			end
+		else
+			local clonedLock
+			clonedLock = WeaponModelsFolder:WaitForChild("Lock"):Clone()
+			clonedLock.Parent = inventoryScene
+			for _, button in PrimaryWeapons:GetChildren() do
+				if button:IsA("TextButton") and button.Name ~= "SMG" then
+					button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)
+					button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+				end
+			end
+		end
+	elseif SelectedPrimary == "Shotgun" then
+		if player.Weapons.hasShotgun.Value then
+			local clonedShotgun
+			if player.Skins.ShotgunWeaponSkin.Value == "Default" then
+				clonedShotgun = WeaponModelsFolder:WaitForChild("DefaultShotgun"):Clone()
+			end
+			clonedShotgun.Parent = inventoryScene
+			ShotgunButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+			ShotgunButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+			for _, button in PrimaryWeapons:GetChildren() do
+				if button:IsA("TextButton") and button.Name ~= "Shotgun" then
+					button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)
+					button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+				end
+			end
+		else
+			local clonedLock
+			clonedLock = WeaponModelsFolder:WaitForChild("Lock"):Clone()
+			clonedLock.Parent = inventoryScene
+			for _, button in PrimaryWeapons:GetChildren() do
+				if button:IsA("TextButton") and button.Name ~= "Shotgun" then
+					button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)
+					button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+				end
+			end
+		end
+	end
+
+	PrimariesButton.BackgroundColor3 = Color3.fromRGB(32, 39, 76)
+	PrimariesButton.UIStroke.Color = Color3.fromRGB(42, 52, 100)
+	SecondariesButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	SecondariesButton.UIStroke.Color = Color3.fromRGB(18, 18, 18)
+	MeleeButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	MeleeButton.UIStroke.Color = Color3.fromRGB(18, 18, 18)
+	ArmorSkinsButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	ArmorSkinsButton.UIStroke.Color = Color3.fromRGB(18, 18, 18)
+	AbilitiesButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	AbilitiesButton.UIStroke.Color = Color3.fromRGB(18, 18, 18)
+end
+
+local function SecondariesButtonActivate()
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	SelectedMenu = "Secondaries"
+
+	SetSkinFrameVisibility(false, true, false, false, false)
+	SetWeaponButtonVisibility(false, true, false, false, false)
+	SetPistolWeaponSkinBackgroundAndBorderColor()
+	SetRevolverWeaponSkinBackgroundAndBorderColor()
+	SetAutoPistolWeaponSkinBackgroundAndBorderColor()
+	SetSecondaryButtonPictures(player.Skins.PistolWeaponSkin.Value, player.Skins.RevolverWeaponSkin.Value, player.Skins.AutoPistolWeaponSkin.Value, 1, 2, 3, 4, 5, 6, 7)
+	
+	if SelectedSecondary == "Pistol" then
+		local clonedPistol
+		if player.Skins.PistolWeaponSkin.Value == "Default" then
+			clonedPistol = WeaponModelsFolder:WaitForChild("DefaultPistol"):Clone()
+		end
+		clonedPistol.Parent = inventoryScene
+		PistolButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+		PistolButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		for _, button in SecondaryWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "Pistol" then
+				button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)
+				button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+			end
+		end
+	elseif SelectedSecondary == "Revolver" then
+		if player.Weapons.hasRevolver.Value then
+			local clonedRevolver
+			if player.Skins.RevolverWeaponSkin.Value == "Default" then
+				clonedRevolver = WeaponModelsFolder:WaitForChild("DefaultRevolver"):Clone()
+			elseif player.Skins.RevolverWeaponSkin.Value == "Laser" then
+				if player.Skins.LaserRevolverVariant.Value == "Blue" then
+					clonedRevolver = WeaponModelsFolder:WaitForChild("LaserRevolver"):Clone()
+				elseif player.Skins.LaserRevolverVariant.Value == "Red" then
+					clonedRevolver = WeaponModelsFolder:WaitForChild("LaserRevolverRed"):Clone()
+				elseif player.Skins.LaserRevolverVariant.Value == "Purple" then
+					clonedRevolver = WeaponModelsFolder:WaitForChild("LaserRevolverPurple"):Clone()
+				end
+			end
+			clonedRevolver.Parent = inventoryScene
+			RevolverButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+			RevolverButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+			for _, button in SecondaryWeapons:GetChildren() do
+				if button:IsA("TextButton") and button.Name ~= "Revolver" then
+					button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)
+					button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+				end
+			end
+		else
+			local clonedLock
+			clonedLock = WeaponModelsFolder:WaitForChild("Lock"):Clone()
+			clonedLock.Parent = inventoryScene
+			for _, button in SecondaryWeapons:GetChildren() do
+				if button:IsA("TextButton") and button.Name ~= "Revolver" then
+					button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)
+					button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+				end
+			end
+		end
+		
+	end
+
+	PrimariesButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	PrimariesButton.UIStroke.Color = Color3.fromRGB(18, 18, 18)
+	SecondariesButton.BackgroundColor3 = Color3.fromRGB(32, 39, 76)
+	SecondariesButton.UIStroke.Color = Color3.fromRGB(42, 52, 100)
+	MeleeButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	MeleeButton.UIStroke.Color = Color3.fromRGB(18, 18, 18)
+	ArmorSkinsButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	ArmorSkinsButton.UIStroke.Color = Color3.fromRGB(18, 18, 18)
+	AbilitiesButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	AbilitiesButton.UIStroke.Color = Color3.fromRGB(18, 18, 18)
+end
+
+local function MeleeButtonActivate()
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	SelectedMenu = "Melee"
+
+	SetSkinFrameVisibility(false, false, true, false, false)
+	SetWeaponButtonVisibility(false, false, true, false, false)
+	SetMeleeWeaponSkinBackgroundAndBorderColor()
+	SetMeleeButtonPictures(player.Skins.MeleeWeaponSkin.Value)
+
+	local clonedMelee
+	if player.Skins.MeleeWeaponSkin.Value == "Default" then
+		clonedMelee = WeaponModelsFolder:WaitForChild("DefaultMelee"):Clone()
+	elseif player.Skins.MeleeWeaponSkin.Value == "Saber" then
+		if player.Skins.SaberVariant.Value == "Blue" then
+			clonedMelee = WeaponModelsFolder:WaitForChild("Saber"):Clone()
+		elseif player.Skins.SaberVariant.Value == "Red" then
+			clonedMelee = WeaponModelsFolder:WaitForChild("SaberRed"):Clone()
+		elseif player.Skins.SaberVariant.Value == "Purple" then
+			clonedMelee = WeaponModelsFolder:WaitForChild("SaberPurple"):Clone()
+		end
+	end
+	clonedMelee.Parent = inventoryScene
+
+	MeleeWeaponButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+	MeleeWeaponButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+	PrimariesButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	PrimariesButton.UIStroke.Color = Color3.fromRGB(18, 18, 18)
+	SecondariesButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	SecondariesButton.UIStroke.Color = Color3.fromRGB(18, 18, 18)
+	ArmorSkinsButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	ArmorSkinsButton.UIStroke.Color = Color3.fromRGB(18, 18, 18)
+	MeleeButton.BackgroundColor3 = Color3.fromRGB(32, 39, 76)
+	MeleeButton.UIStroke.Color = Color3.fromRGB(42, 52, 100)
+	AbilitiesButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	AbilitiesButton.UIStroke.Color = Color3.fromRGB(18, 18, 18)
+end
+
+local function AbilitiesButtonActivate()
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	SelectedMenu = "Abilities"
+
+	SetSkinFrameVisibility(false, false, false, false, true)
+	SetWeaponButtonVisibility(false, false, false, false, true)
+	SetAbilitiesSkinBackgroundAndBorderColor()
+	SetAbilityButtonPictures(player.Skins.BoosterSkin.Value, player.Skins.LightningBombSkin.Value, player.Skins.OverdriveVialSkin.Value, player.Skins.GrenadeSkin.Value, player.Skins.RegenPotSkin.Value)
+
+	local clonedAbility
+	if SelectedAbility == "Booster" then
+		BoosterButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+		BoosterButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		if player.Weapons.hasBooster.Value then
+			if player.Skins.BoosterSkin.Value == "Default" then
+				clonedAbility = WeaponModelsFolder:WaitForChild("DefaultBooster"):Clone()
+			end
+		else
+			clonedAbility = WeaponModelsFolder:WaitForChild("Lock"):Clone()
+		end
+	elseif SelectedAbility == "LightningBomb" then
+		LightningBombButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+		LightningBombButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		if player.Weapons.hasLightningBomb.Value then
+			if player.Skins.LightningBombSkin.Value == "Default" then
+				clonedAbility = WeaponModelsFolder:WaitForChild("DefaultLightningBomb"):Clone()
+			end
+		else
+			clonedAbility = WeaponModelsFolder:WaitForChild("Lock"):Clone()
+		end
+	elseif SelectedAbility == "OverdriveVial" then
+		OverdriveVialButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+		OverdriveVialButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		if player.Weapons.hasOverdriveVial.Value then
+			if player.Skins.OverdriveVialSkin.Value == "Default" then
+				clonedAbility = WeaponModelsFolder:WaitForChild("Abilities"):WaitForChild("DefaultOverdriveVial"):Clone()
+			end
+		else
+			clonedAbility = WeaponModelsFolder:WaitForChild("Lock"):Clone()
+		end
+	elseif SelectedAbility == "RegenPot" then
+		RegenPotButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+		RegenPotButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		if player.Weapons.hasRegenPot.Value then
+			if player.Skins.RegenPotSkin.Value == "Default" then
+				clonedAbility = WeaponModelsFolder:WaitForChild("Abilities"):WaitForChild("DefaultRegenPot"):Clone()
+			end
+		else
+			clonedAbility = WeaponModelsFolder:WaitForChild("Lock"):Clone()
+		end
+	elseif SelectedAbility == "Grenade" then
+		GrenadeButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+		GrenadeButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		clonedAbility = WeaponModelsFolder:WaitForChild("Abilities"):WaitForChild("DefaultGrenade"):Clone()
+
+	end
+
+	clonedAbility.Parent = inventoryScene
+
+	--BoosterButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+	--BoosterButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+
+	PrimariesButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	PrimariesButton.UIStroke.Color = Color3.fromRGB(18, 18, 18)
+	SecondariesButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	SecondariesButton.UIStroke.Color = Color3.fromRGB(18, 18, 18)
+	ArmorSkinsButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	ArmorSkinsButton.UIStroke.Color = Color3.fromRGB(18, 18, 18)
+	MeleeButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	MeleeButton.UIStroke.Color = Color3.fromRGB(18, 18, 18)
+	AbilitiesButton.BackgroundColor3 = Color3.fromRGB(32, 39, 76)
+	AbilitiesButton.UIStroke.Color = Color3.fromRGB(42, 52, 100)
+end
+
+
+local function CharactersButtonActivate()
+	SelectedMenu = "ArmorSkins"
+
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	SetSkinFrameVisibility(false, false, false, true, false)
+	SetWeaponButtonVisibility(false, false, false, true, false)
+	SetCenterArmorWeaponSkinBackgroundAndBorderColor()
+	SetTopArmorWeaponSkinBackgroundAndBorderColor()
+	if SelectedCharacterSkin == "Character" then
+		local clonedCenterArmor
+		if player.Skins.CharacterSkin.Value == "Lebron" then
+			clonedCenterArmor = WeaponModelsFolder:WaitForChild("ArmorSkins"):WaitForChild("LebronCharacter"):Clone()
+		else
+			clonedCenterArmor = WeaponModelsFolder:WaitForChild("ArmorSkins"):WaitForChild("DefaultArmor"):Clone()
+		end
+		clonedCenterArmor.Parent = inventoryScene
+		CenterArmorButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+		CenterArmorButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		for _, button in ArmorCosmetics:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "CenterArmorCosmetic" then
+				button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)
+				button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+			end
+		end
+	elseif SelectedCharacterSkin == "Hand" then
+		local clonedTopArmor
+		if player.Skins.HandSkin.Value == "Lebron" then
+			clonedTopArmor = WeaponModelsFolder:WaitForChild("HandSkins"):WaitForChild("LebronHands"):Clone()
+		else
+			clonedTopArmor = WeaponModelsFolder:WaitForChild("HandSkins"):WaitForChild("DefaultHands"):Clone()
+		end
+		clonedTopArmor.Parent = inventoryScene
+		TopArmorButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+		TopArmorButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+		for _, button in ArmorCosmetics:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "TopArmorCosmetic" then
+				button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)
+				button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+			end
+		end
+
+	end
+
+	ArmorSkinsButton.BackgroundColor3 = Color3.fromRGB(32, 39, 76)
+	ArmorSkinsButton.UIStroke.Color = Color3.fromRGB(42, 52, 100)
+	PrimariesButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	PrimariesButton.UIStroke.Color = Color3.fromRGB(18, 18, 18)
+	SecondariesButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	SecondariesButton.UIStroke.Color = Color3.fromRGB(18, 18, 18)
+	MeleeButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	MeleeButton.UIStroke.Color = Color3.fromRGB(18, 18, 18)
+	AbilitiesButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	AbilitiesButton.UIStroke.Color = Color3.fromRGB(18, 18, 18)
+end
+
+PrimariesButton.Activated:Connect(function()
+	ClickSound:Play()
+	PrimariesButtonActivate()
+end)
+
+SecondariesButton.Activated:Connect(function()
+	ClickSound:Play()
+	SecondariesButtonActivate()
+end)
+
+MeleeButton.Activated:Connect(function()
+	ClickSound:Play()
+	MeleeButtonActivate()
+end)
+
+AbilitiesButton.Activated:Connect(function()
+	ClickSound:Play()
+	AbilitiesButtonActivate()
+end)
+
+ArmorSkinsButton.Activated:Connect(function()
+	ClickSound:Play()
+	CharactersButtonActivate()
+end)
+
+InventoryButton.Activated:Connect(function()
+	game.StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+	player.PlayerGui:WaitForChild("Stamina").Enabled = false
+	player.PlayerGui:WaitForChild("HealthBar").Enabled = false
+	ClickSound:Play()
+	SetPrimaryButtonPictures(player.Skins.RifleWeaponSkin.Value, player.Skins.SniperWeaponSkin.Value, player.Skins.SMGWeaponSkin.Value, player.Skins.ShotgunWeaponSkin.Value, 1, 1, 1, 1)
+	SetSniperWeaponSkinBackgroundAndBorderColor()
+	SetRifleWeaponSkinBackgroundAndBorderColor()
+	SetSMGWeaponSkinBackgroundAndBorderColor()
+	SetLockedRifleSkins()
+	SetLockedSniperSkins()
+	SetLockedMeleeSkins()
+	if SelectedMenu == "Primaries" then
+		PrimariesButtonActivate()
+
+		PrimariesButton.BackgroundColor3 = Color3.fromRGB(32, 39, 76)
+		PrimariesButton.UIStroke.Color = Color3.fromRGB(42, 52, 100)
+		SecondariesButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+		SecondariesButton.UIStroke.Color = Color3.fromRGB(18, 18, 18)
+		MeleeButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+		MeleeButton.UIStroke.Color = Color3.fromRGB(18, 18, 18)
+	elseif SelectedMenu == "Secondaries" then
+		PrimariesButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+		PrimariesButton.UIStroke.Color = Color3.fromRGB(18, 18, 18)
+		SecondariesButton.BackgroundColor3 = Color3.fromRGB(32, 39, 76)
+		SecondariesButton.UIStroke.Color = Color3.fromRGB(42, 52, 100)
+		MeleeButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+		MeleeButton.UIStroke.Color = Color3.fromRGB(18, 18, 18)
+	else
+		PrimariesButtonActivate()
+	end
+	ScriptCamera()
+	CoreElements.Enabled = false
+	InventoryGui.Enabled = true
+	InventoryButton.Size = InventoryStartSize
+	CloseButton.Size = CloseStartSize
+end)
+
+ShopButton.Activated:Connect(function()
+	ClickSound:Play()
+	CoreElements.Enabled = false
+	ShopGui.Enabled = true
+	GemShopFrame.Visible = false
+	ShopButton.Size = InventoryStartSize
+	SkinShopFrame.Visible = true
+	SetOwnedSkinGreenBackgrounds()
+	for _, button in ShopGui:GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "Close" then
+			button.BackgroundColor3 = Color3.fromRGB(33, 33, 33)
+			button.UIStroke.Color = Color3.fromRGB(15, 15, 15)
+		end
+	end
+	SkinsShopButton.BackgroundColor3 = Color3.fromRGB(32, 39, 76)
+	SkinsShopButton.UIStroke.Color = Color3.fromRGB(42, 52, 100)
+end)
+
+BonusesButton.Activated:Connect(function()
+	ClickSound:Play()
+	CoreElements.Enabled = false
+	BonusesGui.Enabled = true
+	game.StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+
+	BonusesButton.Size = InventoryStartSize
+end)
+
+BonusesCloseButton.Activated:Connect(function()
+
+	ClickSound:Play()
+	CoreElements.Enabled = true
+	BonusesGui.Enabled = false
+	game.StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, true)
+	BonusesCloseButton.Size = CloseStartSize
+	BonusesButton.Size = InventoryStartSize
+end)
+
+ShopCloseButton.Activated:Connect(function()
+
+	ClickSound:Play()
+	CoreElements.Enabled = true
+	ShopGui.Enabled = false
+	ShopCloseButton.Size = CloseStartSize
+	ShopButton.Size = InventoryStartSize
+
+end)
+
+CloseButton.Activated:Connect(function()
+	game.StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, true)
+	player.PlayerGui:WaitForChild("Stamina").Enabled = true
+	player.PlayerGui:WaitForChild("HealthBar").Enabled = true
+	ClickSound:Play()
+	CustomCamera()
+	CoreElements.Enabled = true
+	InventoryGui.Enabled = false
+	InventoryButton.Size = InventoryStartSize
+	CloseButton.Size = CloseStartSize
+end)
+
+-- Helper function for creating tweens
+local function tweenProperty(object, property, endValue, duration)
+	local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+	local tween = TweenService:Create(object, tweenInfo, {[property] = endValue})
+	tween:Play()
+end
+
+local function primaryEnter(button)
+	HoverSound:Play()
+	button:TweenSize(InventoryHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end
+
+local function primaryLeave(button)
+	button:TweenSize(InventoryStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end
+
+PlayButton.MouseEnter:Connect(function()
+	HoverSound:Play()
+	PlayButton:TweenSize(PlayHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+PlayButton.MouseLeave:Connect(function()
+	PlayButton:TweenSize(PlayStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+PlayButton.Activated:Connect(function()
+	ClickSound:Play()
+	game.StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+	CancelQueue.UIStroke.Color = Color3.fromRGB(199, 25, 25)
+	CoreElements.Enabled = false
+	PlayGui.Enabled = true
+end)
+
+PlayGui:WaitForChild("Close").Activated:Connect(function()
+	ClickSound:Play()
+	game.StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, true)
+	CoreElements.Enabled = true
+	PlayGui.Enabled = false
+	PlayButton.Size = PlayStartSize
+	PlayGui:WaitForChild("Close").Size = CloseStartSize
+end)
+
+PlayGui:WaitForChild("Ones").MouseEnter:Connect(function()
+	HoverSound:Play()
+	tweenProperty(PlayGui:WaitForChild("Ones").UIStroke, "Color", Color3.fromRGB(255, 255, 255), 0.15)
+end)
+
+PlayGui:WaitForChild("Ones").MouseLeave:Connect(function()
+	tweenProperty(PlayGui:WaitForChild("Ones").UIStroke, "Color", Color3.fromRGB(18, 18, 18), 0.15)
+end)
+
+PlayGui:WaitForChild("Twos").MouseEnter:Connect(function()
+	HoverSound:Play()
+	tweenProperty(PlayGui:WaitForChild("Twos").UIStroke, "Color", Color3.fromRGB(255, 255, 255), 0.15)
+end)
+
+PlayGui:WaitForChild("Twos").MouseLeave:Connect(function()
+	tweenProperty(PlayGui:WaitForChild("Twos").UIStroke, "Color", Color3.fromRGB(18, 18, 18), 0.15)
+end)
+
+PlayGui:WaitForChild("Deathmatch").MouseEnter:Connect(function()
+	HoverSound:Play()
+	tweenProperty(PlayGui:WaitForChild("Deathmatch").UIStroke, "Color", Color3.fromRGB(255, 255, 255), 0.15)
+end)
+
+PlayGui:WaitForChild("Deathmatch").MouseLeave:Connect(function()
+	tweenProperty(PlayGui:WaitForChild("Deathmatch").UIStroke, "Color", Color3.fromRGB(18, 18, 18), 0.15)
+end)
+
+PlayGui:WaitForChild("Deathmatch").Activated:Connect(function()
+	game:GetService('TeleportService'):Teleport(17580039695)
+	PlayButton.Visible = false
+	PlayGui.Enabled = false
+	QueueGui.Enabled = true
+	local i = 0
+	while QueueGui.Enabled do
+		local minutes = math.floor(i / 60)
+		local seconds = i % 60
+		local formattedTime = string.format("%d:%02d", minutes, seconds)
+		QueueTime.Text = formattedTime
+		task.wait(1)
+		i += 1
+		
+	end
+end)
+
+CancelQueue.MouseEnter:Connect(function()
+	HoverSound:Play()
+	tweenProperty(CancelQueue.UIStroke, "Color", Color3.fromRGB(255, 255, 255), 0.15)
+end)
+
+CancelQueue.MouseLeave:Connect(function()
+	tweenProperty(CancelQueue.UIStroke, "Color", Color3.fromRGB(199, 25, 25), 0.15)
+end)
+
+CancelQueue.Activated:Connect(function()
+	ClickSound:Play()
+	game.StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, true)
+	CoreElements.Enabled = true
+	PlayButton.Visible = true
+	QueueGui.Enabled = false
+end)
+
+
+CoreElementsCurrencyButton.MouseEnter:Connect(function()
+	HoverSound:Play()
+	CoreElementsCurrencyButton:TweenSize(CurrencyButtonHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+CoreElementsCurrencyButton.MouseLeave:Connect(function()
+	CoreElementsCurrencyButton:TweenSize(CurrencyButtonStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+CoreElementsCurrencyButton.Activated:Connect(function()
+	CoreElementsCurrencyButton:TweenSize(CurrencyButtonStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+	ClickSound:Play()
+	CoreElements.Enabled = false
+	ShopGui.Enabled = true
+	GemShopFrame.Visible = false
+	ShopButton.Size = InventoryStartSize
+	SkinShopFrame.Visible = true
+	SetOwnedSkinGreenBackgrounds()
+	for _, button in ShopGui:GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "Close" then
+			button.BackgroundColor3 = Color3.fromRGB(33, 33, 33)
+			button.UIStroke.Color = Color3.fromRGB(15, 15, 15)
+		end
+	end
+	SkinsShopButton.BackgroundColor3 = Color3.fromRGB(32, 39, 76)
+	SkinsShopButton.UIStroke.Color = Color3.fromRGB(42, 52, 100)
+	ShopGuiButtonActivate(GemsShopButton)
+	GemShopFrame.Visible = true
+	SkinShopFrame.Visible = false
+end)
+
+
+InventoryButton.MouseEnter:Connect(function()
+	primaryEnter(InventoryButton)
+end)
+
+InventoryButton.MouseLeave:Connect(function()
+	primaryLeave(InventoryButton)	
+end)
+
+ShopButton.MouseEnter:Connect(function()
+	primaryEnter(ShopButton)
+end)
+
+ShopButton.MouseLeave:Connect(function()
+	primaryLeave(ShopButton)	
+end)
+
+ViewBlueVariant.MouseEnter:Connect(function()
+	HoverSound:Play()
+	tweenProperty(ViewBlueVariant.UIStroke, "Color", Color3.fromRGB(255, 255, 255), 0.15)
+end)
+
+ViewBlueVariant.MouseLeave:Connect(function()
+	tweenProperty(ViewBlueVariant.UIStroke, "Color", Color3.fromRGB(20, 136, 199), 0.15)
+end)
+
+ViewRedVariant.MouseEnter:Connect(function()
+	HoverSound:Play()
+	tweenProperty(ViewRedVariant.UIStroke, "Color", Color3.fromRGB(255, 255, 255), 0.15)
+end)
+
+ViewRedVariant.MouseLeave:Connect(function()
+	tweenProperty(ViewRedVariant.UIStroke, "Color", Color3.fromRGB(199, 27, 30), 0.15)
+end)
+
+ViewPurpleVariant.MouseEnter:Connect(function()
+	HoverSound:Play()
+	tweenProperty(ViewPurpleVariant.UIStroke, "Color", Color3.fromRGB(255, 255, 255), 0.15)
+end)
+
+ViewPurpleVariant.MouseLeave:Connect(function()
+	tweenProperty(ViewPurpleVariant.UIStroke, "Color", Color3.fromRGB(132, 25, 199), 0.15)
+end)
+
+ViewBlueVariant.Activated:Connect(function()
+	ClickSound:Play()
+	HyperlightBundlePicture.Image = "rbxassetid://85881360877875"
+end)
+
+ViewRedVariant.Activated:Connect(function()
+	ClickSound:Play()
+	HyperlightBundlePicture.Image = "rbxassetid://120683546513973"
+end)
+
+ViewPurpleVariant.Activated:Connect(function()
+	ClickSound:Play()
+	HyperlightBundlePicture.Image = "rbxassetid://99110703276543"
+end)
+
+BonusesButton.MouseEnter:Connect(function()
+	primaryEnter(BonusesButton)
+end)
+
+BonusesButton.MouseLeave:Connect(function()
+	primaryLeave(BonusesButton)	
+end)
+
+SettingsButton.MouseEnter:Connect(function()
+	primaryEnter(SettingsButton)
+end)
+
+SettingsButton.MouseLeave:Connect(function()
+	primaryLeave(SettingsButton)	
+end)
+
+SettingsButton.Activated:Connect(function()
+	primaryLeave(SettingsButton)	
+
+end)
+
+PrimariesButton.MouseEnter:Connect(function()
+	HoverSound:Play()
+	PrimariesButton.PRIMARIES:TweenSize(PrimaryTextHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+PrimariesButton.MouseLeave:Connect(function()
+	PrimariesButton.PRIMARIES:TweenSize(PrimaryTextStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+SecondariesButton.MouseEnter:Connect(function()
+	HoverSound:Play()
+	SecondariesButton.SECONDARIES:TweenSize(PrimaryTextHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+SecondariesButton.MouseLeave:Connect(function()
+	SecondariesButton.SECONDARIES:TweenSize(PrimaryTextStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+MeleeButton.MouseEnter:Connect(function()
+	HoverSound:Play()
+	MeleeButton.MELEE:TweenSize(PrimaryTextHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+MeleeButton.MouseLeave:Connect(function()
+	MeleeButton.MELEE:TweenSize(PrimaryTextStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+AbilitiesButton.MouseEnter:Connect(function()
+	HoverSound:Play()
+	AbilitiesButton.ABILITIES:TweenSize(PrimaryTextHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+AbilitiesButton.MouseLeave:Connect(function()
+	AbilitiesButton.ABILITIES:TweenSize(PrimaryTextStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+ArmorSkinsButton.MouseEnter:Connect(function()
+	HoverSound:Play()
+	ArmorSkinsButton.ARMOR:TweenSize(SmallTextHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.25, true)
+end)
+
+ArmorSkinsButton.MouseLeave:Connect(function()
+	ArmorSkinsButton.ARMOR:TweenSize(SmallTextStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.25, true)
+end)
+
+CloseButton.MouseEnter:Connect(function()
+	HoverSound:Play()
+	CloseButton:TweenSize(CloseHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+CloseButton.MouseLeave:Connect(function()
+	HoverSound:Play()
+	CloseButton:TweenSize(CloseStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+PlayGui:WaitForChild("Close").MouseEnter:Connect(function()
+	HoverSound:Play()
+	PlayGui:WaitForChild("Close"):TweenSize(CloseHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+PlayGui:WaitForChild("Close").MouseLeave:Connect(function()
+	HoverSound:Play()
+	PlayGui:WaitForChild("Close"):TweenSize(CloseStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+ShopCloseButton.MouseEnter:Connect(function()
+	HoverSound:Play()
+	ShopCloseButton:TweenSize(CloseHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+ShopCloseButton.MouseLeave:Connect(function()
+	HoverSound:Play()
+	ShopCloseButton:TweenSize(CloseStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+SettingsCloseButton.MouseEnter:Connect(function()
+	HoverSound:Play()
+	SettingsCloseButton:TweenSize(CloseHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+SettingsCloseButton.MouseLeave:Connect(function()
+	HoverSound:Play()
+	SettingsCloseButton:TweenSize(CloseStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+--for loops important
+for _, button in InventoryGui:GetDescendants() do
+	if button:IsA("TextButton") and (button.Parent == PrimaryWeapons or button.Parent == SecondaryWeapons or button.Parent == MeleeWeapons or button.Parent == AbilityWeapons or button.Parent == ArmorCosmetics) then
+		button.MouseEnter:Connect(function()
+			HoverSound:Play()
+			button:TweenSize(WeaponsHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+		end)
+
+		button.MouseLeave:Connect(function()
+			button:TweenSize(WeaponsStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+		end)
+	end
+end
+
+for _, button in InventoryGui:GetDescendants() do
+	if button:IsA("TextButton") and (button:FindFirstAncestor("PrimarySkins") or button:FindFirstAncestor("SecondarySkins")  or button:FindFirstAncestor("MeleeSkins")  or button:FindFirstAncestor("AbilitySkins") or button:FindFirstAncestor("ArmorSkins")) then
+		button.MouseEnter:Connect(function()
+			HoverSound:Play()
+			button:TweenSize(SkinHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+		end)
+
+		button.MouseLeave:Connect(function()
+			button:TweenSize(SkinStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+		end)
+	end
+end
+
+for _, button in InventoryGui:GetDescendants() do
+	if button:IsA("TextButton") and (button.Parent == UnlockWeaponsFolder) then
+		button.MouseEnter:Connect(function()
+			HoverSound:Play()
+			button:TweenSize(UnlockHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+		end)
+
+		button.MouseLeave:Connect(function()
+			button:TweenSize(UnlockStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+		end)
+	end
+end
+
+
+RifleButton.Activated:Connect(function()
+	ClickSound:Play()
+	SetRifleWeaponSkinBackgroundAndBorderColor()
+	local clonedRifle
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	if player.Skins.RifleWeaponSkin.Value == "Default" then
+		clonedRifle = WeaponModelsFolder:WaitForChild("DefaultRifle"):Clone()
+	elseif player.Skins.RifleWeaponSkin.Value == "Laser" then
+		if player.Skins.LaserRifleVariant.Value == "Blue" then
+			clonedRifle = WeaponModelsFolder:WaitForChild("LaserRifle"):Clone()
+		elseif player.Skins.LaserRifleVariant.Value == "Red" then
+			clonedRifle = WeaponModelsFolder:WaitForChild("LaserRifleRed"):Clone()
+		elseif player.Skins.LaserRifleVariant.Value == "Purple" then
+			clonedRifle = WeaponModelsFolder:WaitForChild("LaserRiflePurple"):Clone()
+		end
+	end
+	clonedRifle.Parent = inventoryScene
+	SelectedPrimary = "Rifle"
+	SetSkinFrameVisibility(true, false, false, false, false)
+	tweenProperty(RifleButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(RifleButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in PrimaryWeapons:GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "Rifle" then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+		end
+	end
+end)
+
+
+SniperButton.Activated:Connect(function()
+	ClickSound:Play()
+	if player.Weapons.hasSniper.Value then
+		local clonedSniper
+		SetSniperWeaponSkinBackgroundAndBorderColor()
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		if player.Skins.SniperWeaponSkin.Value == "Default" then
+			clonedSniper = WeaponModelsFolder:WaitForChild("DefaultSniper"):Clone()
+		elseif player.Skins.SniperWeaponSkin.Value == "Laser" then
+			if player.Skins.LaserSniperVariant.Value == "Blue" then
+				clonedSniper = WeaponModelsFolder:WaitForChild("LaserSniper"):Clone()
+			elseif player.Skins.LaserSniperVariant.Value == "Red" then
+				clonedSniper = WeaponModelsFolder:WaitForChild("LaserSniperRed"):Clone()
+			elseif player.Skins.LaserSniperVariant.Value == "Purple" then
+				clonedSniper = WeaponModelsFolder:WaitForChild("LaserSniperPurple"):Clone()
+			end
+		end	
+		clonedSniper.Parent = inventoryScene
+		SelectedPrimary = "Sniper"
+		SetSkinFrameVisibility(true, false, false, false, false)
+		tweenProperty(SniperButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+		tweenProperty(SniperButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+		for _, button in PrimaryWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "Sniper" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+	else
+		local clonedLock
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		SelectedPrimary = "Sniper"
+		SetSkinFrameVisibility(true, false, false, false, false)
+
+		clonedLock = WeaponModelsFolder:WaitForChild("Lock"):Clone()
+		clonedLock.Parent = inventoryScene
+		for _, button in PrimaryWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "Sniper" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+	end
+end)
+
+
+SMGButton.Activated:Connect(function()
+	ClickSound:Play()
+	if player.Weapons.hasSMG.Value then
+		local clonedSMG
+		SetSMGWeaponSkinBackgroundAndBorderColor()
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		if player.Skins.SMGWeaponSkin.Value == "Default" then
+			clonedSMG = WeaponModelsFolder:WaitForChild("DefaultSMG"):Clone()
+		end	
+		clonedSMG.Parent = inventoryScene
+		SelectedPrimary = "SMG"
+		SetSkinFrameVisibility(true, false, false, false, false)
+		tweenProperty(SMGButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+		tweenProperty(SMGButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+		for _, button in PrimaryWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "SMG" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+	else
+		local clonedLock
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		SelectedPrimary = "SMG"
+		SetSkinFrameVisibility(true, false, false, false, false)
+
+		clonedLock = WeaponModelsFolder:WaitForChild("Lock"):Clone()
+		clonedLock.Parent = inventoryScene
+		for _, button in PrimaryWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "SMG" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+	end
+end)
+
+ShotgunButton.Activated:Connect(function()
+	ClickSound:Play()
+	if player.Weapons.hasShotgun.Value then
+		local clonedShotgun
+		SetShotgunWeaponSkinBackgroundAndBorderColor()
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		if player.Skins.ShotgunWeaponSkin.Value == "Default" then
+			clonedShotgun = WeaponModelsFolder:WaitForChild("DefaultShotgun"):Clone()
+		end	
+		clonedShotgun.Parent = inventoryScene
+		SelectedPrimary = "Shotgun"
+		SetSkinFrameVisibility(true, false, false, false, false)
+		tweenProperty(ShotgunButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+		tweenProperty(ShotgunButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+		for _, button in PrimaryWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "Shotgun" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+	else
+		local clonedLock
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		SelectedPrimary = "Shotgun"
+		SetSkinFrameVisibility(true, false, false, false, false)
+
+		clonedLock = WeaponModelsFolder:WaitForChild("Lock"):Clone()
+		clonedLock.Parent = inventoryScene
+		for _, button in PrimaryWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "Shotgun" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+	end
+end)
+
+
+DefaultSMGSkinButton.Activated:Connect(function()
+	ClickSound:Play()
+	local clonedSMG
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	SetPrimaryButtonPictures(player.Skins.RifleWeaponSkin.Value, player.Skins.SniperWeaponSkin.Value, "Default", player.Skins.ShotgunWeaponSkin.Value, 1, 1, 1, 1)
+	clonedSMG = WeaponModelsFolder:WaitForChild("DefaultSMG"):Clone()
+	clonedSMG.Parent = inventoryScene
+	ChangeSMGSkin:FireServer("Default")
+	tweenProperty(DefaultSMGSkinButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(DefaultSMGSkinButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in PrimarySkins:WaitForChild("SMGSkins"):GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "DefaultSMGSkin" then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+		end
+	end
+end)
+
+
+DefaultShotgunSkinButton.Activated:Connect(function()
+	ClickSound:Play()
+	local clonedShotgun
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	SetPrimaryButtonPictures(player.Skins.RifleWeaponSkin.Value, player.Skins.SniperWeaponSkin.Value, player.Skins.SMGWeaponSkin.Value, "Default", 1, 1, 1, 1)
+	clonedShotgun = WeaponModelsFolder:WaitForChild("DefaultShotgun"):Clone()
+	clonedShotgun.Parent = inventoryScene
+	ChangeShotgunSkin:FireServer("Default")
+	tweenProperty(DefaultShotgunSkinButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(DefaultShotgunSkinButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in PrimarySkins:WaitForChild("ShotgunSkins"):GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "DefaultShotgunSkin" then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+		end
+	end
+end)
+
+
+DefaultRifleSkinButton.Activated:Connect(function()
+	ClickSound:Play()
+	local clonedRifle
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	SetPrimaryButtonPictures("Default", player.Skins.SniperWeaponSkin.Value, player.Skins.SMGWeaponSkin.Value, player.Skins.ShotgunWeaponSkin.Value, 1, 1, 1, 1)
+	clonedRifle = WeaponModelsFolder:WaitForChild("DefaultRifle"):Clone()
+	clonedRifle.Parent = inventoryScene
+	ChangeRifleSkin:FireServer("Default")
+	tweenProperty(DefaultRifleSkinButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(DefaultRifleSkinButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in PrimarySkins:WaitForChild("RifleSkins"):GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "DefaultRifleSkin" then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+		end
+	end
+end)
+
+
+LaserRifleSkinButton.Activated:Connect(function()
+	if player.Skins.hasLaserRifle.Value then
+		ClickSound:Play()
+		local clonedRifle
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		SetPrimaryButtonPictures("Laser", player.Skins.SniperWeaponSkin.Value, player.Skins.SMGWeaponSkin.Value, player.Skins.ShotgunWeaponSkin.Value, 1, 1, 1, 1)
+		if player.Skins.LaserRifleVariant.Value == "Blue" then
+			clonedRifle = WeaponModelsFolder:WaitForChild("LaserRifle"):Clone()
+		elseif player.Skins.LaserRifleVariant.Value == "Red" then
+			clonedRifle = WeaponModelsFolder:WaitForChild("LaserRifleRed"):Clone()
+		elseif player.Skins.LaserRifleVariant.Value == "Purple" then
+			clonedRifle = WeaponModelsFolder:WaitForChild("LaserRiflePurple"):Clone()
+		end
+		clonedRifle.Parent = inventoryScene
+		ChangeRifleSkin:FireServer("Laser")
+		tweenProperty(LaserRifleSkinButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+		tweenProperty(LaserRifleSkinButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+		for _, button in PrimarySkins:WaitForChild("RifleSkins"):GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "LaserRifleSkin" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+	end
+end)
+
+
+LaserRifleBlueVariantButton.Activated:Connect(function()
+	ClickSound:Play()
+	local clonedRifle
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	clonedRifle = WeaponModelsFolder:WaitForChild("LaserRifle"):Clone()
+	clonedRifle.Parent = inventoryScene
+	ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeLaserRifleSkinVariant"):FireServer("Blue")
+	tweenProperty(LaserRifleBlueVariantButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(LaserRifleBlueVariantButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in PrimarySkins:WaitForChild("RifleSkins"):WaitForChild("LaserRifleVariants"):GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "LaserRifleVariantBlue" then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+		end
+	end
+end)
+
+
+LaserRifleRedVariantButton.Activated:Connect(function()
+	ClickSound:Play()
+	local clonedRifle
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	clonedRifle = WeaponModelsFolder:WaitForChild("LaserRifleRed"):Clone()
+	clonedRifle.Parent = inventoryScene
+	ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeLaserRifleSkinVariant"):FireServer("Red")
+	tweenProperty(LaserRifleRedVariantButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(LaserRifleRedVariantButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in PrimarySkins:WaitForChild("RifleSkins"):WaitForChild("LaserRifleVariants"):GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "LaserRifleVariantRed" then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+		end
+	end
+end)
+
+LaserRiflePurpleVariantButton.Activated:Connect(function()
+	ClickSound:Play()
+	local clonedRifle
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	clonedRifle = WeaponModelsFolder:WaitForChild("LaserRiflePurple"):Clone()
+	clonedRifle.Parent = inventoryScene
+	ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeLaserRifleSkinVariant"):FireServer("Purple")
+	tweenProperty(LaserRiflePurpleVariantButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(LaserRiflePurpleVariantButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in PrimarySkins:WaitForChild("RifleSkins"):WaitForChild("LaserRifleVariants"):GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "LaserRifleVariantPurple" then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+		end
+	end
+end)
+
+
+DefaultSniperSkinButton.Activated:Connect(function()
+	ClickSound:Play()
+	local clonedSniper
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	SetPrimaryButtonPictures(player.Skins.RifleWeaponSkin.Value, "Default", player.Skins.SMGWeaponSkin.Value, player.Skins.ShotgunWeaponSkin.Value, 1, 1, 1, 1)
+	clonedSniper = WeaponModelsFolder:WaitForChild("DefaultSniper"):Clone()
+	clonedSniper.Parent = inventoryScene
+	ChangeSniperSkin:FireServer("Default")
+	tweenProperty(DefaultSniperSkinButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(DefaultSniperSkinButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in PrimarySkins:WaitForChild("SniperSkins"):GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "DefaultSniperSkin" then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+		end
+	end
+end)
+
+LaserSniperSkinButton.Activated:Connect(function()
+	if player.Skins.hasLaserSniper.Value then
+		ClickSound:Play()
+		local clonedSniper
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		SetPrimaryButtonPictures(player.Skins.RifleWeaponSkin.Value, "Laser", player.Skins.SMGWeaponSkin.Value, player.Skins.ShotgunWeaponSkin.Value, 1, 1, 1, 1)
+
+		if player.Skins.LaserSniperVariant.Value == "Blue" then
+			clonedSniper = WeaponModelsFolder:WaitForChild("LaserSniper"):Clone()
+		elseif player.Skins.LaserSniperVariant.Value == "Red" then
+			clonedSniper = WeaponModelsFolder:WaitForChild("LaserSniperRed"):Clone()
+		elseif player.Skins.LaserSniperVariant.Value == "Purple" then
+			clonedSniper = WeaponModelsFolder:WaitForChild("LaserSniperPurple"):Clone()
+		end		
+		clonedSniper.Parent = inventoryScene
+		ChangeSniperSkin:FireServer("Laser")
+		tweenProperty(LaserSniperSkinButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+		tweenProperty(LaserSniperSkinButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+		for _, button in PrimarySkins:WaitForChild("SniperSkins"):GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "LaserSniperSkin" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+	end
+end)
+
+
+LaserSniperBlueVariantButton.Activated:Connect(function()
+	ClickSound:Play()
+	local clonedRifle
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	clonedRifle = WeaponModelsFolder:WaitForChild("LaserSniper"):Clone()
+	clonedRifle.Parent = inventoryScene
+	ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeLaserSniperSkinVariant"):FireServer("Blue")
+	tweenProperty(LaserSniperBlueVariantButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(LaserSniperBlueVariantButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in PrimarySkins:WaitForChild("SniperSkins"):WaitForChild("LaserSniperVariants"):GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "LaserSniperVariantBlue" then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+		end
+	end
+end)
+
+LaserSniperRedVariantButton.Activated:Connect(function()
+	ClickSound:Play()
+	local clonedRifle
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	clonedRifle = WeaponModelsFolder:WaitForChild("LaserSniperRed"):Clone()
+	clonedRifle.Parent = inventoryScene
+	ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeLaserSniperSkinVariant"):FireServer("Red")
+	tweenProperty(LaserSniperRedVariantButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(LaserSniperRedVariantButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in PrimarySkins:WaitForChild("SniperSkins"):WaitForChild("LaserSniperVariants"):GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "LaserSniperVariantRed" then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+		end
+	end
+end)
+
+
+LaserSniperPurpleVariantButton.Activated:Connect(function()
+	ClickSound:Play()
+	local clonedRifle
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	clonedRifle = WeaponModelsFolder:WaitForChild("LaserSniperPurple"):Clone()
+	clonedRifle.Parent = inventoryScene
+	ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeLaserSniperSkinVariant"):FireServer("Purple")
+	tweenProperty(LaserSniperPurpleVariantButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(LaserSniperPurpleVariantButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in PrimarySkins:WaitForChild("SniperSkins"):WaitForChild("LaserSniperVariants"):GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "LaserSniperVariantPurple" then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+		end
+	end
+end)
+
+LaserRevolverBlueVariantButton.Activated:Connect(function()
+	ClickSound:Play()
+	local clonedRevolver
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	clonedRevolver = WeaponModelsFolder:WaitForChild("LaserRevolver"):Clone()
+	clonedRevolver.Parent = inventoryScene
+	ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeLaserRevolverSkinVariant"):FireServer("Blue")
+	tweenProperty(LaserRevolverBlueVariantButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(LaserRevolverBlueVariantButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in SecondarySkins:WaitForChild("RevolverSkins"):WaitForChild("LaserRevolverVariants"):GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "LaserRevolverVariantBlue" then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+		end
+	end
+end)
+
+
+LaserRevolverRedVariantButton.Activated:Connect(function()
+	ClickSound:Play()
+	local clonedRevolver
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	clonedRevolver = WeaponModelsFolder:WaitForChild("LaserRevolverRed"):Clone()
+	clonedRevolver.Parent = inventoryScene
+	ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeLaserRevolverSkinVariant"):FireServer("Red")
+	tweenProperty(LaserRevolverRedVariantButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(LaserRevolverRedVariantButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in SecondarySkins:WaitForChild("RevolverSkins"):WaitForChild("LaserRevolverVariants"):GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "LaserRevolverVariantRed" then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+		end
+	end
+end)
+
+
+LaserRevolverPurpleVariantButton.Activated:Connect(function()
+	ClickSound:Play()
+	local clonedRevolver
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	clonedRevolver = WeaponModelsFolder:WaitForChild("LaserRevolverPurple"):Clone()
+	clonedRevolver.Parent = inventoryScene
+	ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeLaserRevolverSkinVariant"):FireServer("Purple")
+	tweenProperty(LaserRevolverPurpleVariantButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(LaserRevolverPurpleVariantButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in SecondarySkins:WaitForChild("RevolverSkins"):WaitForChild("LaserRevolverVariants"):GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "LaserRevolverVariantPurple" then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+		end
+	end
+end)
+
+PistolButton.Activated:Connect(function()
+	ClickSound:Play()
+	local clonedPistol
+	SetPistolWeaponSkinBackgroundAndBorderColor()
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	if player.Skins.PistolWeaponSkin.Value == "Default" then
+		clonedPistol = WeaponModelsFolder:WaitForChild("DefaultPistol"):Clone()
+	end	
+	clonedPistol.Parent = inventoryScene
+	SelectedSecondary = "Pistol"
+	SetSkinFrameVisibility(false, true, false, false, false)
+	tweenProperty(PistolButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(PistolButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in SecondaryWeapons:GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "Pistol" then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+		end
+	end
+end)
+
+DefaultPistolSkinButton.Activated:Connect(function()
+	ClickSound:Play()
+	local clonedPistol
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	SetSecondaryButtonPictures("Default", player.Skins.RevolverWeaponSkin.Value, player.Skins.AutoPistolWeaponSkin.Value, 1, 2, 3, 4, 5, 6, 7)
+	clonedPistol = WeaponModelsFolder:WaitForChild("DefaultPistol"):Clone()
+	clonedPistol.Parent = inventoryScene
+	ChangePistolSkin:FireServer("Default")
+	tweenProperty(DefaultPistolSkinButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(DefaultPistolSkinButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in SecondarySkins:WaitForChild("PistolSkins"):GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "DefaultPistolSkin" then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+		end
+	end
+end)
+
+AutoPistolButton.Activated:Connect(function()
+	ClickSound:Play()
+	if player.Weapons.hasAutoPistol.Value then
+		local clonedAutoPistol
+		SetAutoPistolWeaponSkinBackgroundAndBorderColor()
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		if player.Skins.AutoPistolWeaponSkin.Value == "Default" then
+			clonedAutoPistol = WeaponModelsFolder:WaitForChild("AutoPistols"):WaitForChild("DefaultAutoPistol"):Clone()
+		end	
+		clonedAutoPistol.Parent = inventoryScene
+		SelectedSecondary = "AutoPistol"
+		SetSkinFrameVisibility(false, true, false, false, false)
+		tweenProperty(AutoPistolButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+		tweenProperty(AutoPistolButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+		for _, button in SecondaryWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "AutoPistol" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+	else
+		local clonedLock
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		SelectedSecondary = "AutoPistol"
+		SetSkinFrameVisibility(false, true, false, false, false)
+
+		clonedLock = WeaponModelsFolder:WaitForChild("Lock"):Clone()
+		clonedLock.Parent = inventoryScene
+		for _, button in SecondaryWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "AutoPistol" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+	end
+
+end)
+
+DefaultAutoPistolSkinButton.Activated:Connect(function()
+	ClickSound:Play()
+	local clonedAutoPistol
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	SetSecondaryButtonPictures(player.Skins.PistolWeaponSkin.Value, player.Skins.RevolverWeaponSkin.Value, "Default", 1, 2, 3, 4, 5, 6, 7)
+	clonedAutoPistol = WeaponModelsFolder:WaitForChild("AutoPistols"):WaitForChild("DefaultAutoPistol"):Clone()
+	clonedAutoPistol.Parent = inventoryScene
+	ChangePistolSkin:FireServer("Default")
+	tweenProperty(DefaultAutoPistolSkinButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(DefaultAutoPistolSkinButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in SecondarySkins:WaitForChild("AutoPistolSkins"):GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "DefaultAutoPistolSkin" then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+		end
+	end
+end)
+
+RevolverButton.Activated:Connect(function()
+	ClickSound:Play()
+	if player.Weapons.hasRevolver.Value then
+		local clonedRevolver
+		SetRevolverWeaponSkinBackgroundAndBorderColor()
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		if player.Skins.RevolverWeaponSkin.Value == "Default" then
+			clonedRevolver = WeaponModelsFolder:WaitForChild("DefaultRevolver"):Clone()
+		elseif player.Skins.RevolverWeaponSkin.Value == "Laser" then
+			if player.Skins.LaserRevolverVariant.Value == "Blue" then
+				clonedRevolver = WeaponModelsFolder:WaitForChild("LaserRevolver"):Clone()
+			elseif player.Skins.LaserRevolverVariant.Value == "Red" then
+				clonedRevolver = WeaponModelsFolder:WaitForChild("LaserRevolverRed"):Clone()
+			elseif player.Skins.LaserRevolverVariant.Value == "Purple" then
+				clonedRevolver = WeaponModelsFolder:WaitForChild("LaserRevolverPurple"):Clone()
+			end		
+		end	
+		clonedRevolver.Parent = inventoryScene
+		SelectedSecondary = "Revolver"
+		SetSkinFrameVisibility(false, true, false, false, false)
+		tweenProperty(RevolverButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+		tweenProperty(RevolverButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+		for _, button in SecondaryWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "Revolver" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+	else
+		local clonedLock
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		SelectedSecondary = "Revolver"
+		SetSkinFrameVisibility(false, true, false, false, false)
+
+		clonedLock = WeaponModelsFolder:WaitForChild("Lock"):Clone()
+		clonedLock.Parent = inventoryScene
+		for _, button in SecondaryWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "Revolver" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+	end
+
+end)
+
+DefaultRevolverSkinButton.Activated:Connect(function()
+	ClickSound:Play()
+	local clonedRevolver
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	SetSecondaryButtonPictures(player.Skins.PistolWeaponSkin.Value, "Default", player.Skins.AutoPistolWeaponSkin.Value, 1, 2, 3, 4, 5, 6, 7)
+	clonedRevolver = WeaponModelsFolder:WaitForChild("DefaultRevolver"):Clone()
+	clonedRevolver.Parent = inventoryScene
+	ChangeRevolverSkin:FireServer("Default")
+	tweenProperty(DefaultRevolverSkinButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(DefaultRevolverSkinButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in SecondarySkins:WaitForChild("RevolverSkins"):GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "DefaultRevolverSkin" then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+		end
+	end
+end)
+
+LaserRevolverSkinButton.Activated:Connect(function()
+	if player.Skins.hasLaserRevolver.Value then
+		ClickSound:Play()
+		local clonedRevolver
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		SetSecondaryButtonPictures(player.Skins.PistolWeaponSkin.Value, "Laser", player.Skins.AutoPistolWeaponSkin.Value, 1, 2, 3, 4, 5, 6, 7)
+
+		if player.Skins.LaserRevolverVariant.Value == "Blue" then
+			clonedRevolver = WeaponModelsFolder:WaitForChild("LaserRevolver"):Clone()
+		elseif player.Skins.LaserRevolverVariant.Value == "Red" then
+			clonedRevolver = WeaponModelsFolder:WaitForChild("LaserRevolverRed"):Clone()
+		elseif player.Skins.LaserRevolverVariant.Value == "Purple" then
+			clonedRevolver = WeaponModelsFolder:WaitForChild("LaserRevolverPurple"):Clone()
+		end			
+		clonedRevolver.Parent = inventoryScene
+		ChangeRevolverSkin:FireServer("Laser")
+		tweenProperty(LaserRevolverSkinButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+		tweenProperty(LaserRevolverSkinButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+		for _, button in SecondarySkins:WaitForChild("RevolverSkins"):GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "LaserRevolverSkin" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+	end
+end)
+
+DefaultMeleeSkinButton.Activated:Connect(function()
+	ClickSound:Play()
+	local clonedMelee
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	SetMeleeButtonPictures("Default")
+	clonedMelee = WeaponModelsFolder:WaitForChild("DefaultMelee"):Clone()
+	clonedMelee.Parent = inventoryScene
+	ChangeMeleeSkin:FireServer("Default")
+	tweenProperty(DefaultMeleeSkinButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(DefaultMeleeSkinButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in MeleeSkins:WaitForChild("MeleeSkins"):GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "DefaultMeleeSkin" then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+		end
+	end
+end)
+
+SaberBlueVariantButton.Activated:Connect(function()
+	ClickSound:Play()
+	local clonedMelee
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	clonedMelee = WeaponModelsFolder:WaitForChild("Saber"):Clone()
+	clonedMelee.Parent = inventoryScene
+	ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeSaberVariant"):FireServer("Blue")
+	tweenProperty(SaberBlueVariantButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(SaberBlueVariantButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in MeleeSkins:WaitForChild("MeleeSkins"):WaitForChild("SaberVariants"):GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "SaberVariantBlue" then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+		end
+	end
+end)
+
+SaberRedVariantButton.Activated:Connect(function()
+	ClickSound:Play()
+	local clonedMelee
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	clonedMelee = WeaponModelsFolder:WaitForChild("SaberRed"):Clone()
+	clonedMelee.Parent = inventoryScene
+	ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeSaberVariant"):FireServer("Red")
+	tweenProperty(SaberRedVariantButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(SaberRedVariantButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in MeleeSkins:WaitForChild("MeleeSkins"):WaitForChild("SaberVariants"):GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "SaberVariantRed" then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+		end
+	end
+end)
+
+
+SaberPurpleVariantButton.Activated:Connect(function()
+	ClickSound:Play()
+	local clonedMelee
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	clonedMelee = WeaponModelsFolder:WaitForChild("SaberPurple"):Clone()
+	clonedMelee.Parent = inventoryScene
+	ReplicatedStorage:WaitForChild("ChangeSkins"):WaitForChild("ChangeSaberVariant"):FireServer("Purple")
+	tweenProperty(SaberPurpleVariantButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(SaberPurpleVariantButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in MeleeSkins:WaitForChild("MeleeSkins"):WaitForChild("SaberVariants"):GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "SaberVariantPurple" then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+		end
+	end
+end)
+
+
+SaberSkinButton.Activated:Connect(function()
+	if player.Skins.hasSaber.Value then
+		ClickSound:Play()
+		local clonedMelee
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		SetMeleeButtonPictures("Saber")
+		if player.Skins.SaberVariant.Value == "Blue" then
+			clonedMelee = WeaponModelsFolder:WaitForChild("Saber"):Clone()
+		elseif player.Skins.SaberVariant.Value == "Red" then
+			clonedMelee = WeaponModelsFolder:WaitForChild("SaberRed"):Clone()
+		elseif player.Skins.SaberVariant.Value == "Purple" then
+			clonedMelee = WeaponModelsFolder:WaitForChild("SaberPurple"):Clone()
+		end
+		clonedMelee.Parent = inventoryScene
+		ChangeMeleeSkin:FireServer("Saber")
+		tweenProperty(SaberSkinButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+		tweenProperty(SaberSkinButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+		for _, button in MeleeSkins:WaitForChild("MeleeSkins"):GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "SaberSkin" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+	end
+end)
+
+
+GrenadeButton.Activated:Connect(function()
+	ClickSound:Play()
+	SetAbilitiesSkinBackgroundAndBorderColor()
+	local clone
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	if player.Skins.GrenadeSkin.Value == "Default" then
+		clone = WeaponModelsFolder:WaitForChild("Abilities"):WaitForChild("DefaultGrenade"):Clone()
+	end
+	clone.Parent = inventoryScene
+	SelectedAbility = "Grenade"
+	SetSkinFrameVisibility(false, false, false, false, true)
+	tweenProperty(GrenadeButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(GrenadeButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in AbilityWeapons:GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "Grenade" then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+		end
+	end
+end)
+
+BoosterButton.Activated:Connect(function()
+	ClickSound:Play()
+	if player.Weapons.hasBooster.Value then
+		SetAbilitiesSkinBackgroundAndBorderColor()
+		local clone
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		if player.Skins.BoosterSkin.Value == "Default" then
+			clone = WeaponModelsFolder:WaitForChild("DefaultBooster"):Clone()
+		end
+		clone.Parent = inventoryScene
+		SelectedAbility = "Booster"
+		SetSkinFrameVisibility(false, false, false, false, true)
+		tweenProperty(BoosterButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+		tweenProperty(BoosterButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+		for _, button in AbilityWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "Booster" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+	else
+		local clonedLock
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		SelectedAbility = "Booster"
+		SetSkinFrameVisibility(false, false, false, false, true)
+
+		clonedLock = WeaponModelsFolder:WaitForChild("Lock"):Clone()
+		clonedLock.Parent = inventoryScene
+		for _, button in AbilityWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "Booster" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+	end
+end)
+
+LightningBombButton.Activated:Connect(function()
+	ClickSound:Play()
+	if player.Weapons.hasLightningBomb.Value then
+		SetAbilitiesSkinBackgroundAndBorderColor()
+		local clone
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		if player.Skins.LightningBombSkin.Value == "Default" then
+			clone = WeaponModelsFolder:WaitForChild("DefaultLightningBomb"):Clone()
+		end
+		clone.Parent = inventoryScene
+		SelectedAbility = "LightningBomb"
+		SetSkinFrameVisibility(false, false, false, false, true)
+		tweenProperty(LightningBombButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+		tweenProperty(LightningBombButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+		for _, button in AbilityWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "LightningBomb" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+	else
+		local clonedLock
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		SelectedAbility = "LightningBomb"
+		SetSkinFrameVisibility(false, false, false, false, true)
+
+		clonedLock = WeaponModelsFolder:WaitForChild("Lock"):Clone()
+		clonedLock.Parent = inventoryScene
+		for _, button in AbilityWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "LightningBomb" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+	end
+
+end)
+
+OverdriveVialButton.Activated:Connect(function()
+	ClickSound:Play()
+	if player.Weapons.hasOverdriveVial.Value then
+		SetAbilitiesSkinBackgroundAndBorderColor()
+		local clone
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		if player.Skins.OverdriveVialSkin.Value == "Default" then
+			clone = WeaponModelsFolder:WaitForChild("Abilities"):WaitForChild("DefaultOverdriveVial"):Clone()
+		end
+		clone.Parent = inventoryScene
+		SelectedAbility = "OverdriveVial"
+		SetSkinFrameVisibility(false, false, false, false, true)
+		tweenProperty(OverdriveVialButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+		tweenProperty(OverdriveVialButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+		for _, button in AbilityWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "OverdriveVial" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+	else
+		local clonedLock
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		SelectedAbility = "OverdriveVial"
+		SetSkinFrameVisibility(false, false, false, false, true)
+
+		clonedLock = WeaponModelsFolder:WaitForChild("Lock"):Clone()
+		clonedLock.Parent = inventoryScene
+		for _, button in AbilityWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "OverdriveVial" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+	end
+
+end)
+
+RegenPotButton.Activated:Connect(function()
+	ClickSound:Play()
+	if player.Weapons.hasRegenPot.Value then
+		SetAbilitiesSkinBackgroundAndBorderColor()
+		local clone
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		if player.Skins.RegenPotSkin.Value == "Default" then
+			clone = WeaponModelsFolder:WaitForChild("Abilities"):WaitForChild("DefaultRegenPot"):Clone()
+		end
+		clone.Parent = inventoryScene
+		SelectedAbility = "RegenPot"
+		SetSkinFrameVisibility(false, false, false, false, true)
+		tweenProperty(RegenPotButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+		tweenProperty(RegenPotButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+		for _, button in AbilityWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "RegenPot" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+	else
+		local clonedLock
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		SelectedAbility = "RegenPot"
+		SetSkinFrameVisibility(false, false, false, false, true)
+
+		clonedLock = WeaponModelsFolder:WaitForChild("Lock"):Clone()
+		clonedLock.Parent = inventoryScene
+		for _, button in AbilityWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "RegenPot" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+	end
+
+end)
+
+CenterArmorButton.Activated:Connect(function()
+	ClickSound:Play()
+	local clonedCharacter
+	SetCenterArmorWeaponSkinBackgroundAndBorderColor()
+	SetTopArmorWeaponSkinBackgroundAndBorderColor()
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	if player.Skins.CharacterSkin.Value == "Lebron" then
+		clonedCharacter = WeaponModelsFolder:WaitForChild("ArmorSkins"):WaitForChild("LebronCharacter"):Clone()
+	else
+		clonedCharacter = WeaponModelsFolder:WaitForChild("ArmorSkins"):WaitForChild("DefaultArmor"):Clone()
+	end	
+	clonedCharacter.Parent = inventoryScene
+	SelectedCharacterSkin = "Character"
+	SetSkinFrameVisibility(false, false, false, true, false)
+	tweenProperty(CenterArmorButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(CenterArmorButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in ArmorCosmetics:GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "CenterArmorCosmetic" then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+		end
+	end
+end)
+
+DefaultCenterArmorSkinButton.Activated:Connect(function()
+	ClickSound:Play()
+	local clonedArmor
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	clonedArmor = WeaponModelsFolder:WaitForChild("ArmorSkins"):WaitForChild("DefaultArmor"):Clone()
+	clonedArmor.Parent = inventoryScene
+	ChangeCharacterSkin:FireServer("Default") 
+	tweenProperty(DefaultCenterArmorSkinButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(DefaultCenterArmorSkinButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in ArmorSkins:WaitForChild("CenterArmorSkins"):GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "DefaultCenterArmorSkin" then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+		end
+	end
+end)
+
+GemCenterArmorSkinButton.Activated:Connect(function()
+	if player.Skins.hasLebronCharacter.Value then
+		ClickSound:Play()
+		local clonedArmor
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		clonedArmor = WeaponModelsFolder:WaitForChild("ArmorSkins"):WaitForChild("LebronCharacter"):Clone()
+		clonedArmor.Parent = inventoryScene
+		ChangeCharacterSkin:FireServer("Lebron")
+		tweenProperty(GemCenterArmorSkinButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+		tweenProperty(GemCenterArmorSkinButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+		for _, button in ArmorSkins:WaitForChild("CenterArmorSkins"):GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "GemCenterArmorSkin" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+	end
+end)
+
+
+DefaultTopArmorSkinButton.Activated:Connect(function()
+	ClickSound:Play()
+	local clonedArmor
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy() 
+		end
+	end
+	clonedArmor = WeaponModelsFolder:WaitForChild("HandSkins"):WaitForChild("DefaultHands"):Clone()
+	clonedArmor.Parent = inventoryScene
+	ChangeHandSkin:FireServer("None") 
+	tweenProperty(DefaultTopArmorSkinButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(DefaultTopArmorSkinButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in ArmorSkins:WaitForChild("TopArmorSkins"):GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "DefaultTopArmorSkin" then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+		end
+	end
+end)
+
+GemTopArmorSkinButton.Activated:Connect(function()
+	if player.Skins.hasLebronCharacter.Value then
+		ClickSound:Play()
+		local clonedArmor
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		clonedArmor = WeaponModelsFolder:WaitForChild("HandSkins"):WaitForChild("LebronHands"):Clone()
+		clonedArmor.Parent = inventoryScene
+		ChangeHandSkin:FireServer("Lebron")
+		tweenProperty(GemTopArmorSkinButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+		tweenProperty(GemTopArmorSkinButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+		for _, button in ArmorSkins:WaitForChild("TopArmorSkins"):GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "GemTopArmorSkin" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+	end
+end)
+
+TopArmorButton.Activated:Connect(function()
+	ClickSound:Play()
+	local clonedArmor
+	SetCenterArmorWeaponSkinBackgroundAndBorderColor()
+	SetTopArmorWeaponSkinBackgroundAndBorderColor()
+	for _, part in inventoryScene:GetChildren() do
+		if part:IsA("Model") then
+			part:Destroy()
+		end
+	end
+	if player.Skins.HandSkin.Value == "Lebron" then
+		clonedArmor = WeaponModelsFolder:WaitForChild("HandSkins"):WaitForChild("LebronHands"):Clone()
+	else
+		clonedArmor = WeaponModelsFolder:WaitForChild("HandSkins"):WaitForChild("DefaultHands"):Clone()
+	end	
+	clonedArmor.Parent = inventoryScene
+	SelectedCharacterSkin = "Hand"
+	SetSkinFrameVisibility(false, false, false, true, false)
+	tweenProperty(TopArmorButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(TopArmorButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in ArmorCosmetics:GetChildren() do
+		if button:IsA("TextButton") and button.Name ~= "TopArmorCosmetic" then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+		end
+	end
+end)
+
+
+UnlockSMGButton.Activated:Connect(function()
+	if player.Currency.Gems.Value < 350 then
+		ErrorSound:Play()
+		BannerNotificationModule:Notify("Purchase Failed!", "You do not have sufficient funds to purchase this item.", "rbxassetid://99740313377038", 3, errorConfig)
+	else
+		
+		UnlockSMGButton.Visible = false
+		SMGButton.Locked.Visible = false
+		ClickSound:Play()
+		UnlockSound:Play()
+		UnlockWeaponEvent:FireServer("SMG")
+		local clonedSMG
+
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		if player.Skins.SMGWeaponSkin.Value == "Default" then
+			clonedSMG = WeaponModelsFolder:WaitForChild("DefaultSMG"):Clone()
+		end	
+		clonedSMG.Parent = inventoryScene
+		UnlockSMGButton.Visible = false
+		SMGButton.Locked.Visible = false
+		task.wait(0.05)
+
+		UnlockSMGButton.Visible = false
+		SMGButton.Locked.Visible = false
+		SetSMGWeaponSkinBackgroundAndBorderColor()
+		SelectedPrimary = "SMG"
+		tweenProperty(SMGButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+		tweenProperty(SMGButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+		for _, button in PrimaryWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "SMG" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+		task.wait(0.1)
+		SetSkinFrameVisibility(true, false, false, false, false)
+		SMGButton.Locked.Visible = false
+		if player.Skins.SMGWeaponSkin.Value == "Default" then
+			SMGButton:WaitForChild("DefaultSMGPic").Visible = true
+		end	
+		BannerNotificationModule:Notify("Purchase Completed!", "Congratulations on unlocking: SMG.", "rbxassetid://82108757958615", 3, greenConfig)
+
+		--PrimariesButtonActivate()
+	end
+end)
+
+UnlockShotgunButton.Activated:Connect(function()
+	if player.Currency.Gems.Value < 250 then
+		ErrorSound:Play()
+		BannerNotificationModule:Notify("Purchase Failed!", "You do not have sufficient funds to purchase this item.", "rbxassetid://99740313377038", 3, errorConfig)
+	else
+
+		UnlockShotgunButton.Visible = false
+		ShotgunButton.Locked.Visible = false
+		ClickSound:Play()
+		UnlockSound:Play()
+
+		UnlockWeaponEvent:FireServer("Shotgun")
+		local clonedShotgun
+
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		if player.Skins.ShotgunWeaponSkin.Value == "Default" then
+			clonedShotgun = WeaponModelsFolder:WaitForChild("DefaultShotgun"):Clone()
+		end	
+		clonedShotgun.Parent = inventoryScene
+		UnlockShotgunButton.Visible = false
+		ShotgunButton.Locked.Visible = false
+		task.wait(0.05)
+
+		UnlockShotgunButton.Visible = false
+		ShotgunButton.Locked.Visible = false
+		SetShotgunWeaponSkinBackgroundAndBorderColor()
+		SelectedPrimary = "Shotgun"
+		tweenProperty(ShotgunButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+		tweenProperty(ShotgunButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+		for _, button in PrimaryWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "Shotgun" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+		task.wait(0.1)
+		ShotgunButton.Locked.Visible = false
+		SetSkinFrameVisibility(true, false, false, false, false)
+		if player.Skins.ShotgunWeaponSkin.Value == "Default" then
+			ShotgunButton:WaitForChild("DefaultShotgunPic").Visible = true
+		end	
+		BannerNotificationModule:Notify("Purchase Completed!", "Congratulations on unlocking: SHOTGUN.", "rbxassetid://82108757958615", 3, greenConfig)
+
+		--PrimariesButtonActivate()
+	end
+end)
+
+UnlockSniperButton.Activated:Connect(function()
+	if player.Currency.Gems.Value < 500 then
+		ErrorSound:Play()
+		BannerNotificationModule:Notify("Purchase Failed!", "You do not have sufficient funds to purchase this item.", "rbxassetid://99740313377038", 3, errorConfig)
+
+	else
+
+		UnlockSniperButton.Visible = false
+		SniperButton.Locked.Visible = false
+		ClickSound:Play()
+		UnlockSound:Play()
+
+		UnlockWeaponEvent:FireServer("Sniper")
+		local clonedSniper
+		
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		if player.Skins.SniperWeaponSkin.Value == "Default" then
+			clonedSniper = WeaponModelsFolder:WaitForChild("DefaultSniper"):Clone()
+		elseif player.Skins.SniperWeaponSkin.Value == "Laser" then
+			clonedSniper = WeaponModelsFolder:WaitForChild("LaserSniper"):Clone()
+		end	
+		clonedSniper.Parent = inventoryScene
+		UnlockSniperButton.Visible = false
+		SniperButton.Locked.Visible = false
+		task.wait(0.05)
+
+		UnlockSniperButton.Visible = false
+		SniperButton.Locked.Visible = false
+		SetSniperWeaponSkinBackgroundAndBorderColor()
+		SelectedPrimary = "Sniper"
+		tweenProperty(SniperButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+		tweenProperty(SniperButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+		for _, button in PrimaryWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "Sniper" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+		task.wait(0.1)
+		SetSkinFrameVisibility(true, false, false, false, false)
+		SniperButton.Locked.Visible = false
+		if player.Skins.SniperWeaponSkin.Value == "Default" then
+			SniperButton:WaitForChild("DefaultSniperPic").Visible = true
+		elseif player.Skins.SniperWeaponSkin.Value == "Laser" then
+			SniperButton:WaitForChild("LaserSniperPic").Visible = true
+		end	
+		BannerNotificationModule:Notify("Purchase Completed!", "Congratulations on unlocking: SNIPER.", "rbxassetid://82108757958615", 3, greenConfig)
+
+		--PrimariesButtonActivate()
+	end
+end)
+
+UnlockRevolverButton.Activated:Connect(function()
+	if player.Currency.Gems.Value < 225 then
+		ErrorSound:Play()
+		BannerNotificationModule:Notify("Purchase Failed!", "You do not have sufficient funds to purchase this item.", "rbxassetid://99740313377038", 3, errorConfig)
+
+	else
+
+		UnlockRevolverButton.Visible = false
+		RevolverButton.Locked.Visible = false
+		ClickSound:Play()
+		UnlockSound:Play()
+
+		UnlockWeaponEvent:FireServer("Revolver")
+		local clonedRevolver
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		if player.Skins.RevolverWeaponSkin.Value == "Default" then
+			clonedRevolver = WeaponModelsFolder:WaitForChild("DefaultRevolver"):Clone()
+		elseif player.Skins.RevolverWeaponSkin.Value == "Laser" then
+			clonedRevolver = WeaponModelsFolder:WaitForChild("LaserRevolver"):Clone()
+		end	
+		UnlockRevolverButton.Visible = false
+		RevolverButton.Locked.Visible = false
+		clonedRevolver.Parent = inventoryScene
+		task.wait(0.05)
+		
+		UnlockRevolverButton.Visible = false
+		RevolverButton.Locked.Visible = false
+
+		SetRevolverWeaponSkinBackgroundAndBorderColor()
+		SelectedSecondary = "Revolver"
+		tweenProperty(RevolverButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+		tweenProperty(RevolverButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+		for _, button in SecondaryWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "Revolver" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+		task.wait(0.1)
+		SetSkinFrameVisibility(false, true, false, false, false)
+		RevolverButton.Locked.Visible = false
+		if player.Skins.RevolverWeaponSkin.Value == "Default" then
+			RevolverButton:WaitForChild("DefaultRevolverPic").Visible = true
+		elseif player.Skins.RevolverWeaponSkin.Value == "Laser" then
+			RevolverButton:WaitForChild("LaserRevolverPic").Visible = true
+		end	
+		BannerNotificationModule:Notify("Purchase Completed!", "Congratulations on unlocking: REVOLVER.", "rbxassetid://82108757958615", 3, greenConfig)
+
+		--SecondariesButtonActivate()
+	end
+end)
+
+UnlockAutoPistolButton.Activated:Connect(function()
+	if player.Currency.Gems.Value < 250 then
+		ErrorSound:Play()
+		BannerNotificationModule:Notify("Purchase Failed!", "You do not have sufficient funds to purchase this item.", "rbxassetid://99740313377038", 3, errorConfig)
+
+	else
+
+		UnlockAutoPistolButton.Visible = false
+		AutoPistolButton.Locked.Visible = false
+		ClickSound:Play()
+		UnlockSound:Play()
+
+		UnlockWeaponEvent:FireServer("AutoPistol")
+		local clonedAutoPistol
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		if player.Skins.AutoPistolWeaponSkin.Value == "Default" then
+			clonedAutoPistol = WeaponModelsFolder:WaitForChild("AutoPistols"):WaitForChild("DefaultAutoPistol"):Clone()
+		end	
+		UnlockAutoPistolButton.Visible = false
+		AutoPistolButton.Locked.Visible = false
+		clonedAutoPistol.Parent = inventoryScene
+		task.wait(0.05)
+
+		UnlockAutoPistolButton.Visible = false
+		AutoPistolButton.Locked.Visible = false
+
+		SetAutoPistolWeaponSkinBackgroundAndBorderColor()
+		SelectedSecondary = "AutoPistol"
+		tweenProperty(AutoPistolButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+		tweenProperty(AutoPistolButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+		for _, button in SecondaryWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "AutoPistol" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+		task.wait(0.1)
+		SetSkinFrameVisibility(false, true, false, false, false)
+		AutoPistolButton.Locked.Visible = false
+		if player.Skins.RevolverWeaponSkin.Value == "Default" then
+			AutoPistolButton:WaitForChild("DefaultAutoPistolPic").Visible = true
+		end	
+		BannerNotificationModule:Notify("Purchase Completed!", "Congratulations on unlocking: AUTO PISTOL.", "rbxassetid://82108757958615", 3, greenConfig)
+
+		--SecondariesButtonActivate()
+	end
+end)
+
+UnlockBoosterButton.Activated:Connect(function()
+	if player.Currency.Gems.Value < 150 then
+		ErrorSound:Play()
+		BannerNotificationModule:Notify("Purchase Failed!", "You do not have sufficient funds to purchase this item.", "rbxassetid://99740313377038", 3, errorConfig)
+
+	else
+
+		UnlockBoosterButton.Visible = false
+		BoosterButton.Locked.Visible = false
+		SelectedAbility = "Booster"
+
+		UnlockWeaponEvent:FireServer("Booster")
+		local clone
+
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		if player.Skins.BoosterSkin.Value == "Default" then
+			clone = WeaponModelsFolder:WaitForChild("DefaultBooster"):Clone()
+		end	
+		clone.Parent = inventoryScene
+		ClickSound:Play()
+		UnlockSound:Play()
+
+		UnlockBoosterButton.Visible = false
+		BoosterButton.Locked.Visible = false
+		
+		task.wait(0.05)
+
+		
+		BoosterButton.Locked.Visible = false
+
+		tweenProperty(BoosterButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+		tweenProperty(BoosterButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+		for _, button in AbilityWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "Booster" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+		task.wait(0.1)
+		SetSkinFrameVisibility(false, false, false, false, true)
+		BoosterButton.Locked.Visible = false
+		if player.Skins.BoosterSkin.Value == "Default" then
+			BoosterButton:WaitForChild("DefaultBoosterPic").Visible = true
+		end	
+		BannerNotificationModule:Notify("Purchase Completed!", "Congratulations on unlocking: BOOSTER.", "rbxassetid://82108757958615", 3, greenConfig)
+
+		--AbilitiesButtonActivate()
+	end
+end)
+
+UnlockLightningBombButton.Activated:Connect(function()
+	if player.Currency.Gems.Value < 200 then
+		ErrorSound:Play()
+		BannerNotificationModule:Notify("Purchase Failed!", "You do not have sufficient funds to purchase this item.", "rbxassetid://99740313377038", 3, errorConfig)
+
+	else
+
+		UnlockLightningBombButton.Visible = false
+		LightningBombButton.Locked.Visible = false
+		ClickSound:Play()
+		UnlockSound:Play()
+
+		UnlockWeaponEvent:FireServer("LightningBomb")
+		local clone
+
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		if player.Skins.LightningBombSkin.Value == "Default" then
+			clone = WeaponModelsFolder:WaitForChild("DefaultLightningBomb"):Clone()
+		end	
+		clone.Parent = inventoryScene
+		UnlockLightningBombButton.Visible = false
+		LightningBombButton.Locked.Visible = false
+		task.wait(0.05)
+
+		UnlockLightningBombButton.Visible = false
+		LightningBombButton.Locked.Visible = false
+
+		SelectedAbility = "LightningBomb"
+		tweenProperty(LightningBombButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+		tweenProperty(LightningBombButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+		for _, button in AbilityWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "LightningBomb" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+		task.wait(0.1)
+		SetSkinFrameVisibility(false, false, false, false, true)
+		LightningBombButton.Locked.Visible = false
+		if player.Skins.LightningBombSkin.Value == "Default" then
+			LightningBombButton:WaitForChild("DefaultLightningBombPic").Visible = true
+		end	
+		BannerNotificationModule:Notify("Purchase Completed!", "Congratulations on unlocking: BLINK ORB.", "rbxassetid://82108757958615", 3, greenConfig)
+
+		--AbilitiesButtonActivate()
+	end
+end)
+
+UnlockOverdriveVialButton.Activated:Connect(function()
+	if player.Currency.Gems.Value < 150 then
+		BannerNotificationModule:Notify("Purchase Failed!", "You do not have sufficient funds to purchase this item.", "rbxassetid://99740313377038", 3, errorConfig)
+
+	else
+
+		UnlockOverdriveVialButton.Visible = false
+		OverdriveVialButton.Locked.Visible = false
+		ClickSound:Play()
+		UnlockSound:Play()
+
+		UnlockWeaponEvent:FireServer("OverdriveVial")
+		local clone
+
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		if player.Skins.OverdriveVialSkin.Value == "Default" then
+			clone = WeaponModelsFolder:WaitForChild("Abilities"):WaitForChild("DefaultOverdriveVial"):Clone()
+		end	
+		clone.Parent = inventoryScene
+		UnlockOverdriveVialButton.Visible = false
+		OverdriveVialButton.Locked.Visible = false
+		task.wait(0.05)
+
+		UnlockOverdriveVialButton.Visible = false
+		OverdriveVialButton.Locked.Visible = false
+
+		SelectedAbility = "OverdriveVial"
+		tweenProperty(OverdriveVialButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+		tweenProperty(OverdriveVialButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+		for _, button in AbilityWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "OverdriveVial" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+		task.wait(0.1)
+		SetSkinFrameVisibility(false, false, false, false, true)
+		OverdriveVialButton.Locked.Visible = false
+		if player.Skins.OverdriveVialSkin.Value == "Default" then
+			OverdriveVialButton:WaitForChild("DefaultOverdriveVialPic").Visible = true
+		end	
+		BannerNotificationModule:Notify("Purchase Completed!", "Congratulations on unlocking: OVERDRIVE VIAL.", "rbxassetid://82108757958615", 3, greenConfig)
+
+		--AbilitiesButtonActivate()
+	end
+end)
+
+UnlockRegenPotButton.Activated:Connect(function()
+	if player.Currency.Gems.Value < 200 then
+		BannerNotificationModule:Notify("Purchase Failed!", "You do not have sufficient funds to purchase this item.", "rbxassetid://99740313377038", 3, errorConfig)
+
+	else
+
+		UnlockRegenPotButton.Visible = false
+		RegenPotButton.Locked.Visible = false
+		ClickSound:Play()
+		UnlockSound:Play()
+
+		UnlockWeaponEvent:FireServer("RegenPot")
+		local clone
+
+		for _, part in inventoryScene:GetChildren() do
+			if part:IsA("Model") then
+				part:Destroy()
+			end
+		end
+		if player.Skins.RegenPotSkin.Value == "Default" then
+			clone = WeaponModelsFolder:WaitForChild("Abilities"):WaitForChild("DefaultRegenPot"):Clone()
+		end	
+		clone.Parent = inventoryScene
+		UnlockRegenPotButton.Visible = false
+		RegenPotButton.Locked.Visible = false
+		task.wait(0.05)
+
+		UnlockRegenPotButton.Visible = false
+		RegenPotButton.Locked.Visible = false
+
+		SelectedAbility = "RegenPot"
+		tweenProperty(RegenPotButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+		tweenProperty(RegenPotButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+		for _, button in AbilityWeapons:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "RegenPot" then
+				tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.15)
+				tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.15)
+			end
+		end
+		task.wait(0.1)
+		SetSkinFrameVisibility(false, false, false, false, true)
+		RegenPotButton.Locked.Visible = false
+		if player.Skins.RegenPotSkin.Value == "Default" then
+			RegenPotButton:WaitForChild("DefaultRegenPotPic").Visible = true
+		end	
+		BannerNotificationModule:Notify("Purchase Completed!", "Congratulations on unlocking: REGENERATION POTION.", "rbxassetid://82108757958615", 3, greenConfig)
+
+		--AbilitiesButtonActivate()
+	end
+end)
+
+WeaponsShopButton.MouseEnter:Connect(function()
+	HoverSound:Play()
+	WeaponsShopButton:TweenSize(ShopButtonHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+WeaponsShopButton.MouseLeave:Connect(function()
+	WeaponsShopButton:TweenSize(ShopButtonStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+SkinsShopButton.MouseEnter:Connect(function()
+	HoverSound:Play()
+	SkinsShopButton:TweenSize(ShopButtonHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+SkinsShopButton.MouseLeave:Connect(function()
+	SkinsShopButton:TweenSize(ShopButtonStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+GemsShopButton.MouseEnter:Connect(function()
+	HoverSound:Play()
+	GemsShopButton:TweenSize(ShopButtonHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+GemsShopButton.MouseLeave:Connect(function()
+	GemsShopButton:TweenSize(ShopButtonStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+WeaponsShopButton.Activated:Connect(function()
+	ShopGuiButtonActivate(WeaponsShopButton)
+	ShopGui.Enabled = false
+	GemShopFrame.Visible = false
+	SkinShopFrame.Visible = false
+
+	ShopGui:WaitForChild("SkinsFrame").Visible = true
+
+	ClickSound:Play()
+	SetPrimaryButtonPictures(player.Skins.RifleWeaponSkin.Value, player.Skins.SniperWeaponSkin.Value, player.Skins.SMGWeaponSkin.Value, player.Skins.ShotgunWeaponSkin.Value, 1, 1, 1, 1)
+	SetSniperWeaponSkinBackgroundAndBorderColor()
+	SetRifleWeaponSkinBackgroundAndBorderColor()
+	SetLockedRifleSkins()
+	SetLockedSniperSkins()
+	SetLockedMeleeSkins()
+	if SelectedMenu == "Primaries" then
+		PrimariesButtonActivate()
+
+		PrimariesButton.BackgroundColor3 = Color3.fromRGB(32, 39, 76)
+		PrimariesButton.UIStroke.Color = Color3.fromRGB(42, 52, 100)
+		SecondariesButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+		SecondariesButton.UIStroke.Color = Color3.fromRGB(18, 18, 18)
+		MeleeButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+		MeleeButton.UIStroke.Color = Color3.fromRGB(18, 18, 18)
+	elseif SelectedMenu == "Secondaries" then
+		PrimariesButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+		PrimariesButton.UIStroke.Color = Color3.fromRGB(18, 18, 18)
+		SecondariesButton.BackgroundColor3 = Color3.fromRGB(32, 39, 76)
+		SecondariesButton.UIStroke.Color = Color3.fromRGB(42, 52, 100)
+		MeleeButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+		MeleeButton.UIStroke.Color = Color3.fromRGB(18, 18, 18)
+	else
+		PrimariesButtonActivate()
+	end
+	ScriptCamera()
+	CoreElements.Enabled = false
+	InventoryGui.Enabled = true
+	InventoryButton.Size = InventoryStartSize
+	CloseButton.Size = CloseStartSize
+end)
+
+OpenShopPrompt.Triggered:Connect(function()
+	if not BonusesGui.Enabled and not SettingsGui.Enabled then
+		ClickSound:Play()
+		CoreElements.Enabled = false
+		ShopGui.Enabled = true
+		GemShopFrame.Visible = false
+		ShopButton.Size = InventoryStartSize
+		SkinShopFrame.Visible = true
+		SetOwnedSkinGreenBackgrounds()
+		for _, button in ShopGui:GetChildren() do
+			if button:IsA("TextButton") and button.Name ~= "Close" then
+				button.BackgroundColor3 = Color3.fromRGB(33, 33, 33)
+				button.UIStroke.Color = Color3.fromRGB(15, 15, 15)
+			end
+		end
+		SkinsShopButton.BackgroundColor3 = Color3.fromRGB(32, 39, 76)
+		SkinsShopButton.UIStroke.Color = Color3.fromRGB(42, 52, 100)
+	end
+
+end)
+
+SkinsShopButton.Activated:Connect(function()
+	ShopGuiButtonActivate(SkinsShopButton)
+	GemShopFrame.Visible = false
+	SkinShopFrame.Visible = true
+	SetOwnedSkinGreenBackgrounds()
+
+end)
+
+GemsShopButton.Activated:Connect(function()
+	ShopGuiButtonActivate(GemsShopButton)
+	GemShopFrame.Visible = true
+	SkinShopFrame.Visible = false
+
+end)
+
+GemShopFrame:WaitForChild("GemPack10Robux").MouseEnter:Connect(function()
+	HoverSound:Play()
+	GemShopFrame:WaitForChild("GemPack10Robux"):TweenSize(SmallGemPackHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+GemShopFrame:WaitForChild("GemPack10Robux").MouseLeave:Connect(function()
+	GemShopFrame:WaitForChild("GemPack10Robux"):TweenSize(SmallGemPackStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+GemShopFrame:WaitForChild("GemPack49Robux").MouseEnter:Connect(function()
+	HoverSound:Play()
+	GemShopFrame:WaitForChild("GemPack49Robux"):TweenSize(SmallGemPackHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+GemShopFrame:WaitForChild("GemPack49Robux").MouseLeave:Connect(function()
+	GemShopFrame:WaitForChild("GemPack49Robux"):TweenSize(SmallGemPackStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+GemShopFrame:WaitForChild("GemPack149Robux").MouseEnter:Connect(function()
+	HoverSound:Play()
+	GemShopFrame:WaitForChild("GemPack149Robux"):TweenSize(SmallGemPackHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+GemShopFrame:WaitForChild("GemPack149Robux").MouseLeave:Connect(function()
+	GemShopFrame:WaitForChild("GemPack149Robux"):TweenSize(SmallGemPackStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+GemShopFrame:WaitForChild("GemPack349Robux").MouseEnter:Connect(function()
+	HoverSound:Play()
+	GemShopFrame:WaitForChild("GemPack349Robux"):TweenSize(SmallGemPackHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+GemShopFrame:WaitForChild("GemPack349Robux").MouseLeave:Connect(function()
+	GemShopFrame:WaitForChild("GemPack349Robux"):TweenSize(SmallGemPackStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+GemShopFrame:WaitForChild("GemPack799Robux").MouseEnter:Connect(function()
+	HoverSound:Play()
+	GemShopFrame:WaitForChild("GemPack799Robux"):TweenSize(BigGemPackHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+GemShopFrame:WaitForChild("GemPack799Robux").MouseLeave:Connect(function()
+	GemShopFrame:WaitForChild("GemPack799Robux"):TweenSize(BigGemPackStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+GemShopFrame:WaitForChild("GemPack1999Robux").MouseEnter:Connect(function()
+	HoverSound:Play()
+	GemShopFrame:WaitForChild("GemPack1999Robux"):TweenSize(BigGemPackHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+GemShopFrame:WaitForChild("GemPack1999Robux").MouseLeave:Connect(function()
+	GemShopFrame:WaitForChild("GemPack1999Robux"):TweenSize(BigGemPackStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+GemShopFrame:WaitForChild("GemPack4999Robux").MouseEnter:Connect(function()
+	HoverSound:Play()
+	GemShopFrame:WaitForChild("GemPack4999Robux"):TweenSize(BigGemPackHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+GemShopFrame:WaitForChild("GemPack4999Robux").MouseLeave:Connect(function()
+	GemShopFrame:WaitForChild("GemPack4999Robux"):TweenSize(BigGemPackStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+GemShopFrame:WaitForChild("GemPack10Robux").Activated:Connect(function()
+	MarketplaceService:PromptProductPurchase(player, 2686752815) 
+end)
+
+GemShopFrame:WaitForChild("GemPack49Robux").Activated:Connect(function()
+	MarketplaceService:PromptProductPurchase(player, 2686753163)
+end)
+
+GemShopFrame:WaitForChild("GemPack149Robux").Activated:Connect(function()
+	MarketplaceService:PromptProductPurchase(player, 2686753324)
+end)
+
+GemShopFrame:WaitForChild("GemPack349Robux").Activated:Connect(function()
+	MarketplaceService:PromptProductPurchase(player, 2686753612)
+end)
+
+GemShopFrame:WaitForChild("GemPack799Robux").Activated:Connect(function()
+	MarketplaceService:PromptProductPurchase(player, 2686753774)
+end)
+
+GemShopFrame:WaitForChild("GemPack1999Robux").Activated:Connect(function()
+	MarketplaceService:PromptProductPurchase(player, 2686753932)
+end)
+
+GemShopFrame:WaitForChild("GemPack4999Robux").Activated:Connect(function()
+	MarketplaceService:PromptProductPurchase(player, 2686754061)
+end)
+
+HyperlightBundleButton.MouseEnter:Connect(function()
+	HoverSound:Play() 
+	HyperlightBundleButton:TweenSize(BundleHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+HyperlightBundleButton.MouseLeave:Connect(function()
+	HyperlightBundleButton:TweenSize(BundleStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+HyperlightRifleSkinButton.MouseEnter:Connect(function()
+	HoverSound:Play() 
+	HyperlightRifleSkinButton:TweenSize(SkinPurchaseHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+HyperlightRifleSkinButton.MouseLeave:Connect(function()
+	HyperlightRifleSkinButton:TweenSize(SkinPurchaseStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+HyperlightSniperSkinButton.MouseEnter:Connect(function()
+	HoverSound:Play() 
+	HyperlightSniperSkinButton:TweenSize(SkinPurchaseHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+HyperlightSniperSkinButton.MouseLeave:Connect(function()
+	HyperlightSniperSkinButton:TweenSize(SkinPurchaseStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+HyperlightRevolverSkinButton.MouseEnter:Connect(function()
+	HoverSound:Play() 
+	HyperlightRevolverSkinButton:TweenSize(SkinPurchaseHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+HyperlightRevolverSkinButton.MouseLeave:Connect(function()
+	HyperlightRevolverSkinButton:TweenSize(SkinPurchaseStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+HyperlightMeleeSkinButton.MouseEnter:Connect(function()
+	HoverSound:Play() 
+	HyperlightMeleeSkinButton:TweenSize(SkinPurchaseHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+HyperlightMeleeSkinButton.MouseLeave:Connect(function()
+	HyperlightMeleeSkinButton:TweenSize(SkinPurchaseStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+HyperlightBundleButton.Activated:Connect(function()
+	if CountHyperlightSkins() == 4 then
+		
+	elseif CountHyperlightSkins() == 3 then
+		MarketplaceService:PromptProductPurchase(player, 2686874204)
+	elseif CountHyperlightSkins() == 2 then
+		MarketplaceService:PromptProductPurchase(player, 2686874038)
+	elseif CountHyperlightSkins() == 1 then
+		MarketplaceService:PromptProductPurchase(player, 2686873796)
+	elseif CountHyperlightSkins() == 0 then
+		MarketplaceService:PromptProductPurchase(player, 2686873452)
+	end
+end) 
+
+HyperlightRifleSkinButton.Activated:Connect(function()
+	if player.Skins.hasLaserRifle.Value == false then
+		MarketplaceService:PromptProductPurchase(player, 2686851968)
+	end
+end) 
+
+HyperlightSniperSkinButton.Activated:Connect(function()
+	if player.Skins.hasLaserSniper.Value == false then
+		MarketplaceService:PromptProductPurchase(player, 2686852339)
+	end
+end)
+
+HyperlightRevolverSkinButton.Activated:Connect(function()
+	if player.Skins.hasLaserRevolver.Value == false then
+		MarketplaceService:PromptProductPurchase(player, 2686853381)
+	end
+end)
+
+HyperlightMeleeSkinButton.Activated:Connect(function()
+	if player.Skins.hasSaber.Value == false then
+		MarketplaceService:PromptProductPurchase(player, 2686853701)
+	end
+end)
+
+
+ReplicatedStorage:WaitForChild("SetPurchaseSkinColors").OnClientEvent:Connect(function()
+	SetOwnedSkinGreenBackgrounds()
+end)
+
+StopSpectatingButton.MouseEnter:Connect(function()
+	HoverSound:Play() 
+	StopSpectatingButton:TweenSize(StopSpectatingHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+StopSpectatingButton.MouseLeave:Connect(function()
+	StopSpectatingButton:TweenSize(StopSpectatingStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+RestoreWinstreakButton.Activated:Connect(function()
+	ClickSound:Play()
+	CoreElements.Enabled = false
+	RestoreWinstreakGui.Enabled = true
+end)
+
+RestoreWinstreakButton.MouseEnter:Connect(function()
+	primaryEnter(RestoreWinstreakButton)
+end)
+
+RestoreWinstreakButton.MouseLeave:Connect(function()
+	primaryLeave(RestoreWinstreakButton)	
+end)
+
+RestoreWinstreakGui:WaitForChild("RestoreButton").Activated:Connect(function()
+	ClickSound:Play()
+	if player.Statistics.WinstreakRestores.Value <= 0 then
+		if player.Currency.Gems.Value < 25 then
+			BannerNotificationModule:Notify("Purchase Failed!", "You do not have sufficient funds to purchase this item.", "rbxassetid://99740313377038", 3, errorConfig)
+		else
+			ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("RestoreWinstreak"):FireServer()
+		end
+	elseif player.Statistics.WinstreakRestores.Value == 1 then
+		if player.Currency.Gems.Value < 50 then
+			BannerNotificationModule:Notify("Purchase Failed!", "You do not have sufficient funds to purchase this item.", "rbxassetid://99740313377038", 3, errorConfig)
+		else
+			ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("RestoreWinstreak"):FireServer()
+		end
+	elseif player.Statistics.WinstreakRestores.Value == 2 then
+		if player.Currency.Gems.Value < 100 then
+			BannerNotificationModule:Notify("Purchase Failed!", "You do not have sufficient funds to purchase this item.", "rbxassetid://99740313377038", 3, errorConfig)
+		else
+			ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("RestoreWinstreak"):FireServer()
+		end
+	elseif player.Statistics.WinstreakRestores.Value == 3 then
+		if player.Currency.Gems.Value < 200 then
+			BannerNotificationModule:Notify("Purchase Failed!", "You do not have sufficient funds to purchase this item.", "rbxassetid://99740313377038", 3, errorConfig)
+		else
+			ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("RestoreWinstreak"):FireServer()
+		end
+	elseif player.Statistics.WinstreakRestores.Value == 4 then
+		if player.Currency.Gems.Value < 400 then
+			BannerNotificationModule:Notify("Purchase Failed!", "You do not have sufficient funds to purchase this item.", "rbxassetid://99740313377038", 3, errorConfig)
+		else
+			ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("RestoreWinstreak"):FireServer()
+		end
+	elseif player.Statistics.WinstreakRestores.Value == 5 then
+		if player.Currency.Gems.Value < 800 then
+			BannerNotificationModule:Notify("Purchase Failed!", "You do not have sufficient funds to purchase this item.", "rbxassetid://99740313377038", 3, errorConfig)
+		else
+			ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("RestoreWinstreak"):FireServer()
+		end
+	else
+		if player.Currency.Gems.Value < 1000 then
+			BannerNotificationModule:Notify("Purchase Failed!", "You do not have sufficient funds to purchase this item.", "rbxassetid://99740313377038", 3, errorConfig)
+		else
+			ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("RestoreWinstreak"):FireServer()
+		end
+	end
+end)
+
+RestoreWinstreakGui:WaitForChild("RestoreButton").MouseEnter:Connect(function()
+	HoverSound:Play()
+	tweenProperty(RestoreWinstreakGui:WaitForChild("RestoreButton").UIStroke, "Color", Color3.fromRGB(255, 255, 255), 0.15)
+end)
+
+RestoreWinstreakGui:WaitForChild("RestoreButton").MouseLeave:Connect(function()
+	tweenProperty(RestoreWinstreakGui:WaitForChild("RestoreButton").UIStroke, "Color", Color3.fromRGB(43, 178, 199), 0.15)
+end)
+
+RestoreWinstreakGui:WaitForChild("Close").Activated:Connect(function()
+	ClickSound:Play()
+	CoreElements.Enabled = true
+	RestoreWinstreakGui.Enabled = false
+	RestoreWinstreakButton.Size = InventoryStartSize
+	RestoreWinstreakGui:WaitForChild("Close").UIStroke.Color = Color3.fromRGB(199, 25, 25)
+	RestoreWinstreakGui:WaitForChild("RestoreButton").UIStroke.Color = Color3.fromRGB(43, 178, 199)
+
+end)
+
+RestoreWinstreakGui:WaitForChild("Close").MouseEnter:Connect(function()
+	HoverSound:Play()
+	tweenProperty(RestoreWinstreakGui:WaitForChild("Close").UIStroke, "Color", Color3.fromRGB(255, 255, 255), 0.15)
+end)
+
+RestoreWinstreakGui:WaitForChild("Close").MouseLeave:Connect(function()
+	tweenProperty(RestoreWinstreakGui:WaitForChild("Close").UIStroke, "Color", Color3.fromRGB(199, 25, 25), 0.15)
+end)
+
+ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("RestoreWinstreak").OnClientEvent:Connect(function()
+	UnlockSound:Play()
+	CoreElements.Enabled = true
+	RestoreWinstreakGui.Enabled = false
+	RestoreWinstreakButton.Size = InventoryStartSize
+	RestoreWinstreakGui:WaitForChild("Close").UIStroke.Color = Color3.fromRGB(199, 25, 25)
+	RestoreWinstreakGui:WaitForChild("RestoreButton").UIStroke.Color = Color3.fromRGB(43, 178, 199)
+	BannerNotificationModule:Notify("Success!", "Winstreak has been restored.", "rbxassetid://82108757958615", 3, greenConfig)
+
+
+end)
+
+ClaimFavoriteButton.MouseEnter:Connect(function()
+	HoverSound:Play() 
+	ClaimFavoriteButton:TweenSize(ClaimHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+ClaimFavoriteButton.MouseLeave:Connect(function()
+	ClaimFavoriteButton:TweenSize(ClaimStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+ClaimFavoriteButton.Activated:Connect(function()
+	if not player.GeneralInfo.claimedFavoriteBonus.Value then
+		game:GetService("AvatarEditorService"):PromptAllowInventoryReadAccess()
+		if game:GetService("AvatarEditorService"):GetFavorite(17572909343, Enum.AvatarItemType.Asset) then
+			ClickSound:Play()
+			UnlockSound:Play()
+			ReplicatedStorage:WaitForChild("Bonuses"):WaitForChild("ClaimFavorite"):FireServer()
+			BannerNotificationModule:Notify("Bonus Claimed!", "+50 Gems Gained.", "rbxassetid://82108757958615", 3, greenConfig)
+		end
+	end
+end)
+
+ClaimLikeButton.MouseEnter:Connect(function()
+	HoverSound:Play() 
+	ClaimLikeButton:TweenSize(ClaimHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+ClaimLikeButton.MouseLeave:Connect(function()
+	ClaimLikeButton:TweenSize(ClaimStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+ClaimLikeButton.Activated:Connect(function()
+	if not player.GeneralInfo.claimedLikeBonus.Value then
+		ClickSound:Play()
+		UnlockSound:Play()
+
+		ReplicatedStorage:WaitForChild("Bonuses"):WaitForChild("ClaimLike"):FireServer()
+	
+		BannerNotificationModule:Notify("Bonus Claimed!", "+50 Gems Gained.", "rbxassetid://82108757958615", 3, greenConfig)
+	end
+end)
+
+RedeemCodeButton.MouseEnter:Connect(function()
+	HoverSound:Play() 
+	RedeemCodeButton:TweenSize(ClaimHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+RedeemCodeButton.MouseLeave:Connect(function()
+	RedeemCodeButton:TweenSize(ClaimStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+local function enableCodeInput()
+	RedeemCodeCooldown = false
+	RedeemCodeBox.ClearTextOnFocus = true
+	RedeemCodeBox.TextEditable = true
+end
+
+local function disableCodeInput()
+	RedeemCodeCooldown = true
+	RedeemCodeBox.ClearTextOnFocus = false
+	RedeemCodeBox.TextEditable = false
+end
+
+RedeemCodeEvent.OnClientEvent:Connect(function(gemAmount)
+	if gemAmount == "Invalid" then
+		ErrorSound:Play()
+		task.spawn(function()
+			BannerNotificationModule:Notify("Invalid Code", "Code does not exist!", "rbxassetid://99740313377038", 3, errorConfig)
+		end)
+		RedeemCodeBox.Text = "Invalid code!"
+
+	
+
+	elseif gemAmount == "AlreadyRedeemed" then
+		ErrorSound:Play()
+		task.spawn(function()
+			BannerNotificationModule:Notify("Invalid Code", "You already redeemed this code!", "rbxassetid://99740313377038", 3, errorConfig)
+		end)
+		RedeemCodeBox.Text = "Already redeemed code!"
+
+	
+	else
+		UnlockSound:Play()
+		task.spawn(function()
+			BannerNotificationModule:Notify("Redeemed Code!", "Gained: +".. tostring(gemAmount).. " GEMS", "rbxassetid://82108757958615", 5, greenConfig)
+		end)
+		RedeemCodeBox.Text = "Redeemed Code Successfully!"
+
+		
+	end
+end)
+
+RedeemCodeButton.Activated:Connect(function()
+	if not RedeemCodeCooldown then
+		ClickSound:Play()
+		disableCodeInput()
+		RedeemCodeEvent:FireServer(RedeemCodeBox.Text)
+		task.delay(1.5, function()
+			enableCodeInput()
+			RedeemCodeBox.Text = ""
+		end)	
+	end
+
+	
+end)
+
+--[[
+if RedeemCodeBox.Text == "EARLYEXCLUSIVE" and not RedeemCodeCooldown then
+		if player.UserId == 148977456 or player.UserId == 2055083336 or player.UserId == 1431426047 or player.UserId == 3499581658 then
+			--RedeemCodeEvent:FireServer("EARLYEXCLUSIVE")
+			--BannerNotificationModule:Notify("Redeemed Code!", "Gained: HYPERLIGHT RIFLE, +2000 GEMS", "rbxassetid://11326670020", 5, redeemOrBoughtConfig)
+			--RedeemCodeBox.Text = "Redeemed Code Successfully!"
+			--task.wait(1.5)
+			--RedeemCodeBox.Text = ""
+		end
+	elseif RedeemCodeBox.Text == "100LIKES" and not RedeemCodeCooldown then
+		disableCodeInput()
+
+		if player.Rewards.claimedCodeLikeGoal.Value then
+			ErrorSound:Play()
+			task.spawn(function()
+				BannerNotificationModule:Notify("Invalid Code", "You already redeemed this code!", "rbxassetid://99740313377038", 3, errorConfig)
+			end)
+			RedeemCodeBox.Text = "Already redeemed code!"
+
+			task.wait(1.5)
+			RedeemCodeBox.Text = ""
+			enableCodeInput()
+
+		else
+			UnlockSound:Play()
+			RedeemCodeEvent:FireServer("LikeGoal")
+			RedeemCodeBox.Text = "Redeemed Code Successfully!"
+			task.spawn(function()
+				BannerNotificationModule:Notify("Redeemed Code!", "Gained: +100 GEMS", "rbxassetid://82108757958615", 5, greenConfig)
+
+			end)
+			task.wait(1.5)
+			RedeemCodeBox.Text = ""
+			enableCodeInput()
+		end
+		
+	elseif RedeemCodeBox.Text == "AUTOPISTOL" and not RedeemCodeCooldown then
+		
+	
+	elseif RedeemCodeBox.Text == "VOIDEXCLUSIVE" and not RedeemCodeCooldown then
+		disableCodeInput()
+
+		if player.Rewards.claimedCode2kGems.Value then
+			ErrorSound:Play()
+			RedeemCodeBox.Text = "Already redeemed code!"
+			task.spawn(function()
+				BannerNotificationModule:Notify("Invalid Code", "You already redeemed this code!", "rbxassetid://99740313377038", 3, errorConfig)
+			end)
+			task.wait(1.5)
+			RedeemCodeBox.Text = ""
+			enableCodeInput()
+
+		elseif player.UserId == 101527461 or player.UserId == 9023102435 or player.UserId == 7828671334 or player.UserId == 37707996 then
+			UnlockSound:Play()
+			RedeemCodeEvent:FireServer("BUGTESTEREXCLUSIVE")
+			RedeemCodeBox.Text = "Redeemed Code Successfully!"
+			task.spawn(function()
+				BannerNotificationModule:Notify("Redeemed Code!", "Gained: +3000 GEMS, HYPERLIGHT BUNDLE", "rbxassetid://82108757958615", 5, greenConfig)
+			end)
+			task.wait(1.5)
+			RedeemCodeBox.Text = ""
+			enableCodeInput()
+
+		end
+	elseif not RedeemCodeCooldown then
+		disableCodeInput()
+
+		ErrorSound:Play()
+		task.spawn(function()
+			BannerNotificationModule:Notify("Invalid Code", "Code does not exist!", "rbxassetid://99740313377038", 3, errorConfig)
+		end)
+		RedeemCodeBox.Text = "Invalid code!"
+		task.wait(1.5)
+		RedeemCodeBox.Text = ""
+		enableCodeInput()
+
+	end
+]]
