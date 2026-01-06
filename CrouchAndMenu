@@ -1,0 +1,15 @@
+-- In a Server Script in ServerScriptService
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CrouchEvent = ReplicatedStorage.CrouchEvent
+
+CrouchEvent.OnServerEvent:Connect(function(player, isCrouching)
+	CrouchEvent:FireClient(player, isCrouching)
+end)
+
+local menuPress = ReplicatedStorage:WaitForChild("MenuPressed")
+
+menuPress.OnServerEvent:Connect(function(Player, inMenu)
+	local menu = inMenu
+	menuPress:FireClient(Player, menu)
+end)
