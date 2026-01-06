@@ -1,0 +1,1422 @@
+game.StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+local UIS = game:GetService("UserInputService")
+local player = game.Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ContextActionService = game:GetService("ContextActionService")
+local menuPress = ReplicatedStorage:WaitForChild("MenuPressed")
+local enableWeaponSelector = ReplicatedStorage:WaitForChild("EnableWeaponSelector")
+local disableWeaponSelector = ReplicatedStorage:WaitForChild("DisableWeaponSelector")
+local forceEquipLoadout = ReplicatedStorage:WaitForChild("ForceEquipLoadout")
+local equipPrimary = ReplicatedStorage:WaitForChild("EquipPrimary")
+local setWeapons = ReplicatedStorage:WaitForChild("SetWeapons")
+local disableScoreboard = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("DisableScoreboard")
+local CoreElements = player:WaitForChild("PlayerGui"):WaitForChild("CoreElements")
+local HideOrShowArmor = ReplicatedStorage:WaitForChild("HideOrShowArmor")
+local postRoundRE = ReplicatedStorage:WaitForChild("PostRound")
+local preRoundRE = ReplicatedStorage:WaitForChild("PreRound")
+local playerDied = game:GetService("ReplicatedStorage").Died
+local SprintChange = ReplicatedStorage:WaitForChild("SprintChange")
+local UsedAbilityEvent = ReplicatedStorage:WaitForChild("AbilityActions"):WaitForChild("UsedAbility")
+local MobileGui = player:WaitForChild("PlayerGui"):WaitForChild("MobileGui")
+local enableScoreboard = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("EnableScoreboard")
+local enableScoreboard2v2 = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("EnableScoreboard2v2")
+
+local bombThrown = ReplicatedStorage:WaitForChild("AbilityActions"):WaitForChild("LightningBombThrown")
+local bombExploded = ReplicatedStorage:WaitForChild("AbilityActions"):WaitForChild("LightningBombExploded")
+
+local ChangeLoadoutButton = player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard"):WaitForChild("ChangeLoadout")
+local EquipWeaponEvent = ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("EquipWeapon")
+
+local ChangeSelectedPrimary = ReplicatedStorage:WaitForChild("ChangeSelectedPrimary")
+local ChangeSelectedSecondary = ReplicatedStorage:WaitForChild("ChangeSelectedSecondary")
+local ChangeSelectedAbility1 = ReplicatedStorage:WaitForChild("ChangeSelectedAbility1")
+
+local Ability1Button = player:WaitForChild("PlayerGui"):WaitForChild("Abilities"):WaitForChild("Ability1")
+
+local Backpack = player.Backpack
+
+local Character = player.Character or player.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+
+local ClickSound = ReplicatedStorage:WaitForChild("Click")
+
+local inGame = false
+local CustomToolBar = player:WaitForChild("PlayerGui"):WaitForChild("CustomToolBar")
+local ActivePrimary = CustomToolBar:WaitForChild("Frame"):WaitForChild("Primaries"):WaitForChild("Rifle")
+local ActiveSecondary = CustomToolBar:WaitForChild("Frame"):WaitForChild("Secondaries"):WaitForChild("Pistol")
+local ActivePrimaryMobile = CustomToolBar:WaitForChild("FrameMobile"):WaitForChild("Primaries"):WaitForChild("Rifle")
+local ActiveSecondaryMobile = CustomToolBar:WaitForChild("FrameMobile"):WaitForChild("Secondaries"):WaitForChild("Pistol")
+
+local Scoreboard = player:WaitForChild("PlayerGui"):WaitForChild("Scoreboard")
+local LeaveShootingRangeButton = Scoreboard:WaitForChild("LeaveShootingRange")
+
+local GameLeaderboard = player:WaitForChild("PlayerGui"):WaitForChild("GameLeaderboard")
+local mapSelector = player:WaitForChild("PlayerGui"):WaitForChild("MapSelector")
+
+local LeaveShootingRangeEvent = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("LeaveShootingRange")
+
+local Abilities = player:WaitForChild("PlayerGui"):WaitForChild("Abilities")
+
+local SyringeBorderFolder = Abilities:WaitForChild("CalmingSyringeGUI"):WaitForChild("Border")
+local RegenPotBorderFolder = Abilities:WaitForChild("RegenPotGUI"):WaitForChild("Border")
+
+local HealthBar = player:WaitForChild("PlayerGui"):WaitForChild("HealthBar")
+Abilities.Enabled = false
+CustomToolBar.Enabled = false
+--HealthBar.Enabled = false
+
+local LightningBombIsInAir = false
+
+local isInventorySetup = false
+
+local UsedAbilityInPreRound = false
+local preRound = false
+local postRound = false
+local isSprinting = false
+
+local StageOfWeaponSelect = 1
+
+local toolBar = player:WaitForChild("PlayerGui"):WaitForChild("CustomToolBar"):WaitForChild("Frame")
+local toolBarPrimaries = toolBar:WaitForChild("Primaries")
+local toolBarSecondaries = toolBar:WaitForChild("Secondaries")
+local toolBarMobile = player:WaitForChild("PlayerGui"):WaitForChild("CustomToolBar"):WaitForChild("FrameMobile")
+local toolBarMobilePrimaries = toolBarMobile:WaitForChild("Primaries")
+local toolBarMobileSecondaries = toolBarMobile:WaitForChild("Secondaries")
+
+local Rifle, Saber, Karambit, Sniper, Revolver, LightningBomb, Melee, Pistol, SMG, Ability1, Shotgun, AutoPistol
+
+local CurrentWeapon
+local SelectedMelee = player:FindFirstChild("SelectedWeapons"):WaitForChild("selectedMelee").Value or "Melee"
+local SelectedPrimary = player:FindFirstChild("SelectedWeapons"):WaitForChild("selectedPrimary").Value or "Rifle"
+local SelectedSecondary = player:FindFirstChild("SelectedWeapons"):WaitForChild("selectedSecondary").Value or "Pistol"
+local SelectedAbility1 = player:FindFirstChild("SelectedWeapons"):WaitForChild("selectedAbility1").Value or "Grenade"
+
+local LastTick = tick()
+
+local weaponSelector = player:WaitForChild("PlayerGui"):WaitForChild("FullWeaponSelector")
+
+local TweenService = game:GetService("TweenService")
+local HoverSound = game:GetService("ReplicatedStorage"):WaitForChild("Hover")
+
+local Close = weaponSelector:WaitForChild("Close")
+local Primaries = weaponSelector:WaitForChild("Primaries")
+local Secondaries = weaponSelector:WaitForChild("Secondaries")
+local AbilitiesWeaponSelector = weaponSelector:WaitForChild("Abilities")
+
+local RifleButton = Primaries:WaitForChild("Rifle")
+local SniperButton = Primaries:WaitForChild("Sniper")
+local SMGButton = Primaries:WaitForChild("SMG")
+local ShotgunButton = Primaries:WaitForChild("Shotgun")
+local PistolButton = Secondaries:WaitForChild("Pistol")
+local RevolverButton = Secondaries:WaitForChild("Revolver")
+local AutoPistolButton = Secondaries:WaitForChild("AutoPistol")
+local GrenadeButton = AbilitiesWeaponSelector:WaitForChild("Grenade")
+local BoosterButton = AbilitiesWeaponSelector:WaitForChild("Booster")
+local LightningBombButton = AbilitiesWeaponSelector:WaitForChild("LightningBomb")
+local OverdriveVialButton = AbilitiesWeaponSelector:WaitForChild("OverdriveVial")
+local RegenPotButton = AbilitiesWeaponSelector:WaitForChild("RegenPot")
+
+local CloseStartSize = UDim2.new(0.063, 0, 0.051, 0)
+local CloseHoverSize = UDim2.new(0.073, 0, 0.057, 0)
+
+local PrimaryStartSize = UDim2.new(0.244, 0, 0.165, 0)
+local PrimaryHoverSize = UDim2.new(0.284, 0, 0.185, 0)
+
+local SecondaryStartSize = UDim2.new(0.117, 0, 0.121, 0)
+local SecondaryHoverSize = UDim2.new(0.136, 0, 0.136, 0)
+
+playerDied.OnClientEvent:Connect(function()
+	player.Character:FindFirstChild("Humanoid"):UnequipTools()
+end)
+
+postRoundRE.OnClientEvent:Connect(function(postRoundStatus)
+	if postRoundStatus then
+		task.delay(2.3, function()
+			postRound = postRoundStatus
+		end)
+	else
+		postRound = postRoundStatus
+	end
+end)
+
+bombExploded.OnClientEvent:Connect(function()
+	LightningBombIsInAir = false
+end)
+
+local function setEquippedWeaponsBlue()
+	for _, button in weaponSelector:GetDescendants() do
+		if button:IsA("TextButton") and button.Name ~= "CursorEnabler" and button.Name ~= "Close" then
+			button.BackgroundColor3 = Color3.fromRGB(95, 95, 95)
+			button.UIStroke.Color = Color3.fromRGB(117, 117, 117)
+		end
+	end
+	if SelectedPrimary == "Rifle" then
+		RifleButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+		RifleButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+	elseif SelectedPrimary == "Sniper" then
+		SniperButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+		SniperButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+	elseif SelectedPrimary == "SMG" then
+		SMGButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+		SMGButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+	elseif SelectedPrimary == "Shotgun" then
+		ShotgunButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+		ShotgunButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+	end
+	if SelectedSecondary == "Pistol" then
+		PistolButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+		PistolButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+	elseif SelectedSecondary == "Revolver" then
+		RevolverButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+		RevolverButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+	elseif SelectedSecondary == "AutoPistol" then
+		AutoPistolButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+		AutoPistolButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+	end
+	if SelectedAbility1 == "Booster" then
+		BoosterButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+		BoosterButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+	elseif SelectedAbility1 == "LightningBomb" then
+		LightningBombButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+		LightningBombButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+	elseif SelectedAbility1 == "OverdriveVial" then
+		OverdriveVialButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+		OverdriveVialButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+	elseif SelectedAbility1 == "Grenade" then
+		GrenadeButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+		GrenadeButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+	elseif SelectedAbility1 == "RegenPot" then
+		RegenPotButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+		RegenPotButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+	else
+		GrenadeButton.BackgroundColor3 = Color3.fromRGB(82, 174, 255)
+		GrenadeButton.UIStroke.Color = Color3.fromRGB(82, 174, 255)
+	end
+	--print(SelectedPrimary)
+end
+
+local function SetToolbarTransparency(weapon)
+	for _, element in toolBar:GetDescendants() do
+		if element:IsA("TextLabel") and element.Name ~= "1" and element.Name ~= "2" and element.Name ~= "3" then
+			element.Visible = false
+		elseif element:IsA("ImageLabel") then
+			element.ImageTransparency = 0.7
+		end
+	end
+	if weapon == Melee then
+		toolBar.Melee.ImageTransparency = 0
+		toolBar.MeleeText.Visible = true
+		toolBarMobile.Melee.MeleeImage.ImageTransparency = 0
+	elseif weapon == Rifle then
+		toolBarPrimaries.RifleText.Visible = true
+		ActivePrimary.ImageTransparency = 0
+		ActivePrimaryMobile.ImageTransparency = 0
+	elseif weapon == Sniper then
+		toolBarPrimaries.SniperText.Visible = true
+		ActivePrimary.ImageTransparency = 0
+		ActivePrimaryMobile.ImageTransparency = 0
+	elseif weapon == SMG then
+		toolBarPrimaries.SMGText.Visible = true
+		ActivePrimary.ImageTransparency = 0
+		ActivePrimaryMobile.ImageTransparency = 0
+	elseif weapon == Shotgun then
+		toolBarPrimaries.ShotgunText.Visible = true
+		ActivePrimary.ImageTransparency = 0
+		ActivePrimaryMobile.ImageTransparency = 0
+	elseif weapon == Pistol then
+		toolBarSecondaries.PistolText.Visible = true
+		ActiveSecondary.ImageTransparency = 0
+		ActiveSecondaryMobile.ImageTransparency = 0
+	elseif weapon == Revolver then
+		toolBarSecondaries.RevolverText.Visible = true
+		ActiveSecondary.ImageTransparency = 0
+		ActiveSecondaryMobile.ImageTransparency = 0
+	elseif weapon == AutoPistol then
+		toolBarSecondaries.AutoPistolText.Visible = true
+		ActiveSecondary.ImageTransparency = 0
+		ActiveSecondaryMobile.ImageTransparency = 0
+	elseif weapon == Ability1 then
+		Abilities:WaitForChild("Ability1"):WaitForChild("UIStroke").Enabled = true
+	end
+end
+
+local function EquipWeapon(weapon)
+	if weapon then
+		if not weapon.Parent then
+			task.wait(0.1) -- Wait for parent to be set
+		end
+		if weapon.Parent == player.Backpack then
+			EquipWeaponEvent:Fire()
+			SetToolbarTransparency(weapon)
+			CurrentWeapon = weapon
+			player.Character:FindFirstChild("Humanoid"):EquipTool(weapon)
+			if weapon == Ability1 then
+				Abilities:WaitForChild("Ability1"):WaitForChild("UIStroke").Enabled = true
+			else
+				Abilities:WaitForChild("Ability1"):WaitForChild("UIStroke").Enabled = false
+			end
+
+		else
+			--warn("Weapon parent is not Backpack!")
+		end
+	else
+		warn("No weapon provided to EquipWeapon!")
+	end
+end
+
+EquipWeaponEvent.Event:Connect(function(bool, equippedWeapon)
+	if equippedWeapon then
+		SetToolbarTransparency(equippedWeapon)
+	end
+end)
+
+local function AssignWeapons()
+	for _, weapon in player.Backpack:GetChildren() do
+		if string.match(weapon.Name, "Rifle") then
+			Rifle = weapon
+		elseif string.match(weapon.Name, "Sniper") then
+			Sniper = weapon
+		elseif string.match(weapon.Name, "SMG") then
+			SMG = weapon
+		elseif string.match(weapon.Name, "Shotgun") then
+			Shotgun = weapon
+		elseif string.match(weapon.Name, "Pistol") and not string.match(weapon.Name, "AutoPistol") then
+			Pistol = weapon
+		elseif string.match(weapon.Name, "Revolver") then
+			Revolver = weapon
+		elseif string.match(weapon.Name, "AutoPistol") then
+			AutoPistol = weapon
+		elseif string.match(weapon.Name, "Melee") then
+			Melee = weapon
+		elseif string.match(weapon.Name, "Grenade") then
+			if not SelectedAbility1 or SelectedAbility1 == "Grenade" then
+				Ability1 = weapon
+				Abilities:WaitForChild("Ability1").Visible = true
+				for _, imageLabel in Abilities:WaitForChild("Ability1"):GetChildren() do
+					if imageLabel:IsA("ImageLabel") then
+						imageLabel.Visible = false
+					end
+				end
+				Abilities:WaitForChild("Ability1"):WaitForChild("Grenade").Visible = true
+			end
+		elseif string.match(weapon.Name, "Booster") then
+			if SelectedAbility1 == "Booster" then
+				Ability1 = weapon
+				Abilities:WaitForChild("Ability1").Visible = true
+				for _, imageLabel in Abilities:WaitForChild("Ability1"):GetChildren() do
+					if imageLabel:IsA("ImageLabel") then
+						imageLabel.Visible = false
+					end
+				end
+				Abilities:WaitForChild("Ability1"):WaitForChild("Booster").Visible = true
+			end
+		elseif string.match(weapon.Name, "LightningBomb") then
+			if SelectedAbility1 == "LightningBomb" then
+				Ability1 = weapon
+				Abilities:WaitForChild("Ability1").Visible = true
+				for _, imageLabel in Abilities:WaitForChild("Ability1"):GetChildren() do
+					if imageLabel:IsA("ImageLabel") then
+						imageLabel.Visible = false
+					end
+				end
+				Abilities:WaitForChild("Ability1"):WaitForChild("LightningBomb").Visible = true
+			end
+		elseif string.match(weapon.Name, "OverdriveVial") then
+			if SelectedAbility1 == "OverdriveVial" then
+				Ability1 = weapon
+				Abilities:WaitForChild("Ability1").Visible = true
+				for _, imageLabel in Abilities:WaitForChild("Ability1"):GetChildren() do
+					if imageLabel:IsA("ImageLabel") then
+						imageLabel.Visible = false
+					end
+				end
+				Abilities:WaitForChild("Ability1"):WaitForChild("OverdriveVial").Visible = true
+			end
+		elseif string.match(weapon.Name, "RegenPot") then
+			if SelectedAbility1 == "RegenPot" then
+				Ability1 = weapon
+				Abilities:WaitForChild("Ability1").Visible = true
+				for _, imageLabel in Abilities:WaitForChild("Ability1"):GetChildren() do
+					if imageLabel:IsA("ImageLabel") then
+						imageLabel.Visible = false
+					end
+				end
+				Abilities:WaitForChild("Ability1"):WaitForChild("RegenPot").Visible = true
+			end
+		end
+
+		if SelectedAbility1 == "None" then
+			if string.match(weapon.Name, "Grenade") then
+				Ability1 = weapon
+				Abilities:WaitForChild("Ability1").Visible = true
+				for _, imageLabel in Abilities:WaitForChild("Ability1"):GetChildren() do
+					if imageLabel:IsA("ImageLabel") then
+						imageLabel.Visible = false
+					end
+				end
+				Abilities:WaitForChild("Ability1"):WaitForChild("Grenade").Visible = true
+			end
+		end
+		
+	end
+end
+
+local function SetPrimaryToolbarTextAndEquipWeapon()
+	
+	if SelectedPrimary == "Rifle" then
+		toolBarPrimaries.RifleText.Visible = true
+		EquipWeapon(Rifle)
+	elseif SelectedPrimary == "Sniper" then
+		toolBarPrimaries.SniperText.Visible = true
+		EquipWeapon(Sniper)
+	elseif SelectedPrimary == "SMG" then
+		toolBarPrimaries.SMGText.Visible = true
+		EquipWeapon(SMG)
+	elseif SelectedPrimary == "Shotgun" then
+		toolBarPrimaries.ShotgunText.Visible = true
+		EquipWeapon(Shotgun)
+	end
+end
+
+local function SetSecondaryToolbarTextAndEquipWeapon()
+	if SelectedSecondary == "Pistol" then
+		toolBarSecondaries.PistolText.Visible = true
+		EquipWeapon(Pistol)
+	elseif SelectedSecondary == "Revolver" then
+		toolBarSecondaries.RevolverText.Visible = true
+		EquipWeapon(Revolver)
+	elseif SelectedSecondary == "AutoPistol" then
+		toolBarSecondaries.AutoPistolText.Visible = true
+		EquipWeapon(AutoPistol)
+	end
+end
+
+SprintChange.Event:Connect(function(isSprint)
+	isSprinting = isSprint
+	if isSprint then
+		CurrentWeapon = isSprinting
+		for _, element in toolBar:GetDescendants() do
+			if element:IsA("TextLabel") and element.Name ~= "1" and element.Name ~= "2" and element.Name ~= "3" then
+				element.Visible = false
+			elseif element:IsA("ImageLabel") then
+				element.ImageTransparency = 0.7
+			end
+		end
+		if SelectedPrimary == "Rifle" then
+			toolBarPrimaries.RifleText.Visible = false
+		elseif SelectedPrimary == "Sniper" then
+			toolBarPrimaries.SniperText.Visible = false
+		elseif SelectedPrimary == "SMG" then
+			toolBarPrimaries.SMGText.Visible = false
+		elseif SelectedPrimary == "Shotgun" then
+			toolBarPrimaries.ShotgunText.Visible = false
+		end
+		if SelectedSecondary == "Pistol" then
+			toolBarSecondaries.PistolText.Visible = false
+		elseif SelectedSecondary == "Revolver" then
+			toolBarSecondaries.RevolverText.Visible = false
+		elseif SelectedSecondary == "AutoPistol" then
+			toolBarSecondaries.AutoPistolText.Visible = false
+		end
+		toolBar.MeleeText.Visible = false
+	end
+
+end)
+
+local function forceEquipWeapon(tool)
+	if not tool then return end
+	
+	task.spawn(function()
+		local attempts = 0
+		while attempts < 20 do
+			if tool.Parent == player.Backpack then
+				player.Character:FindFirstChild("Humanoid"):EquipTool(tool)
+				if tool.Parent == Character or player.Character:FindFirstChild("Humanoid"):FindFirstChild("EquippedTool") == tool then
+					-- Equipped successfully
+					CurrentWeapon = tool
+					SetToolbarTransparency(tool)
+					break
+				end
+			end
+			attempts += 1
+			task.wait(0.1)
+		end
+	end)
+end
+
+
+local function EquipPrimaryWeapon()
+	workspace.CurrentCamera.FieldOfView = 70
+	AssignWeapons()
+
+	-- Reset toolbar UI
+	for _, element in toolBar:GetDescendants() do
+		if element:IsA("TextLabel") and element.Name ~= "1" and element.Name ~= "2" and element.Name ~= "3" then
+			element.Visible = false
+		elseif element:IsA("ImageLabel") then
+			element.ImageTransparency = 0.7
+		end
+	end
+	for _, element in toolBarMobile:GetDescendants() do
+		if element:IsA("ImageButton") then
+			element.ImageTransparency = 0.7
+		end
+	end
+
+	-- Equip correct primary
+	if SelectedPrimary == "Rifle" then
+		toolBarPrimaries.RifleText.Visible = true
+		forceEquipWeapon(Rifle)
+	elseif SelectedPrimary == "Sniper" then
+		toolBarPrimaries.SniperText.Visible = true
+		forceEquipWeapon(Sniper)
+	elseif SelectedPrimary == "SMG" then
+		toolBarPrimaries.SMGText.Visible = true
+		forceEquipWeapon(SMG)
+	elseif SelectedPrimary == "Shotgun" then
+		toolBarPrimaries.ShotgunText.Visible = true
+		forceEquipWeapon(Shotgun)
+	end
+
+	ActivePrimary.ImageTransparency = 0
+	ActivePrimaryMobile.ImageTransparency = 0
+end
+
+
+bombThrown.OnClientEvent:Connect(function()
+	LightningBombIsInAir = true
+	EquipPrimaryWeapon()
+	Abilities:WaitForChild("Ability1"):WaitForChild("UIStroke").Enabled = false
+end)
+
+-- Inputs Pressed
+local function OnInput(input, Chat)
+	if input.KeyCode == Enum.KeyCode.Tab and inGame and mapSelector.Enabled == false and not Chat then
+		GameLeaderboard.Enabled = true
+
+	end
+	--if input.KeyCode == Enum.KeyCode.P then
+	--	for _, gui in game.Players.LocalPlayer.PlayerGui:GetDescendants() do
+	--		if gui:IsA("ScreenGui") then
+	--			gui.Enabled = false
+	--		end
+	--	end
+	--end
+
+	if Chat or not inGame or postRound then return end
+	if player.Character:FindFirstChild("Humanoid") then
+		if player.Character:FindFirstChild("Humanoid").Health <= 0 then return end
+	end
+	local GetKeyCode = input.KeyCode
+	if GetKeyCode == Enum.KeyCode.Three and CurrentWeapon ~= Melee then
+
+		AssignWeapons()
+		EquipWeapon(Melee)
+		for _, element in toolBar:GetDescendants() do
+			if element:IsA("TextLabel") and element.Name ~= "1" and element.Name ~= "2" and element.Name ~= "3" then
+				element.Visible = false
+			elseif element:IsA("ImageLabel") then
+				element.ImageTransparency = 0.7
+			end
+		end
+		toolBar.Melee.ImageTransparency = 0
+		toolBar.MeleeText.Visible = true
+	elseif GetKeyCode == Enum.KeyCode.One and CurrentWeapon ~= Sniper and CurrentWeapon ~= Rifle and CurrentWeapon ~= SMG  and CurrentWeapon ~= Shotgun then
+		AssignWeapons()
+		for _, element in toolBar:GetDescendants() do
+			if element:IsA("TextLabel") and element.Name ~= "1" and element.Name ~= "2" and element.Name ~= "3" then
+				element.Visible = false
+			elseif element:IsA("ImageLabel") then
+				element.ImageTransparency = 0.7
+			end
+		end
+		SetPrimaryToolbarTextAndEquipWeapon()
+		ActivePrimary.ImageTransparency = 0
+	elseif GetKeyCode == Enum.KeyCode.Two and CurrentWeapon ~= Revolver and CurrentWeapon ~= Pistol and CurrentWeapon ~= AutoPistol then
+		AssignWeapons()
+		for _, element in toolBar:GetDescendants() do
+			if element:IsA("TextLabel") and element.Name ~= "1" and element.Name ~= "2" and element.Name ~= "3" then
+				element.Visible = false
+			elseif element:IsA("ImageLabel") then
+				element.ImageTransparency = 0.7
+			end
+		end
+		SetSecondaryToolbarTextAndEquipWeapon()
+		ActiveSecondary.ImageTransparency = 0
+	elseif GetKeyCode == Enum.KeyCode.B and inGame and preRound then
+		if weaponSelector.Enabled then
+			CloseWeaponSelector()
+		elseif not UsedAbilityInPreRound then
+			setEquippedWeaponsBlue()
+			weaponSelector.Enabled = true
+			Abilities:WaitForChild("Ability1"):WaitForChild("UIStroke").Enabled = false
+			player.Character:FindFirstChild("Humanoid"):UnequipTools()
+		end
+	elseif GetKeyCode == Enum.KeyCode.F and CurrentWeapon ~= Ability1 then
+		if SelectedAbility1 == "LightningBomb" then
+			if not LightningBombIsInAir then
+				AssignWeapons()
+				for _, element in toolBar:GetDescendants() do
+					if element:IsA("TextLabel") and element.Name ~= "1" and element.Name ~= "2" and element.Name ~= "3" then
+						element.Visible = false
+					elseif element:IsA("ImageLabel") then
+						element.ImageTransparency = 0.7
+					end
+				end
+				if Ability1 ~= "None" then
+					EquipWeapon(Ability1)
+				end
+			end
+		else
+			if Ability1 ~= "None" and Ability1 then
+				EquipWeapon(Ability1)
+				AssignWeapons()
+				for _, element in toolBar:GetDescendants() do
+					if element:IsA("TextLabel") and element.Name ~= "1" and element.Name ~= "2" and element.Name ~= "3" then
+						element.Visible = false
+					elseif element:IsA("ImageLabel") then
+						element.ImageTransparency = 0.7
+					end
+				end
+			end
+		end
+
+	elseif GetKeyCode == Enum.KeyCode.L then
+		if player.GameTeam.playerTeam.Value == "ShootingRange" then
+			LeaveShootingRangeEvent:FireServer()
+		end
+	end
+end
+
+local function initialInventorySetup()
+	if not isInventorySetup and not mapSelector.Enabled then
+		isInventorySetup = true
+
+		if preRound then
+			ChangeLoadoutButton.Visible = true
+		end
+		--OnCharacterAdded(player.Character)
+		for _, element in toolBar:GetDescendants() do
+			if element:IsA("ImageLabel") then
+				element.Visible = false
+			end
+		end
+		for _, element in toolBarMobile:GetDescendants() do
+			if element:IsA("ImageButton") then
+				element.Visible = false
+			end
+		end
+		--Humanoid.WalkSpeed = 16
+		if player.SelectedWeapons.selectedPrimary.Value == "Rifle" then
+			ActivePrimary = toolBarPrimaries.Rifle
+			ActivePrimaryMobile = toolBarMobilePrimaries.Rifle
+			ActivePrimary.Visible = true
+			ActivePrimaryMobile.Visible = true
+		elseif player.SelectedWeapons.selectedPrimary.Value == "Sniper" then
+			ActivePrimary = toolBarPrimaries.Sniper
+			ActivePrimaryMobile = toolBarMobilePrimaries.Sniper
+			ActivePrimary.Visible = true
+			ActivePrimaryMobile.Visible = true
+		elseif player.SelectedWeapons.selectedPrimary.Value == "SMG" then
+			ActivePrimary = toolBarPrimaries.SMG
+			ActivePrimaryMobile = toolBarMobilePrimaries.SMG
+			ActivePrimary.Visible = true
+			ActivePrimaryMobile.Visible = true
+		elseif player.SelectedWeapons.selectedPrimary.Value == "Shotgun" then
+			ActivePrimary = toolBarPrimaries.Shotgun
+			ActivePrimaryMobile = toolBarMobilePrimaries.Shotgun
+			ActivePrimary.Visible = true
+			ActivePrimaryMobile.Visible = true
+		end
+		if player.SelectedWeapons.selectedSecondary.Value == "Pistol" then
+			ActiveSecondary = toolBarSecondaries.Pistol
+			ActiveSecondaryMobile = toolBarMobileSecondaries.Pistol
+			ActiveSecondary.Visible = true
+			ActiveSecondaryMobile.Visible = true
+		elseif player.SelectedWeapons.selectedSecondary.Value == "Revolver" then
+			ActiveSecondary = toolBarSecondaries.Revolver
+			ActiveSecondaryMobile = toolBarMobileSecondaries.Revolver
+			ActiveSecondary.Visible = true
+			ActiveSecondaryMobile.Visible = true
+		elseif player.SelectedWeapons.selectedSecondary.Value == "AutoPistol" then
+			ActiveSecondary = toolBarSecondaries.AutoPistol
+			ActiveSecondaryMobile = toolBarMobileSecondaries.AutoPistol
+			ActiveSecondary.Visible = true
+			ActiveSecondaryMobile.Visible = true
+		end	
+
+		toolBar.Melee.Visible = true
+		CustomToolBar.Enabled = true
+		--Abilities.Enabled = true
+		HealthBar.Enabled = true
+		inGame = true
+		--OnInput({KeyCode = Enum.KeyCode.Two})
+		--task.wait(0.1)
+
+		AssignWeapons()
+		task.wait(0.2)
+		if preRound then
+			ChangeLoadoutButton.Visible = true
+		end
+		toolBarMobilePrimaries.Visible = true
+		toolBarMobileSecondaries.Visible = true
+		toolBarMobile.Melee.Visible = true
+		toolBarMobile.Melee.MeleeImage.Visible = true
+		--OnInput({KeyCode = Enum.KeyCode.Three})
+		--OnInput({KeyCode = Enum.KeyCode.One})
+		--EquipPrimaryWeapon()
+	end
+end
+
+toolBarMobilePrimaries.Activated:Connect(function()
+	if inGame and CurrentWeapon ~= Sniper and CurrentWeapon ~= Rifle and CurrentWeapon ~= SMG and not postRound then
+		if player.Character:FindFirstChild("Humanoid") then
+			if player.Character:FindFirstChild("Humanoid").Health <= 0 then return end
+		end
+		AssignWeapons()
+		SetPrimaryToolbarTextAndEquipWeapon()
+		MobileGui.AimButton.Image = "rbxassetid://119977346525926"
+
+		toolBarMobile.Melee.MeleeImage.ImageTransparency = 0.7
+		ActiveSecondaryMobile.ImageTransparency = 0.7
+
+		ActivePrimaryMobile.ImageTransparency = 0
+	end
+end)
+
+toolBarMobileSecondaries.Activated:Connect(function()
+	if inGame and CurrentWeapon ~= Revolver and CurrentWeapon ~= Pistol  and not postRound then
+		if player.Character:FindFirstChild("Humanoid") then
+			if player.Character:FindFirstChild("Humanoid").Health <= 0 then return end
+		end
+		AssignWeapons()
+		SetSecondaryToolbarTextAndEquipWeapon()
+		toolBarMobile.Melee.MeleeImage.ImageTransparency = 0.7
+		ActivePrimaryMobile.ImageTransparency = 0.7
+		MobileGui.AimButton.Image = "rbxassetid://119977346525926"
+
+		ActiveSecondaryMobile.ImageTransparency = 0
+	end
+end)
+
+
+
+toolBarMobile:WaitForChild("Melee").Activated:Connect(function()
+	if inGame and CurrentWeapon ~= Melee and not postRound then
+		if player.Character:FindFirstChild("Humanoid") then
+			if player.Character:FindFirstChild("Humanoid").Health <= 0 then return end
+		end
+		AssignWeapons()
+		EquipWeapon(Melee)
+		ActivePrimaryMobile.ImageTransparency = 0.7
+		ActiveSecondaryMobile.ImageTransparency = 0.7
+		MobileGui.AimButton.Image = "rbxassetid://119977346525926"
+
+		toolBarMobile.Melee.MeleeImage.ImageTransparency = 0 
+	end
+end)
+
+Ability1Button.Activated:Connect(function()
+	if inGame and CurrentWeapon ~= Ability1 and not postRound then
+		if player.Character:FindFirstChild("Humanoid") then
+			if player.Character:FindFirstChild("Humanoid").Health <= 0 then return end
+		end
+		if SelectedAbility1 == "LightningBomb" then
+			if not LightningBombIsInAir then
+				AssignWeapons()
+				for _, element in toolBarMobile:GetDescendants() do
+					if element:IsA("ImageButton") then
+						element.ImageTransparency = 0.7
+					end
+				end
+				MobileGui.AimButton.Image = "rbxassetid://119977346525926"
+
+				if Ability1 ~= "None" then
+					EquipWeapon(Ability1)
+				end
+			end
+		else
+			if Ability1 ~= "None" and Ability1 then
+				AssignWeapons()
+				EquipWeapon(Ability1)
+				MobileGui.AimButton.Image = "rbxassetid://119977346525926"
+
+				for _, element in toolBarMobile:GetDescendants() do
+					if element:IsA("ImageButton") then
+						element.ImageTransparency = 0.7
+					end
+				end
+			end
+		end
+	end
+end)
+
+LeaveShootingRangeButton.Activated:Connect(function()
+	if player.GameTeam.playerTeam.Value == "ShootingRange" then
+		LeaveShootingRangeEvent:FireServer()
+	end
+end)
+
+ChangeLoadoutButton.Activated:Connect(function()
+	if UsedAbilityInPreRound or not inGame or postRound or isSprinting then return end
+	if player.Character:FindFirstChild("Humanoid") then
+		if player.Character:FindFirstChild("Humanoid").Health <= 0 then return end
+	end
+	setEquippedWeaponsBlue()
+	weaponSelector.Enabled = true
+	Abilities:WaitForChild("Ability1"):WaitForChild("UIStroke").Enabled = false
+	player.Character:FindFirstChild("Humanoid"):UnequipTools()
+end)
+
+preRoundRE.OnClientEvent:Connect(function(preRoundStatus)
+	preRoundRE:FireServer(preRoundStatus)
+	preRound = preRoundStatus
+
+	if preRound and inGame then
+		UsedAbilityInPreRound = false
+		ChangeLoadoutButton.Visible = true
+	else
+		ChangeLoadoutButton.Visible = false
+	end
+end)
+
+UsedAbilityEvent.Event:Connect(function(AbilityName)
+	UsedAbilityInPreRound = true
+	ChangeLoadoutButton.Visible = false
+end)
+
+UIS.InputBegan:Connect(OnInput)
+UIS.InputEnded:Connect(function(input, Chat)
+	if Chat then return end
+	if input.KeyCode == Enum.KeyCode.Tab then
+		GameLeaderboard.Enabled = false
+	end
+end)
+--OnInput({KeyCode = Enum.KeyCode.One}) -- Equip tool on spawn
+equipPrimary.OnClientEvent:Connect(function()
+	--initialInventorySetup()
+end)
+
+setWeapons.OnClientEvent:Connect(function()
+	-- 1) Assign the weapons from the Backpack
+	--setWeaponsAndInventory()
+	local character = player.Character
+	if not character then return end
+	-- See if any descendant of the character is a Tool
+	local hasToolEquipped = false
+	for _, item in ipairs(character:GetChildren()) do
+		if item:IsA("Tool") then
+			hasToolEquipped = true
+			break
+		end
+	end
+
+	-- Only continue if no tool is equipped
+	if hasToolEquipped then
+		return
+	end
+	
+	if (player:FindFirstChild("GeneralInfo"):FindFirstChild("isInGame").Value) and not mapSelector.Enabled then
+		initialInventorySetup()
+	end
+	AssignWeapons()
+
+	-- Reset toolbar UI
+	for _, element in toolBar:GetDescendants() do
+		if element:IsA("TextLabel") and element.Name ~= "1" and element.Name ~= "2" and element.Name ~= "3" then
+			element.Visible = false
+		elseif element:IsA("ImageLabel") then
+			element.ImageTransparency = 0.7
+		end
+	end
+	for _, element in toolBarMobile:GetDescendants() do
+		if element:IsA("ImageButton") then
+			element.ImageTransparency = 0.7
+		end
+	end
+	-- Equip correct primary
+	if player.SelectedWeapons.selectedPrimary.Value == "Rifle" then
+		toolBarPrimaries.RifleText.Visible = true
+		forceEquipWeapon(Rifle)
+	elseif player.SelectedWeapons.selectedPrimary.Value == "Sniper" then
+		toolBarPrimaries.SniperText.Visible = true
+		forceEquipWeapon(Sniper)
+	elseif player.SelectedWeapons.selectedPrimary.Value == "SMG" then
+		toolBarPrimaries.SMGText.Visible = true
+		forceEquipWeapon(SMG)
+	elseif player.SelectedWeapons.selectedPrimary.Value == "Shotgun" then
+		toolBarPrimaries.ShotgunText.Visible = true
+		forceEquipWeapon(Shotgun)
+	end
+
+	ActivePrimary.ImageTransparency = 0
+	ActivePrimaryMobile.ImageTransparency = 0
+	workspace.CurrentCamera.FieldOfView = 70
+end)
+
+
+-- Inputs Types Changed
+local function OnTypeInput(inputType, Chat)
+	if Chat or not inGame or postRound then return end
+	if player.Character:FindFirstChild("Humanoid") then
+		if player.Character:FindFirstChild("Humanoid").Health <= 0 then return end
+	end
+	local CurrentTick = tick()
+	if inputType.UserInputType == Enum.UserInputType.MouseWheel and CurrentTick - LastTick >= 0.2 then
+		LastTick = CurrentTick
+		if CurrentWeapon == Melee then
+			AssignWeapons()
+			for _, element in toolBar:GetDescendants() do
+				if element:IsA("TextLabel") and element.Name ~= "1" and element.Name ~= "2" and element.Name ~= "3" then
+					element.Visible = false
+				elseif element:IsA("ImageLabel") then
+					element.ImageTransparency = 0.7
+				end
+			end
+			SetPrimaryToolbarTextAndEquipWeapon()
+
+			ActivePrimary.ImageTransparency = 0
+
+		elseif CurrentWeapon == Sniper or CurrentWeapon == Rifle or CurrentWeapon == SMG or CurrentWeapon == Shotgun  then 
+			AssignWeapons()
+			for _, element in toolBar:GetDescendants() do
+				if element:IsA("TextLabel") and element.Name ~= "1" and element.Name ~= "2" and element.Name ~= "3" then
+					element.Visible = false
+				elseif element:IsA("ImageLabel") then
+					element.ImageTransparency = 0.7
+				end
+			end
+			SetSecondaryToolbarTextAndEquipWeapon()
+			ActiveSecondary.ImageTransparency = 0
+
+		elseif CurrentWeapon == Revolver or CurrentWeapon == Pistol or CurrentWeapon == AutoPistol then
+			AssignWeapons()
+			EquipWeapon(Melee)
+			for _, element in toolBar:GetDescendants() do
+				if element:IsA("TextLabel") and element.Name ~= "1" and element.Name ~= "2" and element.Name ~= "3" then
+					element.Visible = false
+				elseif element:IsA("ImageLabel") then
+					element.ImageTransparency = 0.7
+				end
+			end
+			toolBar.Melee.ImageTransparency = 0
+			toolBar.MeleeText.Visible = true
+		end
+	end
+end
+
+UIS.InputChanged:Connect(OnTypeInput)
+
+enableWeaponSelector.OnClientEvent:Connect(function(plr)
+	CoreElements.Enabled = false
+	player.CameraMode = Enum.CameraMode.LockFirstPerson
+
+	AssignWeapons()
+	weaponSelector.Enabled = true	
+	Abilities:WaitForChild("Ability1"):WaitForChild("UIStroke").Enabled = false
+	setEquippedWeaponsBlue()
+end)
+
+
+-- Helper function for creating tweens
+local function tweenProperty(object, property, endValue, duration)
+	local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+	local tween = TweenService:Create(object, tweenInfo, {[property] = endValue})
+	tween:Play()
+end
+
+local function primaryEnter(button, weapon)
+	HoverSound:Play()
+	button.ZIndex = 2
+	button:TweenSize(PrimaryHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end
+
+local function primaryLeave(button, weapon)
+	button.ZIndex = 1
+	button:TweenSize(PrimaryStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end
+
+local function secondaryEnter(button, weapon)
+	HoverSound:Play()
+	button.ZIndex = 2
+	button:TweenSize(SecondaryHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end
+
+local function secondaryLeave(button, weapon)
+	button.ZIndex = 1
+	button:TweenSize(SecondaryStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end
+
+function CloseWeaponSelector()
+	disableWeaponSelector:FireServer(player)
+	for _, element in toolBar:GetDescendants() do
+		if element:IsA("ImageLabel") then
+			element.Visible = false
+		end 
+	end
+	for _, element in toolBarMobile:GetDescendants() do
+		if element:IsA("ImageButton") then
+			element.Visible = false
+		end
+	end
+	weaponSelector.Enabled = false
+
+	inGame = true
+	CustomToolBar.Enabled = true
+	--Abilities.Enabled = true
+	HealthBar.Enabled = true
+	if SelectedPrimary == "Rifle" then
+		ActivePrimary = toolBarPrimaries.Rifle
+		ActivePrimaryMobile = toolBarMobilePrimaries.Rifle
+		ActivePrimary.Visible = true
+		ActivePrimaryMobile.Visible = true
+	elseif SelectedPrimary == "Sniper" then
+		ActivePrimary = toolBarPrimaries.Sniper
+		ActivePrimaryMobile = toolBarMobilePrimaries.Sniper
+		ActivePrimary.Visible = true
+		ActivePrimaryMobile.Visible = true
+	elseif SelectedPrimary == "SMG" then
+		ActivePrimary = toolBarPrimaries.SMG
+		ActivePrimaryMobile = toolBarMobilePrimaries.SMG
+		ActivePrimary.Visible = true
+		ActivePrimaryMobile.Visible = true
+	elseif player.SelectedWeapons.selectedPrimary.Value == "Shotgun" then
+		ActivePrimary = toolBarPrimaries.Shotgun
+		ActivePrimaryMobile = toolBarMobilePrimaries.Shotgun
+		ActivePrimary.Visible = true
+		ActivePrimaryMobile.Visible = true
+	else
+		SelectedPrimary = "Rifle"
+		ActivePrimary = toolBarPrimaries.Rifle
+		ActivePrimaryMobile = toolBarMobilePrimaries.Rifle
+		ActivePrimary.Visible = true
+		ActivePrimaryMobile.Visible = true
+	end
+	if SelectedSecondary == "Pistol" then
+		ActiveSecondary = toolBarSecondaries.Pistol
+		ActiveSecondaryMobile = toolBarMobileSecondaries.Pistol
+		ActiveSecondary.Visible = true
+		ActiveSecondaryMobile.Visible = true
+	elseif SelectedSecondary == "Revolver" then
+		ActiveSecondary = toolBarSecondaries.Revolver
+		ActiveSecondaryMobile = toolBarMobileSecondaries.Revolver
+		ActiveSecondary.Visible = true
+		ActiveSecondaryMobile.Visible = true
+	elseif SelectedSecondary == "AutoPistol" then
+		ActiveSecondary = toolBarSecondaries.AutoPistol
+		ActiveSecondaryMobile = toolBarMobileSecondaries.AutoPistol
+		ActiveSecondary.Visible = true
+		ActiveSecondaryMobile.Visible = true
+	else
+		SelectedSecondary = "Pistol"
+		ActiveSecondary = toolBarSecondaries.Pistol
+		ActiveSecondaryMobile = toolBarMobileSecondaries.Pistol
+		ActiveSecondary.Visible = true
+		ActiveSecondaryMobile.Visible = true
+	end	
+	if SelectedAbility1 == "Booster" then
+
+	elseif SelectedAbility1 == "LightningBomb" then
+
+	elseif SelectedAbility1 == "OverdriveVial" then
+
+	elseif SelectedAbility1 == "Grenade" then
+
+	elseif SelectedAbility1 == "RegenPot" then
+
+	else
+		SelectedAbility1 = "None"
+	end	
+
+	task.wait(0.1)
+	toolBar.Melee.Visible = true
+	toolBarMobilePrimaries.Visible = true
+	toolBarMobileSecondaries.Visible = true
+	toolBarMobile.Melee.Visible = true
+	toolBarMobile.Melee.MeleeImage.Visible = true
+	AssignWeapons()
+	if preRound then
+		ChangeLoadoutButton.Visible = true
+	end
+	task.wait(0.1)
+	--OnInput({KeyCode = Enum.KeyCode.Three})
+	--OnInput({KeyCode = Enum.KeyCode.One})
+	--EquipPrimaryWeapon()
+end
+
+Close.Activated:Connect(function()
+	ClickSound:Play()
+	CloseWeaponSelector()
+end)
+
+RifleButton.Activated:Connect(function()
+	ClickSound:Play()
+	SelectedPrimary = "Rifle"
+	ChangeSelectedPrimary:FireServer("Rifle")
+	tweenProperty(RifleButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(RifleButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in Primaries:GetChildren() do
+		if button:IsA("TextButton") and button ~= RifleButton then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.05)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.05)
+		end
+	end
+end)
+
+SniperButton.Activated:Connect(function()
+	ClickSound:Play()
+	SelectedPrimary = "Sniper"
+	ChangeSelectedPrimary:FireServer("Sniper")	
+	tweenProperty(SniperButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(SniperButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in Primaries:GetChildren() do
+		if button:IsA("TextButton") and button ~= SniperButton then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.05)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.05)
+		end
+	end
+end)
+
+SMGButton.Activated:Connect(function()
+	ClickSound:Play()
+	SelectedPrimary = "SMG"
+	ChangeSelectedPrimary:FireServer("SMG")	
+	tweenProperty(SMGButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(SMGButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in Primaries:GetChildren() do
+		if button:IsA("TextButton") and button ~= SMGButton then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.05)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.05)
+		end
+	end
+end)
+
+ShotgunButton.Activated:Connect(function()
+	ClickSound:Play()
+	SelectedPrimary = "Shotgun"
+	ChangeSelectedPrimary:FireServer("Shotgun")	
+	tweenProperty(ShotgunButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(ShotgunButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in Primaries:GetChildren() do
+		if button:IsA("TextButton") and button ~= ShotgunButton then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.05)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.05)
+		end
+	end
+end)
+
+RevolverButton.Activated:Connect(function()
+	ClickSound:Play()
+	SelectedSecondary = "Revolver"
+	ChangeSelectedSecondary:FireServer("Revolver")
+	tweenProperty(RevolverButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(RevolverButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in Secondaries:GetChildren() do
+		if button:IsA("TextButton") and button ~= RevolverButton then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.05)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.05)
+		end
+	end
+end)
+
+AutoPistolButton.Activated:Connect(function()
+	ClickSound:Play()
+	SelectedSecondary = "AutoPistol"
+	ChangeSelectedSecondary:FireServer("AutoPistol")
+	tweenProperty(AutoPistolButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(AutoPistolButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in Secondaries:GetChildren() do
+		if button:IsA("TextButton") and button ~= AutoPistolButton then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.05)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.05)
+		end
+	end
+end)
+
+PistolButton.Activated:Connect(function()
+	ClickSound:Play()
+	SelectedSecondary = "Pistol"
+	ChangeSelectedSecondary:FireServer("Pistol")
+	tweenProperty(PistolButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(PistolButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in Secondaries:GetChildren() do
+		if button:IsA("TextButton") and button ~= PistolButton then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.05)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.05)
+		end
+	end
+end)
+
+GrenadeButton.Activated:Connect(function()
+	ClickSound:Play()
+	SelectedAbility1 = "Grenade"
+	ChangeSelectedAbility1:FireServer("Grenade")
+	tweenProperty(GrenadeButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(GrenadeButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in AbilitiesWeaponSelector:GetChildren() do
+		if button:IsA("TextButton") and button ~= GrenadeButton then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.05)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.05)
+		end
+	end
+end)
+
+BoosterButton.Activated:Connect(function()
+	ClickSound:Play()
+	SelectedAbility1 = "Booster"
+	ChangeSelectedAbility1:FireServer("Booster")
+	tweenProperty(BoosterButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(BoosterButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in AbilitiesWeaponSelector:GetChildren() do
+		if button:IsA("TextButton") and button ~= BoosterButton then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.05)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.05)
+		end
+	end
+end)
+
+LightningBombButton.Activated:Connect(function()
+	ClickSound:Play()
+	SelectedAbility1 = "LightningBomb"
+	ChangeSelectedAbility1:FireServer("LightningBomb")
+	tweenProperty(LightningBombButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(LightningBombButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in AbilitiesWeaponSelector:GetChildren() do
+		if button:IsA("TextButton") and button ~= LightningBombButton then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.05)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.05)
+		end
+	end
+end)
+
+OverdriveVialButton.Activated:Connect(function()
+	ClickSound:Play()
+	SelectedAbility1 = "OverdriveVial"
+	ChangeSelectedAbility1:FireServer("OverdriveVial")
+	tweenProperty(OverdriveVialButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(OverdriveVialButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in AbilitiesWeaponSelector:GetChildren() do
+		if button:IsA("TextButton") and button ~= OverdriveVialButton then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.05)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.05)
+		end
+	end
+end)
+
+RegenPotButton.Activated:Connect(function()
+	ClickSound:Play()
+	SelectedAbility1 = "RegenPot"
+	ChangeSelectedAbility1:FireServer("RegenPot")
+	tweenProperty(RegenPotButton, "BackgroundColor3", Color3.fromRGB(82, 174, 255), 0.15)
+	tweenProperty(RegenPotButton.UIStroke, "Color", Color3.fromRGB(82, 174, 255), 0.15)
+	for _, button in AbilitiesWeaponSelector:GetChildren() do
+		if button:IsA("TextButton") and button ~= RegenPotButton then
+			tweenProperty(button, "BackgroundColor3", Color3.fromRGB(95, 95, 95), 0.05)
+			tweenProperty(button.UIStroke, "Color", Color3.fromRGB(117, 117, 117), 0.05)
+		end
+	end
+end)
+
+Close.MouseEnter:Connect(function()
+	HoverSound:Play()
+	Close:TweenSize(CloseHoverSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+Close.MouseLeave:Connect(function()
+	HoverSound:Play()
+	Close:TweenSize(CloseStartSize, Enum.EasingDirection.Out, Enum.EasingStyle.Sine, 0.15, true)
+end)
+
+RifleButton.MouseEnter:Connect(function()
+	primaryEnter(RifleButton, "Rifle")
+end)
+
+RifleButton.MouseLeave:Connect(function()
+	primaryLeave(RifleButton, "Rifle")	
+end)
+
+SniperButton.MouseEnter:Connect(function()
+	primaryEnter(SniperButton, "Sniper")
+end)
+
+SniperButton.MouseLeave:Connect(function()
+	primaryLeave(SniperButton, "Sniper")	
+end)
+
+SMGButton.MouseEnter:Connect(function()
+	primaryEnter(SMGButton, "SMG")
+end)
+
+SMGButton.MouseLeave:Connect(function()
+	primaryLeave(SMGButton, "SMG")	
+end)
+
+ShotgunButton.MouseEnter:Connect(function()
+	primaryEnter(ShotgunButton, "Shotgun")
+end)
+
+ShotgunButton.MouseLeave:Connect(function()
+	primaryLeave(ShotgunButton, "Shotgun")	
+end)
+
+PistolButton.MouseEnter:Connect(function()
+	secondaryEnter(PistolButton, "Pistol")
+end)
+
+PistolButton.MouseLeave:Connect(function()
+	secondaryLeave(PistolButton, "Pistol")
+end)
+
+RevolverButton.MouseEnter:Connect(function()
+	secondaryEnter(RevolverButton, "Revolver")
+end)
+
+RevolverButton.MouseLeave:Connect(function()
+	secondaryLeave(RevolverButton, "Revolver")
+end)
+
+AutoPistolButton.MouseEnter:Connect(function()
+	secondaryEnter(AutoPistolButton, "AutoPistol")
+end)
+
+AutoPistolButton.MouseLeave:Connect(function()
+	secondaryLeave(AutoPistolButton, "AutoPistol")
+end)
+
+GrenadeButton.MouseEnter:Connect(function()
+	secondaryEnter(GrenadeButton, "Grenade")
+end)
+
+GrenadeButton.MouseLeave:Connect(function()
+	secondaryLeave(GrenadeButton, "Grenade")
+end)
+
+BoosterButton.MouseEnter:Connect(function()
+	secondaryEnter(BoosterButton, "Booster")
+end)
+
+BoosterButton.MouseLeave:Connect(function()
+	secondaryLeave(BoosterButton, "Booster")
+end)
+
+LightningBombButton.MouseEnter:Connect(function()
+	secondaryEnter(LightningBombButton, "LightningBomb")
+end)
+
+LightningBombButton.MouseLeave:Connect(function()
+	secondaryLeave(LightningBombButton, "LightningBomb")
+end)
+
+OverdriveVialButton.MouseEnter:Connect(function()
+	secondaryEnter(OverdriveVialButton, "OverdriveVial")
+end)
+
+OverdriveVialButton.MouseLeave:Connect(function()
+	secondaryLeave(OverdriveVialButton, "OverdriveVial")
+end)
+
+RegenPotButton.MouseEnter:Connect(function()
+	secondaryEnter(RegenPotButton, "RegenPot")
+end)
+
+RegenPotButton.MouseLeave:Connect(function()
+	secondaryLeave(RegenPotButton, "RegenPot")
+end)
+
+forceEquipLoadout.OnClientEvent:Connect(function(plr)
+	if weaponSelector.Enabled then
+		CloseWeaponSelector()
+	end
+end)
+
+enableScoreboard.OnClientEvent:Connect(function()
+	SelectedMelee = player.SelectedWeapons.selectedMelee.Value or "Melee"
+	SelectedPrimary = player.SelectedWeapons.selectedPrimary.Value or "Rifle"
+	SelectedSecondary = player.SelectedWeapons.selectedSecondary.Value or "Pistol"
+	SelectedAbility1 = player.SelectedWeapons.selectedAbility1.Value or "Grenade"
+	setEquippedWeaponsBlue()
+end)
+
+enableScoreboard2v2.OnClientEvent:Connect(function()
+	SelectedMelee = player.SelectedWeapons.selectedMelee.Value or "Melee"
+	SelectedPrimary = player.SelectedWeapons.selectedPrimary.Value or "Rifle"
+	SelectedSecondary = player.SelectedWeapons.selectedSecondary.Value or "Pistol"
+	SelectedAbility1 = player.SelectedWeapons.selectedAbility1.Value or "Grenade"
+	setEquippedWeaponsBlue()
+end)
+
+disableScoreboard.OnClientEvent:Connect(function()
+	CoreElements.Enabled = true
+	inGame = false
+	Abilities.Enabled = false
+	CustomToolBar.Enabled = false
+	--HealthBar.Enabled = false
+	player.Character:FindFirstChild("Humanoid"):UnequipTools()
+end)
+
+player.CharacterAdded:Connect(function(character)
+	SyringeBorderFolder.LeftBorder.Visible = false
+	SyringeBorderFolder.RightBorder.Visible = false
+	RegenPotBorderFolder.LeftBorder.Visible = false
+	RegenPotBorderFolder.RightBorder.Visible = false
+	
+	for _, icon in mapSelector:GetDescendants() do
+		if icon:IsA("ImageLabel") and string.match(icon.Name, "Icon") then
+			icon.Image = "rbxassetid://91217805096675"
+
+		end
+		
+	end
+	
+	Character = character
+end)
+
+
+
+-- Create a function to check if we're ready to initialize
+-- Use a coroutine to repeatedly check for required values
+--[[
+player.CharacterAdded:Connect(function(character)
+	local generalInfo = player:FindFirstChild("GeneralInfo")
+	local isInGame = generalInfo and generalInfo:FindFirstChild("isInGame")
+	if generalInfo and isInGame then
+		if isInGame.Value then
+			initialInventorySetup()
+		end
+	end
+
+end)
+]]
+
+--[[
+task.spawn(function()
+	while true do
+		local generalInfo = player:FindFirstChild("GeneralInfo")
+		local isInGameV = generalInfo and generalInfo:FindFirstChild("isInGame")
+		local selectedWeapons = player:FindFirstChild("SelectedWeapons")
+		local playerGui = player:FindFirstChild("PlayerGui")
+		local scoreboard = playerGui and playerGui:FindFirstChild("Scoreboard")
+
+		if generalInfo and isInGameV and selectedWeapons and playerGui and scoreboard and mapSelector and (Rifle or Shotgun or SMG or Sniper) then
+			if (player.GeneralInfo.isInGame.Value or player.GeneralInfo.isInGame.Value) and not mapSelector.Enabled then
+				print("Initial Inventory Setup")
+				initialInventorySetup()
+			end
+			print("No inventory setup")
+			break -- Stop checking once initialized
+		end
+
+		task.wait(0.1)
+	end
+end)
+
+]]
+
+
+
+--task.wait(.35)
+
+--if player.GeneralInfo.isInGame.Value == true then
+--	initialInventorySetup()
+--end
+
