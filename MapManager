@@ -1,0 +1,89 @@
+local ServerStorage = game:GetService("ServerStorage")
+local MasterMapFolder = ServerStorage:WaitForChild("Maps")
+
+local IntensityMapFolder = workspace:WaitForChild("IntensityMaps")
+local OasisMapFolder = workspace:WaitForChild("OasisMaps")
+local HyperiaMapFolder = workspace:WaitForChild("HyperiaMaps")
+local CryofrostMapFolder = workspace:WaitForChild("CryofrostMaps")
+local EtherionMapFolder = workspace:WaitForChild("EtherionMaps")
+
+local function generateMapCopies(mapName, mapCFrame, mapNameWithNumber)
+	local masterMap = MasterMapFolder:FindFirstChild(mapName)
+	if not masterMap then
+		warn("Master map not found: " .. mapName)
+		return
+	end
+	
+	local mapCopy = masterMap:Clone()
+	if mapName == "Intensity" then
+		mapCopy.Parent = IntensityMapFolder
+	elseif mapName == "Oasis" then
+		mapCopy.Parent = OasisMapFolder
+	elseif mapName == "Hyperia" then
+		mapCopy.Parent = HyperiaMapFolder
+	elseif mapName == "Cryofrost" then
+		mapCopy.Parent = CryofrostMapFolder
+	elseif mapName == "Etherion" then
+		mapCopy.Parent = EtherionMapFolder
+	end
+	
+	mapCopy.Name = mapNameWithNumber
+	
+	mapCopy:SetPrimaryPartCFrame(CFrame.new(mapCFrame))
+end
+
+generateMapCopies("Intensity", Vector3.new(-7094.046, 38.513, 416.416), "Intensity1")
+generateMapCopies("Intensity", Vector3.new(-13094.046, 38.513, 416.416), "Intensity2")
+generateMapCopies("Intensity", Vector3.new(-19094.046, 38.513, 416.416), "Intensity3")
+generateMapCopies("Intensity", Vector3.new(-25094.046, 38.513, 416.416), "Intensity4")
+generateMapCopies("Intensity", Vector3.new(-31094.046, 38.513, 416.416), "Intensity5")
+generateMapCopies("Intensity", Vector3.new(-37094.046, 38.513, 416.416), "Intensity6")
+generateMapCopies("Intensity", Vector3.new(-43094.046, 38.513, 416.416), "Intensity7")
+generateMapCopies("Intensity", Vector3.new(-49094.046, 38.513, 416.416), "Intensity8")
+generateMapCopies("Intensity", Vector3.new(-55094.046, 38.513, 416.416), "Intensity9")
+generateMapCopies("Intensity", Vector3.new(-61094.046, 38.513, 416.416), "Intensity10")
+
+generateMapCopies("Oasis", Vector3.new(-24.226, 27.698, -8209.77), "Oasis1")
+generateMapCopies("Oasis", Vector3.new(-6024.226, 27.698, -8209.77), "Oasis2")
+generateMapCopies("Oasis", Vector3.new(-12024.226, 27.698, -8209.77), "Oasis3")
+generateMapCopies("Oasis", Vector3.new(-18024.226, 27.698, -8209.77), "Oasis4")
+generateMapCopies("Oasis", Vector3.new(-24024.226, 27.698, -8209.77), "Oasis5")
+generateMapCopies("Oasis", Vector3.new(5975.774, 27.698, -8209.77), "Oasis6")
+generateMapCopies("Oasis", Vector3.new(11975.774, 27.698, -8209.77), "Oasis7")
+generateMapCopies("Oasis", Vector3.new(17975.774, 27.698, -8209.77), "Oasis8")
+generateMapCopies("Oasis", Vector3.new(23975.774, 27.698, -8209.77), "Oasis9")
+generateMapCopies("Oasis", Vector3.new(29975.774, 27.698, -8209.77), "Oasis10")
+
+generateMapCopies("Hyperia", Vector3.new(6084.241, 14.028, -388.725), "Hyperia1")
+generateMapCopies("Hyperia", Vector3.new(8084.241, 14.028, -388.725), "Hyperia2")
+generateMapCopies("Hyperia", Vector3.new(10084.241, 14.028, -388.725), "Hyperia3")
+generateMapCopies("Hyperia", Vector3.new(12084.241, 14.028, -388.725), "Hyperia4")
+generateMapCopies("Hyperia", Vector3.new(14084.241, 14.028, -388.725), "Hyperia5")
+generateMapCopies("Hyperia", Vector3.new(16084.241, 14.028, -388.725), "Hyperia6")
+generateMapCopies("Hyperia", Vector3.new(18084.241, 14.028, -388.725), "Hyperia7")
+generateMapCopies("Hyperia", Vector3.new(20084.241, 14.028, -388.725), "Hyperia8")
+generateMapCopies("Hyperia", Vector3.new(22084.241, 14.028, -388.725), "Hyperia9")
+generateMapCopies("Hyperia", Vector3.new(24084.241, 14.028, -388.725), "Hyperia10")
+
+generateMapCopies("Cryofrost", Vector3.new(75.261, 736.439, 9709.01), "Cryofrost1")
+generateMapCopies("Cryofrost", Vector3.new(75.261, 736.439, 19709.01), "Cryofrost2")
+generateMapCopies("Cryofrost", Vector3.new(75.261, 736.439, 29709.01), "Cryofrost3")
+generateMapCopies("Cryofrost", Vector3.new(10075.261, 736.439, 9709.01), "Cryofrost4")
+generateMapCopies("Cryofrost", Vector3.new(10075.261, 736.439, 19709.01), "Cryofrost5")
+generateMapCopies("Cryofrost", Vector3.new(10075.261, 736.439, 29709.01), "Cryofrost6")
+generateMapCopies("Cryofrost", Vector3.new(-9924.739, 736.439, 9709.01), "Cryofrost7")
+generateMapCopies("Cryofrost", Vector3.new(-9924.739, 736.439, 19709.01), "Cryofrost8")
+generateMapCopies("Cryofrost", Vector3.new(-9924.739, 736.439, 29709.01), "Cryofrost9")
+generateMapCopies("Cryofrost", Vector3.new(20075.262, 736.439, 9709.01), "Cryofrost10")
+
+generateMapCopies("Etherion", Vector3.new(-7094.046, 38.513, 3416.416), "Etherion1")
+generateMapCopies("Etherion", Vector3.new(-13094.046, 38.513, 3416.416), "Etherion2")
+generateMapCopies("Etherion", Vector3.new(-19094.046, 38.513, 3416.416), "Etherion3")
+generateMapCopies("Etherion", Vector3.new(-25094.046, 38.513, 3416.416), "Etherion4")
+generateMapCopies("Etherion", Vector3.new(-31094.046, 38.513, 3416.416), "Etherion5")
+generateMapCopies("Etherion", Vector3.new(-37094.046, 38.513, 3416.416), "Etherion6")
+generateMapCopies("Etherion", Vector3.new(-43094.046, 38.513, 3416.416), "Etherion7")
+generateMapCopies("Etherion", Vector3.new(-49094.046, 38.513, 3416.416), "Etherion8")
+generateMapCopies("Etherion", Vector3.new(-55094.046, 38.513, 3416.416), "Etherion9")
+generateMapCopies("Etherion", Vector3.new(-61094.046, 38.513, 3416.416), "Etherion10")
+
