@@ -1,0 +1,220 @@
+local TweenService = game:GetService("TweenService")
+local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.In, 0, false, 0)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SlidingDoorMovement = ReplicatedStorage:WaitForChild("SlidingDoorMovement")
+local EnteredShootingRange = ReplicatedStorage:WaitForChild("EnteredShootingRange")
+local MoveElevator = game:GetService("ReplicatedStorage"):WaitForChild("MoveElevator")
+
+local slidingDoor 
+local leftDoor, rightDoor 
+local leftDoorDeco, rightDoorDeco
+local leftDoorCaution, rightDoorCaution
+
+local RightElevator
+local LeftElevator
+
+-- Create tweens based on the PrimaryPart's CFrame
+local leftDoorCloseTween 
+local rightDoorCloseTween
+local leftDoorOpenTween
+local rightDoorOpenTween 
+
+local leftDoorDecoCloseTween 
+local rightDoorDecoCloseTween 
+local leftDoorDecoOpenTween 
+local rightDoorDecoOpenTween
+
+local leftDoorCautionCloseTween 
+local rightDoorCautionCloseTween 
+local leftDoorCautionOpenTween
+local rightDoorCautionOpenTween 
+
+local isInRange = false
+
+local isOpen = false
+
+SlidingDoorMovement.OnClientEvent:Connect(function(open, door)
+	if door == "Champions" then
+		slidingDoor = workspace:WaitForChild("Lobby"):WaitForChild("SlidingDoorCHAMPIONS")
+		leftDoor, rightDoor = slidingDoor:WaitForChild("LeftDoor"), slidingDoor:WaitForChild("RightDoor")
+		leftDoorDeco, rightDoorDeco = slidingDoor:WaitForChild("LeftDoorDeco"), slidingDoor:WaitForChild("RightDoorDeco")
+		leftDoorCaution, rightDoorCaution = slidingDoor:WaitForChild("LeftDoorCaution"), slidingDoor:WaitForChild("RightDoorCaution")
+
+		leftDoor, rightDoor = slidingDoor.LeftDoor, slidingDoor.RightDoor
+		leftDoorDeco, rightDoorDeco = slidingDoor.LeftDoorDeco, slidingDoor.RightDoorDeco
+		leftDoorCaution, rightDoorCaution = slidingDoor.LeftDoorCaution, slidingDoor.RightDoorCaution
+
+		-- Create tweens based on the PrimaryPart's CFrame
+		leftDoorCloseTween = TweenService:Create(leftDoor.PrimaryPart, tweenInfo, {CFrame = CFrame.new(153.102, 7.689, -160.753) * CFrame.Angles(0, math.rad(0), 0)})
+		rightDoorCloseTween = TweenService:Create(rightDoor.PrimaryPart, tweenInfo, {CFrame = CFrame.new(161.436, 7.689, -160.753) * CFrame.Angles(0, math.rad(180), 0)})
+		leftDoorOpenTween = TweenService:Create(leftDoor.PrimaryPart, tweenInfo, {CFrame = CFrame.new(153.102-8.346, 7.689, -160.753) * CFrame.Angles(0, math.rad(0), 0)})
+		rightDoorOpenTween = TweenService:Create(rightDoor.PrimaryPart, tweenInfo, {CFrame = CFrame.new(161.436+8.346, 7.689, -160.753) * CFrame.Angles(0, math.rad(180), 0)})
+
+		leftDoorDecoCloseTween = TweenService:Create(leftDoorDeco.PrimaryPart, tweenInfo, {CFrame = CFrame.new(153.091, 7.482, -160.748) * CFrame.Angles(0, math.rad(180), 0)})
+		rightDoorDecoCloseTween = TweenService:Create(rightDoorDeco.PrimaryPart, tweenInfo, {CFrame = CFrame.new(161.469, 7.482, -160.748) * CFrame.Angles(0, math.rad(180), 0)})
+		leftDoorDecoOpenTween = TweenService:Create(leftDoorDeco.PrimaryPart, tweenInfo, {CFrame = CFrame.new(153.091-8.346, 7.482, -160.748) * CFrame.Angles(0, math.rad(180), 0)})
+		rightDoorDecoOpenTween = TweenService:Create(rightDoorDeco.PrimaryPart, tweenInfo, {CFrame = CFrame.new(161.469+8.346, 7.482, -160.748) * CFrame.Angles(0, math.rad(180), 0)})
+
+		leftDoorCautionCloseTween = TweenService:Create(leftDoorCaution.PrimaryPart, tweenInfo, {CFrame = CFrame.new(153.146, 10.037, -160.753) * CFrame.Angles(0, math.rad(180), 0)})
+		rightDoorCautionCloseTween = TweenService:Create(rightDoorCaution.PrimaryPart, tweenInfo, {CFrame = CFrame.new(161.56, 10.037, -160.753) * CFrame.Angles(0, math.rad(180), 0)})
+		leftDoorCautionOpenTween = TweenService:Create(leftDoorCaution.PrimaryPart, tweenInfo, {CFrame = CFrame.new(153.146-8.346, 10.037, -160.753) * CFrame.Angles(0, math.rad(180), 0)})
+		rightDoorCautionOpenTween = TweenService:Create(rightDoorCaution.PrimaryPart, tweenInfo, {CFrame = CFrame.new(161.56+8.346, 10.037, -160.753) * CFrame.Angles(0, math.rad(180), 0)})
+	elseif door == "Marketplace" then
+		slidingDoor = workspace:WaitForChild("Lobby"):WaitForChild("SlidingDoorMARKETPLACE")
+		leftDoor, rightDoor = slidingDoor:WaitForChild("LeftDoor"), slidingDoor:WaitForChild("RightDoor")
+		leftDoorDeco, rightDoorDeco = slidingDoor:WaitForChild("LeftDoorDeco"), slidingDoor:WaitForChild("RightDoorDeco")
+		leftDoorCaution, rightDoorCaution = slidingDoor:WaitForChild("LeftDoorCaution"), slidingDoor:WaitForChild("RightDoorCaution")
+
+		leftDoorCloseTween = TweenService:Create(leftDoor.PrimaryPart, tweenInfo, {CFrame = CFrame.new(182.123, 7.689, -139.82) * CFrame.Angles(0, math.rad(-90), 0)})
+		rightDoorCloseTween = TweenService:Create(rightDoor.PrimaryPart, tweenInfo, {CFrame = CFrame.new(182.123, 7.689, -131.486) * CFrame.Angles(0, math.rad(90), 0)})
+		leftDoorOpenTween = TweenService:Create(leftDoor.PrimaryPart, tweenInfo, {CFrame = CFrame.new(182.123, 7.689, -139.82-8.346) * CFrame.Angles(0, math.rad(-90), 0)})
+		rightDoorOpenTween = TweenService:Create(rightDoor.PrimaryPart, tweenInfo, {CFrame = CFrame.new(182.123, 7.689, -131.486+8.346) * CFrame.Angles(0, math.rad(90), 0)})
+
+		leftDoorDecoCloseTween = TweenService:Create(leftDoorDeco.PrimaryPart, tweenInfo, {CFrame = CFrame.new(182.118, 7.482, -139.831) * CFrame.Angles(0, math.rad(90), 0)})
+		rightDoorDecoCloseTween = TweenService:Create(rightDoorDeco.PrimaryPart, tweenInfo, {CFrame = CFrame.new(182.118, 7.482, -131.453) * CFrame.Angles(0, math.rad(90), 0)})
+		leftDoorDecoOpenTween = TweenService:Create(leftDoorDeco.PrimaryPart, tweenInfo, {CFrame = CFrame.new(182.118, 7.482, -139.831-8.346) * CFrame.Angles(0, math.rad(90), 0)})
+		rightDoorDecoOpenTween = TweenService:Create(rightDoorDeco.PrimaryPart, tweenInfo, {CFrame = CFrame.new(182.118, 7.482, -131.453+8.346) * CFrame.Angles(0, math.rad(90), 0)})
+
+		leftDoorCautionCloseTween = TweenService:Create(leftDoorCaution.PrimaryPart, tweenInfo, {CFrame = CFrame.new(182.123, 10.037, -139.776) * CFrame.Angles(0, math.rad(0), 0)})
+		rightDoorCautionCloseTween = TweenService:Create(rightDoorCaution.PrimaryPart, tweenInfo, {CFrame = CFrame.new(182.123, 10.037, -131.362) * CFrame.Angles(0, math.rad(0), 0)})
+		leftDoorCautionOpenTween = TweenService:Create(leftDoorCaution.PrimaryPart, tweenInfo, {CFrame = CFrame.new(182.123, 10.037, -139.776-8.346) * CFrame.Angles(0, math.rad(0), 0)})
+		rightDoorCautionOpenTween = TweenService:Create(rightDoorCaution.PrimaryPart, tweenInfo, {CFrame = CFrame.new(182.123, 10.037, -131.362+8.346) * CFrame.Angles(0, math.rad(0), 0)})
+	elseif door == "ShootingRange" then
+		slidingDoor = workspace:WaitForChild("Lobby"):WaitForChild("SlidingDoorSHOOTINGRANGE")
+		leftDoor, rightDoor = slidingDoor:WaitForChild("LeftDoor"), slidingDoor:WaitForChild("RightDoor")
+		leftDoorDeco, rightDoorDeco = slidingDoor:WaitForChild("LeftDoorDeco"), slidingDoor:WaitForChild("RightDoorDeco")
+		leftDoorCaution, rightDoorCaution = slidingDoor:WaitForChild("LeftDoorCaution"), slidingDoor:WaitForChild("RightDoorCaution")
+
+		leftDoorCloseTween = TweenService:Create(leftDoor.PrimaryPart, tweenInfo, {CFrame = CFrame.new(132.064, 7.689, -131.387) * CFrame.Angles(0, math.rad(90), 0)})
+		rightDoorCloseTween = TweenService:Create(rightDoor.PrimaryPart, tweenInfo, {CFrame = CFrame.new(132.064, 7.689, -139.72) * CFrame.Angles(0, math.rad(-90), 0)})
+		leftDoorOpenTween = TweenService:Create(leftDoor.PrimaryPart, tweenInfo, {CFrame = CFrame.new(132.064, 7.689, -131.387+8.346) * CFrame.Angles(0, math.rad(90), 0)})
+		rightDoorOpenTween = TweenService:Create(rightDoor.PrimaryPart, tweenInfo, {CFrame = CFrame.new(132.064, 7.689, -139.72-8.346) * CFrame.Angles(0, math.rad(-90), 0)})
+
+		leftDoorDecoCloseTween = TweenService:Create(leftDoorDeco.PrimaryPart, tweenInfo, {CFrame = CFrame.new(132.068, 7.482, -131.375) * CFrame.Angles(0, math.rad(-90), 0)})
+		rightDoorDecoCloseTween = TweenService:Create(rightDoorDeco.PrimaryPart, tweenInfo, {CFrame = CFrame.new(132.068, 7.482, -139.753) * CFrame.Angles(0, math.rad(-90), 0)})
+		leftDoorDecoOpenTween = TweenService:Create(leftDoorDeco.PrimaryPart, tweenInfo, {CFrame = CFrame.new(132.068, 7.482, -131.375+8.346) * CFrame.Angles(0, math.rad(-90), 0)})
+		rightDoorDecoOpenTween = TweenService:Create(rightDoorDeco.PrimaryPart, tweenInfo, {CFrame = CFrame.new(132.068, 7.482, -139.753-8.346) * CFrame.Angles(0, math.rad(-90), 0)})
+
+		leftDoorCautionCloseTween = TweenService:Create(leftDoorCaution.PrimaryPart, tweenInfo, {CFrame = CFrame.new(132.064, 10.037, -131.43) * CFrame.Angles(0, math.rad(0), 0)})
+		rightDoorCautionCloseTween = TweenService:Create(rightDoorCaution.PrimaryPart, tweenInfo, {CFrame = CFrame.new(132.064, 10.037, -139.845) * CFrame.Angles(0, math.rad(0), 0)})
+		leftDoorCautionOpenTween = TweenService:Create(leftDoorCaution.PrimaryPart, tweenInfo, {CFrame = CFrame.new(132.064, 10.037, -131.43+8.346) * CFrame.Angles(0, math.rad(0), 0)})
+		rightDoorCautionOpenTween = TweenService:Create(rightDoorCaution.PrimaryPart, tweenInfo, {CFrame = CFrame.new(132.064, 10.037, -139.845-8.346) * CFrame.Angles(0, math.rad(0), 0)})
+	elseif door == "Leaderboard" then
+		slidingDoor = workspace:WaitForChild("Lobby"):WaitForChild("SlidingDoorLEADERBOARD")
+		leftDoor, rightDoor = slidingDoor:WaitForChild("LeftDoor"), slidingDoor:WaitForChild("RightDoor")
+		leftDoorDeco, rightDoorDeco = slidingDoor:WaitForChild("LeftDoorDeco"), slidingDoor:WaitForChild("RightDoorDeco")
+		leftDoorCaution, rightDoorCaution = slidingDoor:WaitForChild("LeftDoorCaution"), slidingDoor:WaitForChild("RightDoorCaution")
+
+		leftDoorCloseTween = TweenService:Create(leftDoor.PrimaryPart, tweenInfo, {CFrame = CFrame.new(160.99, 7.689, -111.429) * CFrame.Angles(0, math.rad(0), 0)})
+		rightDoorCloseTween = TweenService:Create(rightDoor.PrimaryPart, tweenInfo, {CFrame = CFrame.new(152.657, 7.689, -111.429) * CFrame.Angles(0, math.rad(180), 0)})
+		leftDoorOpenTween = TweenService:Create(leftDoor.PrimaryPart, tweenInfo, {CFrame = CFrame.new(160.99+8.346, 7.689, -111.429) * CFrame.Angles(0, math.rad(0), 0)})
+		rightDoorOpenTween = TweenService:Create(rightDoor.PrimaryPart, tweenInfo, {CFrame = CFrame.new(152.6570-8.346, 7.689, -111.429) * CFrame.Angles(0, math.rad(180), 0)})
+
+		leftDoorDecoCloseTween = TweenService:Create(leftDoorDeco.PrimaryPart, tweenInfo, {CFrame = CFrame.new(161.002, 7.482, -111.434) * CFrame.Angles(0, math.rad(180), 0)})
+		rightDoorDecoCloseTween = TweenService:Create(rightDoorDeco.PrimaryPart, tweenInfo, {CFrame = CFrame.new(152.624, 7.482, -111.434) * CFrame.Angles(0, math.rad(180), 0)})
+		leftDoorDecoOpenTween = TweenService:Create(leftDoorDeco.PrimaryPart, tweenInfo, {CFrame = CFrame.new(161.002+8.346, 7.482, -111.434) * CFrame.Angles(0, math.rad(180), 0)})
+		rightDoorDecoOpenTween = TweenService:Create(rightDoorDeco.PrimaryPart, tweenInfo, {CFrame = CFrame.new(152.624-8.346, 7.482, -111.434) * CFrame.Angles(0, math.rad(180), 0)})
+
+		leftDoorCautionCloseTween = TweenService:Create(leftDoorCaution.PrimaryPart, tweenInfo, {CFrame = CFrame.new(160.947, 10.037, -111.429) * CFrame.Angles(0, math.rad(0), 0)})
+		rightDoorCautionCloseTween = TweenService:Create(rightDoorCaution.PrimaryPart, tweenInfo, {CFrame = CFrame.new(152.532, 10.037, -111.429) * CFrame.Angles(0, math.rad(0), 0)})
+		leftDoorCautionOpenTween = TweenService:Create(leftDoorCaution.PrimaryPart, tweenInfo, {CFrame = CFrame.new(160.947+8.346, 10.037, -111.429) * CFrame.Angles(0, math.rad(0), 0)})
+		rightDoorCautionOpenTween = TweenService:Create(rightDoorCaution.PrimaryPart, tweenInfo, {CFrame = CFrame.new(152.532-8.346, 10.037, -111.429) * CFrame.Angles(0, math.rad(0), 0)})
+
+	end
+	if open then
+		leftDoorOpenTween:Play()
+		rightDoorOpenTween:Play()
+		leftDoorDecoOpenTween:Play()
+		rightDoorDecoOpenTween:Play()
+		leftDoorCautionOpenTween:Play()
+		rightDoorCautionOpenTween:Play()
+	else
+		leftDoorCloseTween:Play()
+		rightDoorCloseTween:Play()
+		leftDoorDecoCloseTween:Play()
+		rightDoorDecoCloseTween:Play()
+		leftDoorCautionCloseTween:Play()
+		rightDoorCautionCloseTween:Play()
+	end
+end)
+
+EnteredShootingRange.OnClientEvent:Connect(function()
+	isInRange = true
+	local bot1 = workspace:WaitForChild("ShootingRange"):WaitForChild("MovingBots"):WaitForChild("Range Bot")
+	local bot2 = workspace:WaitForChild("ShootingRange"):WaitForChild("MovingBots"):WaitForChild("Bot2"):WaitForChild("Range Bot")
+	bot1.PrimaryPart = bot1:WaitForChild("Head")
+	bot2.PrimaryPart = bot2:WaitForChild("Head")
+
+	-- Define the rotation (in radians)
+	local rotationY = math.rad(-90) -- Convert -90 degrees to radians
+
+	-- Create tweens based on the PrimaryPart's position and rotation
+	local function createTween(targetPosition, bot, tweenTime)
+		if bot.PrimaryPart then
+			local cf = Instance.new("CFrameValue")
+			if bot.PrimaryPart then
+				cf.Value = bot:GetPrimaryPartCFrame()
+			end
+			cf:GetPropertyChangedSignal("Value"):Connect(function()
+				if bot.PrimaryPart then
+					bot:SetPrimaryPartCFrame(cf.Value)
+				end
+			end)
+			local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear, Enum.EasingDirection.In, 0, false, 0)
+
+			-- Create a CFrame with the target position and the desired rotation
+			local targetCFrame = CFrame.new(targetPosition) * CFrame.Angles(0, rotationY, 0)
+			local tween = TweenService:Create(cf, tweenInfo, {Value = targetCFrame})
+			return tween
+		end
+	end
+
+	local function rightMove(vector, botToMove, tweenToTime)
+		local tween = createTween(vector, botToMove, tweenToTime)
+		tween:Play()
+	end
+
+	local function leftMove(vector, botToMove, tweenToTime)
+		local tween = createTween(vector, botToMove, tweenToTime)
+		tween:Play()
+	end
+	task.spawn(function()
+		while true do
+			rightMove(Vector3.new(-3178.702, 10.79, -151.408), bot1, 3)
+			rightMove(Vector3.new(-3178.702, 20.685, -151.408), bot2, 3)
+			task.wait(3)
+			leftMove(Vector3.new(-3178.702, 10.79, -91.408), bot1, 3)
+			leftMove(Vector3.new(-3178.702, 20.685, -91.408), bot2, 3)
+			task.wait(3)
+		end
+	end)
+
+end)
+
+MoveElevator.OnClientEvent:Connect(function(destination)
+	RightElevator = workspace:WaitForChild("ShootingRange"):WaitForChild("FullElevatorRight")
+	LeftElevator = workspace:WaitForChild("ShootingRange"):WaitForChild("FullElevatorLeft")
+	local ElevatorTweenInfo = TweenInfo.new(4, Enum.EasingStyle.Linear, Enum.EasingDirection.In, 0, false, 0)
+	local RightElevatorTween 
+	local LeftElevatorTween
+	if destination == "TargetPractice" then
+		RightElevatorTween = TweenService:Create(RightElevator.PrimaryPart, ElevatorTweenInfo, {CFrame = CFrame.new(-3080.197, -52.754, -165.989) * CFrame.Angles(0, math.rad(0), 0)})
+		LeftElevatorTween = TweenService:Create(LeftElevator.PrimaryPart, ElevatorTweenInfo, {CFrame = CFrame.new(-3080.197, -52.754, -78.832) * CFrame.Angles(0, math.rad(0), 0)})
+		RightElevatorTween:Play()
+		LeftElevatorTween:Play()
+	elseif destination == "StationaryBots" then
+		RightElevatorTween = TweenService:Create(RightElevator.PrimaryPart, ElevatorTweenInfo, {CFrame = CFrame.new(-3080.197, -22.83, -165.989) * CFrame.Angles(0, math.rad(0), 0)})
+		LeftElevatorTween = TweenService:Create(LeftElevator.PrimaryPart, ElevatorTweenInfo, {CFrame = CFrame.new(-3080.197, -22.83, -78.832) * CFrame.Angles(0, math.rad(0), 0)})
+		RightElevatorTween:Play()
+		LeftElevatorTween:Play()
+	elseif destination == "MovingBots" then
+		RightElevatorTween = TweenService:Create(RightElevator.PrimaryPart, ElevatorTweenInfo, {CFrame = CFrame.new(-3080.197, 6.281, -165.989) * CFrame.Angles(0, math.rad(0), 0)})
+		LeftElevatorTween = TweenService:Create(LeftElevator.PrimaryPart, ElevatorTweenInfo, {CFrame = CFrame.new(-3080.197, 6.281, -78.832) * CFrame.Angles(0, math.rad(0), 0)})
+		RightElevatorTween:Play()
+		LeftElevatorTween:Play()
+	end
+
+end)
+
+
+
