@@ -1,0 +1,1173 @@
+-- GunConfigs.lua
+-- Add one table per gun.
+
+local RS = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local BulletHoleRemote = RS:WaitForChild("BulletHole")
+local BulletHoleLocal = RS:WaitForChild("BulletBeams"):WaitForChild("BulletHoleLocal")
+local BulletBeamEvent = RS:WaitForChild("BulletBeams"):WaitForChild("BulletBeamGun")
+local WeaponActions = RS:WaitForChild("WeaponActions")
+
+local SprintChange = RS:WaitForChild("SprintChange")
+local ChangeScopingState = RS:FindFirstChild("WeaponActions"):FindFirstChild("ChangeScopingState")
+local ReloadWeaponEvent = RS:WaitForChild("WeaponActions"):WaitForChild("ReloadWeapon")
+local ShootingWeaponEvent = RS:WaitForChild("WeaponActions"):WaitForChild("ShootingWeapon")
+local InSlideEvent = RS:WaitForChild("InSlide")
+local StopSlideEvent = RS:WaitForChild("StopSlide")
+local ClientCrouch = RS:WaitForChild("ClientCrouch")
+local SniperGlareEvent = RS:WaitForChild("Queueing/Gameplay"):WaitForChild("SniperGlare")
+
+local SniperShootRemote = RS:WaitForChild("WeaponActions"):WaitForChild("SniperShootRemote")
+
+local adsClickIn = RS:WaitForChild("Sounds"):waitForChild("adsClickIn")
+local adsClickOut = RS:WaitForChild("Sounds"):waitForChild("adsClickOut")
+
+local Configs = {}
+
+-- helper
+local function gp(root, path)
+	local cur = root
+	for token in string.gmatch(path, "[^%.]+") do
+		cur = cur:FindFirstChild(token)
+		if not cur then return nil end
+	end
+	return cur
+end
+
+local function deepCopy(t)
+	local out = {}
+	for k,v in pairs(t) do
+		out[k] = (type(v) == "table") and deepCopy(v) or v
+	end
+	return out
+end
+
+local function deepMerge(dst, src)
+	for k,v in pairs(src) do
+		if type(v) == "table" and type(dst[k]) == "table" then
+			deepMerge(dst[k], v)
+		else
+			dst[k] = v
+		end
+	end
+	return dst
+end
+
+local function resolveSkinName(gunName)
+	-- map gun → the ValueObject that holds skin choice
+	-- adjust paths to match your actual structure
+	local skins = player:WaitForChild("Skins")
+	if gunName == "Revolver" then
+		return skins:WaitForChild("RevolverWeaponSkin").Value
+	elseif gunName == "Pistol" then
+		return skins:WaitForChild("PistolWeaponSkin").Value
+	elseif gunName == "AutoPistol" then
+		return skins:WaitForChild("AutoPistolWeaponSkin").Value
+	elseif gunName == "Rifle" then
+		return skins:WaitForChild("RifleWeaponSkin").Value
+	elseif gunName == "SMG" then
+		return skins:WaitForChild("SMGWeaponSkin").Value
+	elseif gunName == "Shotgun" then
+		return skins:WaitForChild("ShotgunWeaponSkin").Value
+	elseif gunName == "Sniper" then
+		return skins:WaitForChild("SniperWeaponSkin").Value
+
+	end
+	return "Default"
+end
+
+local function resolveVariantName(gunName, skinName)
+	local skins = player:WaitForChild("Skins")
+
+	if gunName == "Revolver" and skinName == "Laser" then
+		return skins:WaitForChild("LaserRevolverVariant").Value
+	elseif gunName == "Rifle" and skinName == "Laser" then
+		return skins:WaitForChild("LaserRifleVariant").Value
+	elseif gunName == "Sniper" and skinName == "Laser" then
+		return skins:WaitForChild("LaserSniperVariant").Value
+	end
+
+	return nil
+end
+
+
+
+-- ====== PISTOL (semi + classic burst) ======
+Configs.Pistol = {
+	name = "Pistol",
+	
+	weaponViewmodel = RS.Viewmodels.Pistols.DefaultPistol_Viewmodel,
+	getAnimations = function(vm)
+		local base = vm:WaitForChild("DefaultPistol")
+		local pack = base:WaitForChild("PistolAnimations")
+		return { Idle=pack.Idle, Fire=pack.Fire, Pullout=pack.Pullout, Reload=pack.Reload, Inspect=pack.Inspect }
+	end,
+
+	remoteName = "PistolConnect",
+	shootSoundsFolderName = "ShootSounds",
+	keyframeSfx = { MagOut="MagOut", MagIn="MagIn", PullBack="PullBack", AutoIn="AutoIn"},
+
+	-- [[ADDED]] immediate SFX on actions if desired
+	actionSfx = {
+
+	},
+
+	SPRINT_TRANSITION = 0.2, -- Time to fully transition to sprint pose
+	SPRINT_IN_SPEED = 1 / 0.2,   -- 0.2s into sprint
+	SPRINT_OUT_SPEED = 1 / 0.1,  -- faster exit feels better
+	
+	SLIDE_IN_SPEED  = 1 / 0.12,  -- fast snap into slide
+	SLIDE_OUT_SPEED = 1 / 0.18,  -- slightly slower exit
+	
+	bobbingMultiplierNum = 0.75,
+	
+	getSprintOffsetSettings = {
+		leftAmount = 0.1,
+		downAmount = -0.05,
+		forwardAmount = 0.25,
+		xAngle = 45,
+		yAngle = -10,
+		zAngle = -15
+	},
+	
+	getSlideOffsetSettings = {
+		leftAmount = 0.09,
+		downAmount = -0.01,
+		forwardAmount = -0.025,
+		xAngle = -10,
+		yAngle = 5,
+		zAngle = -5
+	},
+	
+	adsClickInSound = adsClickIn,
+	adsClickOutSound = adsClickOut,
+
+	shootSoundRemote = WeaponActions:WaitForChild("PistolFireSound"),
+	reloadSoundRemote = WeaponActions:WaitForChild("PistolReloadSound"),
+
+	clientCrouchBindable = ClientCrouch,
+	sprintChangeBindable = SprintChange,
+	changeScopingStateBindable = ChangeScopingState,
+	reloadWeaponBindable = ReloadWeaponEvent,
+	shootingWeaponBindable = ShootingWeaponEvent,
+	inSlideBindable = InSlideEvent,
+	stopSlideBindable = StopSlideEvent,
+
+	bulletHoleRemote = BulletHoleRemote,
+	bulletHoleLocal  = BulletHoleLocal,
+	bulletBeamEvent  = BulletBeamEvent,
+	
+	sniperGlareEvent = SniperGlareEvent,
+	sniperShootEvent = SniperShootRemote,
+
+	getBarrelWorldPos = function(vm) return vm.DefaultPistol.DefaultPistol.BarrelPosition.Position end,
+	playMuzzle = function(vm)
+		local p = vm.DefaultPistol.DefaultPistol
+		if p:FindFirstChild("MuzzleFlash") then p.MuzzleFlash.ParticleEmitter:Emit(2) end
+	end,
+
+	localBulletColor = Color3.fromRGB(255,170,0),
+	
+	maxAmmo = 15, reserveAmmo = 45,
+
+	inaccuracyStanding = 2, inaccuracyCrouchBonus = 1, inaccuracyScopedBonus = 0, inaccuracyBothBonus = 0, inaccuracyAir = 70,
+	gunSpringSpeed = 20, gunSpringDamper = 0.4, recoilSpringSpeed = 8, recoilSpringDamper = 2,
+	recoilKick = Vector3.new(4,-3,4),
+	recoilBase = Vector3.new(5,0,2.5),
+	recoilPattern = { {-1,1}, {-1.1,1.1}, {-1.3,1.3}, {-1.7,1.7}, {-2.2,2.2}, {-3,3} },
+	recoilResetDelay = 0.1,
+	recoilDampeners = { crouch=1.3, scope=1.35, both=1.55, none=1.1 },
+
+	fireMode = "semi",
+	fireCooldown = 0.13,
+	fireCooldownADS = 0.13,
+	rightClickBurst = 3,
+	rightClickExtraSpread = 45,
+
+	bobbing = {
+		speed = 0.67,
+		amount = 0.112,
+		transition = 5,
+	},
+
+	ads = { enabled=false },
+
+	ammoGuiPath = "PlayerGui.Ammo.PistolAmmo",
+	mobileGuiPath = "PlayerGui.MobileGui",
+
+	animSpeeds = {
+		Idle = 1, Fire = 1, Pullout = 1,
+		Reload = 0.5, CharReload = 0.5,
+		Inspect = 0.25,
+	},
+}
+
+-- ====== REVOLVER (semi, ADS with scope overlay) ======
+Configs.Revolver = {
+	name = "Revolver",
+	
+	weaponViewmodel = RS.Viewmodels.Revolvers.DefaultRevolver_Viewmodel,
+	getAnimations = function(vm)
+		local base = vm:WaitForChild("Revolver")
+		local pack = base:WaitForChild("RevolverAnims")
+		return {
+			Idle=pack.Idle, Fire=pack.Fire, Pullout=pack.Pullout, Reload=pack.Reload,
+			Inspect=pack.Inspect, ScopeIn=pack.ScopeIn, ScopeIdle=pack.ScopeIdle, ScopedFire=pack.ScopedFire
+		}
+	end,
+
+	remoteName = "RevolverConnect",
+	shootSoundsFolderName = "ShootSounds",
+	keyframeSfx = { SlideBack="SlideBack"},
+
+	-- [[ADDED]] Play the one-and-done reload SFX at the start instead of at "Reloaded"
+	actionSfx = {
+		ReloadStart = "Reload",
+
+	},
+
+	SPRINT_TRANSITION = 0.2, -- Time to fully transition to sprint pose
+	SPRINT_IN_SPEED = 1 / 0.2,   -- 0.2s into sprint
+	SPRINT_OUT_SPEED = 1 / 0.1,  -- faster exit feels better
+
+	SLIDE_IN_SPEED  = 1 / 0.12,  -- fast snap into slide
+	SLIDE_OUT_SPEED = 1 / 0.18,  -- slightly slower exit
+
+	bobbingMultiplierNum = 0.75,
+
+	getSprintOffsetSettings = {
+		leftAmount = 0.1,
+		downAmount = -0.05,
+		forwardAmount = 0.25,
+		xAngle = 45,
+		yAngle = -10,
+		zAngle = -15
+	},
+
+	getSlideOffsetSettings = {
+		leftAmount = 0.09,
+		downAmount = -0.01,
+		forwardAmount = -0.025,
+		xAngle = -10,
+		yAngle = 5,
+		zAngle = -5
+	},
+
+	adsClickInSound = adsClickIn,
+	adsClickOutSound = adsClickOut,
+	
+	shootSoundRemote = WeaponActions:WaitForChild("RevolverFireSound"),
+	reloadSoundRemote = WeaponActions:WaitForChild("RevolverReloadSound"),
+
+	clientCrouchBindable = ClientCrouch,
+	sprintChangeBindable = SprintChange,
+	changeScopingStateBindable = ChangeScopingState,
+	reloadWeaponBindable = ReloadWeaponEvent,
+	shootingWeaponBindable = ShootingWeaponEvent,
+	inSlideBindable = InSlideEvent,
+	stopSlideBindable = StopSlideEvent,
+
+	bulletHoleRemote = BulletHoleRemote,
+	bulletHoleLocal  = BulletHoleLocal,
+	bulletBeamEvent  = BulletBeamEvent,
+
+	sniperGlareEvent = SniperGlareEvent,
+	sniperShootEvent = SniperShootRemote,
+
+	getBarrelWorldPos = function(vm) return vm.Revolver.DefaultRevolver.Barrel.Position end,
+	playMuzzle = function(vm)
+		local r = vm.Revolver.DefaultRevolver
+		if r:FindFirstChild("MuzzleFlash") then r.MuzzleFlash.ParticleEmitter:Emit(1) end
+	end,
+
+	localBulletColor = Color3.fromRGB(255,170,0),
+
+	maxAmmo = 6, reserveAmmo = 24,
+
+	inaccuracyStanding = 2, inaccuracyCrouchBonus = 1, inaccuracyScopedBonus = 2, inaccuracyBothBonus = 0, inaccuracyAir = 70,
+	gunSpringSpeed = 20, gunSpringDamper = 0.4, recoilSpringSpeed = 8, recoilSpringDamper = 2,
+	recoilKick = Vector3.new(4,-3,4),
+	recoilBase = Vector3.new(20,0,10),
+	recoilPattern = { {-1,1}, {-2,2}, {-3.5,3.5}, {-5.2,5.2}, {-6,6}, {-8,8} },
+	recoilResetDelay = 0.1,
+	recoilDampeners = { crouch=1.3, scope=1.35, both=1.55, none=1.1 },
+
+	fireMode = "semi",
+	fireCooldown = 0.62,
+	fireCooldownADS = 0.62,
+
+	bobbing = {
+		speed = 0.67,
+		amount = 0.112,
+		transition = 5,
+		scopedAmount = 0.025,
+	},
+
+	ads = {
+		enabled = true,
+		fov = 58,
+		respectToggleFlag = true,
+		scopeOverlayPath = "PlayerGui.Scopes.ScopeOverlayRevolver",
+	},
+
+	ammoGuiPath = "PlayerGui.Ammo.RevolverAmmo",
+	mobileGuiPath = "PlayerGui.MobileGui",
+
+	animSpeeds = {
+		Idle = 1,
+		Fire = 1,
+		Pullout = 2, CharPullout = 1.25,
+		Reload = 0.45, CharReload = 0.45,
+		ScopeIn = 1.0, ScopeIdle = 1.0, ScopedFire = 1.0,
+		Inspect = 0.25,
+	},
+	
+	
+	skins = {
+		Default = {
+			-- can omit this completely if base config is already default
+		},
+
+		Laser = {
+			weaponViewmodel = RS.Viewmodels.Revolvers.Laser.LaserRevolver_Viewmodel_Blue,
+
+			getAnimations = function(vm)
+				-- example: Laser viewmodel has different hierarchy
+				local base = vm:WaitForChild("Revolver")
+				local pack = base:WaitForChild("RevolverAnims")
+				return {
+					Idle=pack.Idle, Fire=pack.Fire, Pullout=pack.Pullout, Reload=pack.Reload,
+					Inspect=pack.Inspect, ScopeIn=pack.ScopeIn, ScopeIdle=pack.ScopeIdle, ScopedFire=pack.ScopedFire
+				}
+			end,
+			
+			actionSfx = {
+				PulloutStart = "Equip",
+				ReloadStart = "Reload",
+
+			},
+			
+			getBarrelWorldPos = function(vm) return vm.Revolver.LaserRevolver.Barrel.Position end,
+			playMuzzle = function(vm)
+				local r = vm.Revolver.LaserRevolver
+				if r:FindFirstChild("MuzzleFlash1") then r.MuzzleFlash1.ParticleEmitter:Emit(1) end
+				if r:FindFirstChild("MuzzleFlash2") then r.MuzzleFlash2.ParticleEmitter:Emit(1) end
+				if r:FindFirstChild("MuzzleFlash3") then r.MuzzleFlash3.ParticleEmitter:Emit(1) end
+				if r:FindFirstChild("MuzzleFlash4") then r.MuzzleFlash4.ParticleEmitter:Emit(1) end
+			end,
+
+			localBulletColor = Color3.fromRGB(46, 182, 255),
+
+			animSpeeds = {
+				Idle = 1,
+				Fire = 1,
+				Pullout = 2, CharPullout = 1.25,
+				Reload = 0.45, CharReload = 0.45,
+				ScopeIn = 1.0, ScopeIdle = 1.0, ScopedFire = 1.0,
+				Inspect = 0.25,
+			},
+			
+			variants = {
+				Blue = {
+					weaponViewmodel = RS.Viewmodels.Revolvers.Laser.LaserRevolver_Viewmodel_Blue,
+					localBulletColor = Color3.fromRGB(46, 182, 255),
+
+				},
+				Red = {
+					weaponViewmodel = RS.Viewmodels.Revolvers.Laser.LaserRevolver_Viewmodel_Red,
+					localBulletColor = Color3.fromRGB(255, 16, 20),
+
+				},
+				Purple = {
+					weaponViewmodel = RS.Viewmodels.Revolvers.Laser.LaserRevolver_Viewmodel_Purple,
+					localBulletColor = Color3.fromRGB(191, 64, 255),
+
+				},
+			},
+		},
+	},
+}
+
+
+Configs.AutoPistol = {
+	name = "AutoPistol",
+	weaponViewmodel = RS.Viewmodels.AutoPistols.DefaultAutoPistol_Viewmodel,
+	getAnimations = function(vm)
+		local base = vm:WaitForChild("DefaultAutoPistol")
+		local pack = base:WaitForChild("AutoPistolAnimations")
+		return {
+			Idle=pack.Idle, Fire=pack.Fire, Pullout=pack.Pullout, Reload=pack.Reload,
+			Inspect=pack.Inspect, ScopeIn=pack.ScopeIn, ScopeIdle=pack.ScopeIdle, ScopedFire=pack.ScopedFire
+		}
+	end,
+
+	remoteName = "AutoPistolConnect",
+	shootSoundsFolderName = "ShootSounds",
+	keyframeSfx = { PullBack="Equip", Reloaded="MagIn", MagOut="MagOut"},
+
+	-- [[ADDED]] optional start SFXs
+	actionSfx = {
+
+	},
+
+	SPRINT_TRANSITION = 0.2, -- Time to fully transition to sprint pose
+	SPRINT_IN_SPEED = 1 / 0.2,   -- 0.2s into sprint
+	SPRINT_OUT_SPEED = 1 / 0.1,  -- faster exit feels better
+
+	SLIDE_IN_SPEED  = 1 / 0.12,  -- fast snap into slide
+	SLIDE_OUT_SPEED = 1 / 0.18,  -- slightly slower exit
+
+	bobbingMultiplierNum = 0.5,
+
+	getSprintOffsetSettings = {
+		leftAmount = 0.3,
+		downAmount = 0.1,
+		forwardAmount = 0.05,
+		xAngle = -5,
+		yAngle = 45,
+		zAngle = 2
+	},
+
+	getSlideOffsetSettings = {
+		leftAmount = 0.09,
+		downAmount = -0.01,
+		forwardAmount = -0.025,
+		xAngle = -10,
+		yAngle = 5,
+		zAngle = -5
+	},
+
+	adsClickInSound = adsClickIn,
+	adsClickOutSound = adsClickOut,
+
+	shootSoundRemote = WeaponActions:WaitForChild("AutoPistolFireSound"),
+	reloadSoundRemote = WeaponActions:WaitForChild("AutoPistolReloadSound"),
+
+	clientCrouchBindable = ClientCrouch,
+	sprintChangeBindable = SprintChange,
+	changeScopingStateBindable = ChangeScopingState,
+	reloadWeaponBindable = ReloadWeaponEvent,
+	shootingWeaponBindable = ShootingWeaponEvent,
+	inSlideBindable = InSlideEvent,
+	stopSlideBindable = StopSlideEvent,
+
+	bulletHoleRemote = BulletHoleRemote,
+	bulletHoleLocal  = BulletHoleLocal,
+	bulletBeamEvent  = BulletBeamEvent,
+
+	sniperGlareEvent = SniperGlareEvent,
+	sniperShootEvent = SniperShootRemote,
+
+	getBarrelWorldPos = function(vm) return vm.DefaultAutoPistol.DefaultAutoPistol.Barrel.Position end,
+	playMuzzle = function(vm)
+		local m = gp(vm, "DefaultAutoPistol.DefaultAutoPistol.MuzzleFlash")
+		if m and m:IsA("Attachment") then
+			local pe = m:FindFirstChildWhichIsA("ParticleEmitter"); if pe then pe:Emit(1) end
+		end
+	end,
+
+	localBulletColor = Color3.fromRGB(255,170,0),
+
+	maxAmmo = 20, reserveAmmo = 80,
+
+	inaccuracyStanding = 18, inaccuracyCrouchBonus = 8, inaccuracyScopedBonus = 6, inaccuracyBothBonus = 4, inaccuracyAir = 25,
+	gunSpringSpeed = 20, gunSpringDamper = 0.4, recoilSpringSpeed = 15, recoilSpringDamper = 2,
+	recoilKick = Vector3.new(4, -3, 4),
+	recoilBase = Vector3.new(5, -0, 3),
+	recoilPattern = { {-.5, 5}, {-1, 1}, {-1.8, 1.8}, {-2.7, 2.7}, {-3.7, 3.7}, {-5.2, 5.2}, {-7, 7} },
+	recoilResetDelay = 0.125,
+	recoilDampeners = { crouch=1.3, scope=1.35, both=1.55, none=1.15 },
+
+	fireMode = "auto",
+	fireCooldown = 0.0585, -- 600 RPM ~ 0.1s
+	fireCooldownADS = 0.0745,
+
+	bobbing = {
+		speed = 0.91,
+		amount = 0.118,
+		transition = 5,
+		scopedAmount = 0.0118,
+	},
+
+	ads = {
+		enabled = true,
+		fov = 60,
+		respectToggleFlag = true,
+		scopeOverlayPath = "PlayerGui.Scopes.ScopeOverlayAutoPistol",
+	},
+
+	ammoGuiPath = "PlayerGui.Ammo.AutoPistolAmmo",
+	mobileGuiPath = "PlayerGui.MobileGui",
+
+	animSpeeds = {
+		Idle=1, Fire=1, Pullout=1, CharPullout=1, Reload=0.7, CharReload=0.7, Inspect=0.5,
+		ScopeIn=1.1, ScopeIdle=1, ScopedFire=1,
+	},
+}
+
+-- ====== RIFLE (auto, ADS hides parts on VM) ======
+Configs.Rifle = {
+	name = "Rifle",
+	weaponViewmodel = RS.Viewmodels.Rifles.DefaultRifle_Viewmodel,
+	getAnimations = function(vm)
+		local base = vm:WaitForChild("Rifle")
+		local pack = base:WaitForChild("RifleAnimations")
+		return {
+			Idle=pack.Idle, Fire=pack.Fire, Pullout=pack.Pullout, Reload=pack.Reload,
+			Inspect=pack.Inspect, ScopeIn=pack.ScopeIn, ScopeIdle=pack.ScopeIdle, ScopedFire=pack.ScopedFire
+		}
+	end,
+
+	remoteName = "RifleConnect",
+	shootSoundsFolderName = "ShootSounds",
+	keyframeSfx = { PullBack="PullBack", PullBackForward="PullBackForward", Reloaded="MagIn", MagOut="MagOut", Hit="HitSound"},
+
+	-- [[ADDED]] optional start SFXs
+	actionSfx = {
+		ReloadStart = "Reload",
+		PulloutStart = "Equip",
+	},
+
+	SPRINT_TRANSITION = 0.2, -- Time to fully transition to sprint pose
+	SPRINT_IN_SPEED = 1 / 0.2,   -- 0.2s into sprint
+	SPRINT_OUT_SPEED = 1 / 0.1,  -- faster exit feels better
+
+	SLIDE_IN_SPEED  = 1 / 0.12,  -- fast snap into slide
+	SLIDE_OUT_SPEED = 1 / 0.18,  -- slightly slower exit
+
+	bobbingMultiplierNum = 0.5,
+
+	getSprintOffsetSettings = {
+		leftAmount = 0.3,
+		downAmount = 0.1,
+		forwardAmount = 0.05,
+		xAngle = -5,
+		yAngle = 45,
+		zAngle = 2
+	},
+
+	getSlideOffsetSettings = {
+		leftAmount = 0.09,
+		downAmount = -0.01,
+		forwardAmount = -0.025,
+		xAngle = -10,
+		yAngle = 5,
+		zAngle = -5
+	},
+
+	adsClickInSound = adsClickIn,
+	adsClickOutSound = adsClickOut,
+
+	shootSoundRemote = WeaponActions:WaitForChild("RifleFireSound"),
+	reloadSoundRemote = WeaponActions:WaitForChild("RifleReloadSound"),
+
+	clientCrouchBindable = ClientCrouch,
+	sprintChangeBindable = SprintChange,
+	changeScopingStateBindable = ChangeScopingState,
+	reloadWeaponBindable = ReloadWeaponEvent,
+	shootingWeaponBindable = ShootingWeaponEvent,
+	inSlideBindable = InSlideEvent,
+	stopSlideBindable = StopSlideEvent,
+
+	bulletHoleRemote = BulletHoleRemote,
+	bulletHoleLocal  = BulletHoleLocal,
+	bulletBeamEvent  = BulletBeamEvent,
+
+	sniperGlareEvent = SniperGlareEvent,
+	sniperShootEvent = SniperShootRemote,
+
+	getBarrelWorldPos = function(vm) return vm.Rifle.DefaultRifle.Barrel.Position end,
+	playMuzzle = function(vm)
+		local m = gp(vm, "Rifle.DefaultRifle.MuzzleFlash")
+		if m and m:IsA("Attachment") then
+			local pe = m:FindFirstChildWhichIsA("ParticleEmitter"); if pe then pe:Emit(2) end
+		end
+	end,
+
+	localBulletColor = Color3.fromRGB(255,170,0),
+
+	maxAmmo = 25, reserveAmmo = 75,
+
+	inaccuracyStanding = 2, inaccuracyCrouchBonus = 1, inaccuracyScopedBonus = 0, inaccuracyBothBonus = 0, inaccuracyAir = 70,
+	gunSpringSpeed = 20, gunSpringDamper = 0.4, recoilSpringSpeed = 15, recoilSpringDamper = 2,
+	recoilKick = Vector3.new(4, -3, 4),
+	recoilBase = Vector3.new(14, -0, 10),
+	recoilPattern = { 	{-.3, 3}, {-.7, .7}, {-1.1, 1.1}, {-1.7, 1.7}, {-2.6, 2.6}, {-3.5, 3.5}, {-5, 5}, {-6.8, 6.8}, {-9, 9}, {-11.5, 11.5}, {-14, 14}, {-16, 16} },
+	recoilResetDelay = 0.125,
+	recoilDampeners = { crouch=1.5, scope=1.55, both=1.75, none=1.3 },
+
+	fireMode = "auto",
+	fireCooldown = 0.118, -- 600 RPM ~ 0.1s
+	fireCooldownADS = 0.131,
+
+	bobbing = {
+		speed = 0.91,
+		amount = 0.118,
+		transition = 5,
+		scopedAmount = 0.0118,
+	},
+
+	ads = {
+		enabled = true,
+		fov = 60,
+		respectToggleFlag = true,
+		scopeOverlayPath = nil,
+		hidePartsOnScope = {
+			"Rifle.DefaultRifle.ScopeGrayThing",
+			"Rifle.DefaultRifle.FrontScope",
+			"Rifle.DefaultRifle.ScopeBig",
+		},
+	},
+
+	ammoGuiPath = "PlayerGui.Ammo.RifleAmmo",
+	mobileGuiPath = "PlayerGui.MobileGui",
+
+	animSpeeds = {
+		Idle=1, Fire=1, Pullout=0.8, CharPullout=0.8, Reload=0.25, CharReload=0.25, Inspect=0.25,
+		ScopeIn=1.2, ScopeIdle=1, ScopedFire=1,
+	},
+	
+	skins = {
+		Default = {
+			-- can omit this completely if base config is already default
+		},
+
+		Laser = {
+			weaponViewmodel = RS.Viewmodels.Rifles.Laser.LaserRifle_Viewmodel_Blue,
+
+			getAnimations = function(vm)
+				-- example: Laser viewmodel has different hierarchy
+				local base = vm:WaitForChild("Rifle")
+				local pack = base:WaitForChild("RifleAnimations")
+				return {
+					Idle=pack.Idle, Fire=pack.Fire, Pullout=pack.Pullout, Reload=pack.Reload,
+					Inspect=pack.Inspect, ScopeIn=pack.ScopeIn, ScopeIdle=pack.ScopeIdle, ScopedFire=pack.ScopedFire
+				}
+			end,
+
+			keyframeSfx = { BeforeBallSummon="LaserBallSummon", BallPlaced="InsertBall", LidClosed="LidClose", Reloaded="MagIn", MagOut="MagOut", Hit="HitSound"},
+
+			getBarrelWorldPos = function(vm) return vm.Rifle.RIFLE.Barrel.Position end,
+			playMuzzle = function(vm)
+				local r = vm.Rifle.RIFLE
+				if r:FindFirstChild("MuzzleFlash1") then r.MuzzleFlash1.ParticleEmitter:Emit(1) end
+				if r:FindFirstChild("MuzzleFlash2") then r.MuzzleFlash2.ParticleEmitter:Emit(1) end
+				if r:FindFirstChild("MuzzleFlash3") then r.MuzzleFlash3.ParticleEmitter:Emit(1) end
+				if r:FindFirstChild("MuzzleFlash4") then r.MuzzleFlash4.ParticleEmitter:Emit(1) end
+
+			end,
+			
+
+			localBulletColor = Color3.fromRGB(46, 182, 255),
+
+			animSpeeds = {
+				Idle = 1,
+				Fire = 1,
+				Pullout = 0.8, CharPullout = 0.8,
+				Reload = 0.25, CharReload = 0.25,
+				ScopeIn = 1.2, ScopeIdle = 1.0, ScopedFire = 1.0,
+				Inspect = 0.25,
+			},
+
+			variants = {
+				Blue = {
+					weaponViewmodel = RS.Viewmodels.Rifles.Laser.LaserRifle_Viewmodel_Blue,
+					localBulletColor = Color3.fromRGB(46, 182, 255),
+
+				},
+				Red = {
+					weaponViewmodel = RS.Viewmodels.Rifles.Laser.LaserRifle_Viewmodel_Red,
+					localBulletColor = Color3.fromRGB(255, 16, 20),
+
+				},
+				Purple = {
+					weaponViewmodel = RS.Viewmodels.Rifles.Laser.LaserRifle_Viewmodel_Purple,
+					localBulletColor = Color3.fromRGB(191, 64, 255),
+
+				},
+			},
+		},
+	},
+}
+
+-- ====== SMG (auto, faster) ======
+Configs.SMG = {
+	name = "SMG",
+	weaponViewmodel = RS.Viewmodels.SMGs.DefaultSMG_Viewmodel,
+	getAnimations = function(vm)
+		local base = vm:WaitForChild("DefaultSMG")
+		local pack = base:WaitForChild("SMGAnimations")
+		return {
+			Idle=pack.Idle, Fire=pack.Fire, Pullout=pack.Pullout, Reload=pack.Reload,
+			Inspect=pack.Inspect, ScopeIn=pack.ScopeIn, ScopeIdle=pack.ScopeIdle, ScopedFire=pack.ScopedFire
+		}
+	end,
+
+	remoteName = "SMGConnect",
+	shootSoundsFolderName = "ShootSounds",
+	keyframeSfx = {Reloaded="MagIn", MagOut="MagOut"},
+
+	-- [[ADDED]]
+	actionSfx = {
+		PulloutStart = "Equip",
+	},
+
+	SPRINT_TRANSITION = 0.2, -- Time to fully transition to sprint pose
+	SPRINT_IN_SPEED = 1 / 0.2,   -- 0.2s into sprint
+	SPRINT_OUT_SPEED = 1 / 0.1,  -- faster exit feels better
+
+	SLIDE_IN_SPEED  = 1 / 0.12,  -- fast snap into slide
+	SLIDE_OUT_SPEED = 1 / 0.18,  -- slightly slower exit
+
+	bobbingMultiplierNum = 0.5,
+
+	getSprintOffsetSettings = {
+		leftAmount = 0.3,
+		downAmount = 0.1,
+		forwardAmount = 0.05,
+		xAngle = -5,
+		yAngle = 45,
+		zAngle = 2
+	},
+
+	getSlideOffsetSettings = {
+		leftAmount = 0.09,
+		downAmount = -0.01,
+		forwardAmount = -0.025,
+		xAngle = -10,
+		yAngle = 5,
+		zAngle = -5
+	},
+
+	adsClickInSound = adsClickIn,
+	adsClickOutSound = adsClickOut,
+
+	shootSoundRemote = WeaponActions:WaitForChild("SMGFireSound"),
+	reloadSoundRemote = WeaponActions:WaitForChild("SMGReloadSound"),
+
+	clientCrouchBindable = ClientCrouch,
+	sprintChangeBindable = SprintChange,
+	changeScopingStateBindable = ChangeScopingState,
+	reloadWeaponBindable = ReloadWeaponEvent,
+	shootingWeaponBindable = ShootingWeaponEvent,
+	inSlideBindable = InSlideEvent,
+	stopSlideBindable = StopSlideEvent,
+
+	bulletHoleRemote = BulletHoleRemote,
+	bulletHoleLocal  = BulletHoleLocal,
+	bulletBeamEvent  = BulletBeamEvent,
+
+	sniperGlareEvent = SniperGlareEvent,
+	sniperShootEvent = SniperShootRemote,
+
+	getBarrelWorldPos = function(vm) return vm.DefaultSMG.DefaultSMG.Barrel.Position end,
+	playMuzzle = function(vm)
+		local m = gp(vm, "DefaultSMG.DefaultSMG.MuzzleFlash")
+		if m then local pe=m:FindFirstChildWhichIsA("ParticleEmitter"); if pe then pe:Emit(3) end end
+	end,
+
+	localBulletColor = Color3.fromRGB(255,170,0),
+
+	maxAmmo = 30, reserveAmmo = 90,
+
+	inaccuracyStanding = 15, inaccuracyCrouchBonus = 6.67, inaccuracyScopedBonus = 5, inaccuracyBothBonus = 3.33, inaccuracyAir = 22,
+	gunSpringSpeed = 20, gunSpringDamper = 0.4, recoilSpringSpeed = 15, recoilSpringDamper = 2,
+	recoilKick = Vector3.new(4, -3, 4),
+	recoilBase = Vector3.new(5, -0, 3),
+	recoilPattern = { {-.5, 5}, {-1, 1}, {-1.8, 1.8}, {-2.7, 2.7}, {-3.7, 3.7}, {-5.2, 5.2}, {-7, 7} },
+	recoilResetDelay = 0.125,
+	recoilDampeners = { crouch=1.3, scope=1.35, both=1.55, none=1.15 },
+
+	fireMode = "auto",
+	fireCooldown = 0.0872, -- ~750 RPM
+	fireCooldownADS = 0.0988,
+
+	bobbing = {
+		speed = 0.91,
+		amount = 0.118,
+		transition = 5,
+		scopedAmount = 0.0118,
+	},
+	
+	ads = {
+		enabled = true,
+		fov = 60,
+		respectToggleFlag = true,
+		scopeOverlayPath = "PlayerGui.Scopes.ScopeOverlaySMG",
+	},
+	ammoGuiPath = "PlayerGui.Ammo.SMGAmmo",
+	mobileGuiPath = "PlayerGui.MobileGui",
+
+	animSpeeds = {
+		Idle=1, Fire=1, Pullout=1, CharPullout=1, Reload=0.50, CharReload=0.50, Inspect=0.25,
+		ScopeIn=1.35, ScopeIdle=1, ScopedFire=1,
+	},
+}
+
+-- ====== SHOTGUN (semi, pellets) ======
+Configs.Shotgun = {
+	name = "Shotgun",
+	weaponViewmodel = RS.Viewmodels.Shotguns.DefaultShotgun_Viewmodel,
+	getAnimations = function(vm)
+		local base = vm:WaitForChild("DefaultShotgun")
+		local pack = base:WaitForChild("ShotgunAnimations")
+		return {
+			Idle=pack.Idle, Fire=pack.Fire, Pullout=pack.Pullout, Reload=pack.Reload,
+			Inspect=pack.Inspect, ScopeIn=pack.ScopeIn, ScopeIdle=pack.ScopeIdle, ScopedFire=pack.ScopedFire
+		}
+	end,
+
+	remoteName = "ShotgunConnect",
+	shootSoundsFolderName = "ShootSounds",
+	keyframeSfx = { PumpBack = "PumpBack",
+		PumpForward = "PumpForward",
+		ShellIn = "ShellIn", },
+
+	-- [[ADDED]]
+	actionSfx = {
+		
+	},
+
+	SPRINT_TRANSITION = 0.2, -- Time to fully transition to sprint pose
+	SPRINT_IN_SPEED = 1 / 0.2,   -- 0.2s into sprint
+	SPRINT_OUT_SPEED = 1 / 0.1,  -- faster exit feels better
+
+	SLIDE_IN_SPEED  = 1 / 0.12,  -- fast snap into slide
+	SLIDE_OUT_SPEED = 1 / 0.18,  -- slightly slower exit
+
+	bobbingMultiplierNum = 0.5,
+
+	getSprintOffsetSettings = {
+		leftAmount = 0.3,
+		downAmount = 0.1,
+		forwardAmount = 0.05,
+		xAngle = -5,
+		yAngle = 45,
+		zAngle = 2
+	},
+
+	getSlideOffsetSettings = {
+		leftAmount = 0.09,
+		downAmount = -0.01,
+		forwardAmount = -0.025,
+		xAngle = -10,
+		yAngle = 5,
+		zAngle = -5
+	},
+
+	adsClickInSound = adsClickIn,
+	adsClickOutSound = adsClickOut,
+
+	shootSoundRemote = WeaponActions:WaitForChild("ShotgunFireSound"),
+	reloadSoundRemote = WeaponActions:WaitForChild("ShotgunReloadSound"),
+
+	clientCrouchBindable = ClientCrouch,
+	sprintChangeBindable = SprintChange,
+	changeScopingStateBindable = ChangeScopingState,
+	reloadWeaponBindable = ReloadWeaponEvent,
+	shootingWeaponBindable = ShootingWeaponEvent,
+	inSlideBindable = InSlideEvent,
+	stopSlideBindable = StopSlideEvent,
+	
+	bulletHoleRemote = BulletHoleRemote,
+	bulletHoleLocal  = BulletHoleLocal,
+	bulletBeamEvent  = BulletBeamEvent,
+
+	sniperGlareEvent = SniperGlareEvent,
+	sniperShootEvent = SniperShootRemote,
+
+	getBarrelWorldPos = function(vm) return vm.DefaultShotgun.DefaultShotgun.Barrel.Position end,
+	playMuzzle = function(vm)
+		local m = gp(vm, "DefaultShotgun.DefaultShotgun.MuzzleFlash"); if m then local pe=m:FindFirstChildWhichIsA("ParticleEmitter"); if pe then pe:Emit(2) end end
+	end,
+
+	localBulletColor = Color3.fromRGB(255,170,0),
+
+	maxAmmo = 5, reserveAmmo = 20,
+
+	inaccuracyStanding = 1, inaccuracyCrouchBonus = 0, inaccuracyScopedBonus = 0, inaccuracyBothBonus = 0, inaccuracyAir = 70,
+	gunSpringSpeed = 20, gunSpringDamper = 0.4, recoilSpringSpeed = 8, recoilSpringDamper = 2,
+	recoilKick = Vector3.new(4, -3, 4),
+	recoilBase = Vector3.new(20, -0, 10),
+	recoilPattern = { 	{-1, 1}, {-2, 2}, {-3.5, 3.5}, {-5.2, 5.2}, {-6, 6}, {-8, 8} },
+	recoilResetDelay = 0.1,
+	recoilDampeners = { crouch=1.3, scope=1.35, both=1.45, none=1.1 },
+
+	fireMode = "semi",
+	fireCooldown = 0.759,
+
+	bobbing = { speed=0.67, amount=0.112, transition=5 },
+	ads = {
+		enabled = true,
+		fov = 50,
+		respectToggleFlag = true,
+		scopeOverlayPath = "PlayerGui.Scopes.ScopeOverlayShotgun",
+	},
+
+	ammoGuiPath = "PlayerGui.Ammo.ShotgunAmmo",
+	mobileGuiPath = "PlayerGui.MobileGui",
+
+	animSpeeds = {
+		Idle=1, Fire=0.7, CharFire=0.7, Pullout=0.8, CharPullout=0.8, Reload=1, CharReload=1, Inspect=0.2,
+		ScopeIn=1.5, ScopeIdle=1, ScopedFire=0.7,
+	},
+	
+	special = {
+		shotgun = {
+			pattern = "circular",      -- enables custom system
+			baseSpread = 2,            -- degrees
+			scopedSpread = 1,
+			airbornePenalty = 70,
+			rings = {1, 6, 12},        -- center + rings
+
+			getVMReloadAnimations = function(vm)
+				local base = vm:WaitForChild("DefaultShotgun")
+				local pack = base:WaitForChild("ShotgunAnimations")
+				return {
+					vmReloadBackForth = pack.ReloadBackForth,
+					vmReloadGunBack = pack.ReloadGunBack,
+					vmReloadMoveGun = pack.ReloadMoveGun,
+				}
+			end,
+
+
+			vmReloadBackForthSpeed = 0.6,
+			vmReloadGunBackSpeed = 0.6,
+			vmReloadMoveGunSpeed = 1,
+			charReloadBackForthSpeed = 0.6,
+			charReloadGunBackSpeed = 0.6,
+			charReloadMoveGunSpeed = 1,
+		}
+		
+	},
+
+}
+
+-- ====== SNIPER (semi, accurate only when completely still) ======
+-- [[ADDED]] NEW
+Configs.Sniper = {
+	name = "Sniper",
+	weaponViewmodel = RS.Viewmodels.Snipers.DefaultSniper_Viewmodel, -- make sure this exists
+	getAnimations = function(vm)
+		local base = vm:WaitForChild("Sniper")
+		local pack = base:WaitForChild("SniperAnims")
+		return {
+			Idle=pack.Idle, Fire=pack.Fire, Pullout=pack.Pullout, Reload=pack.Reload,
+			Inspect=pack.Inspect, ScopeIn=pack.ScopeIn, ScopeIdle=pack.ScopeIdle, ScopedFire=pack.Fire
+		}
+	end,
+
+	remoteName = "SniperConnect",
+	shootSoundsFolderName = "ShootSounds",
+	keyframeSfx = {
+		DefaultBoltBack="Default", BoltBack="Default"
+	},
+
+	actionSfx = {
+		ReloadStart = "Reload",     -- single reload sound when starting
+		--PulloutStart = "Default",
+	},
+
+	adsClickInSound = adsClickIn,
+	adsClickOutSound = adsClickOut,
+
+	SPRINT_TRANSITION = 0.2, -- Time to fully transition to sprint pose
+	SPRINT_IN_SPEED = 1 / 0.2,   -- 0.2s into sprint
+	SPRINT_OUT_SPEED = 1 / 0.1,  -- faster exit feels better
+
+	SLIDE_IN_SPEED  = 1 / 0.12,  -- fast snap into slide
+	SLIDE_OUT_SPEED = 1 / 0.18,  -- slightly slower exit
+
+	bobbingMultiplierNum = 0.5,
+
+	getSprintOffsetSettings = {
+		leftAmount = 0.3,
+		downAmount = 0.1,
+		forwardAmount = 0.05,
+		xAngle = -5,
+		yAngle = 45,
+		zAngle = 2
+	},
+
+	getSlideOffsetSettings = {
+		leftAmount = 0.09,
+		downAmount = -0.01,
+		forwardAmount = -0.025,
+		xAngle = -10,
+		yAngle = 5,
+		zAngle = -5
+	},
+
+	shootSoundRemote = WeaponActions:WaitForChild("SniperFireSound"),
+	reloadSoundRemote = WeaponActions:WaitForChild("SniperReloadSound"),
+
+	clientCrouchBindable = ClientCrouch,
+	sprintChangeBindable = SprintChange,
+	changeScopingStateBindable = ChangeScopingState,
+	reloadWeaponBindable = ReloadWeaponEvent,
+	shootingWeaponBindable = ShootingWeaponEvent,
+	inSlideBindable = InSlideEvent,
+	stopSlideBindable = StopSlideEvent,
+	
+	bulletHoleRemote = BulletHoleRemote,
+	bulletHoleLocal  = BulletHoleLocal,
+	bulletBeamEvent  = BulletBeamEvent,
+
+	sniperGlareEvent = SniperGlareEvent,
+	sniperShootEvent = SniperShootRemote,
+
+	getBarrelWorldPos = function(vm) return vm.Sniper.DefaultSniper.Barrel.Position end,
+	playMuzzle = function(vm)
+		local m = gp(vm, "Sniper.DefaultSniper.MuzzleFlash")
+		if m then local pe=m:FindFirstChildWhichIsA("ParticleEmitter"); if pe then pe:Emit(1) end end
+	end,
+
+	localBulletColor = Color3.new(1, 0.94902, 0.235294),
+
+	maxAmmo = 5, reserveAmmo = 10,
+
+	-- base spread low, but moving makes it wildly inaccurate
+	inaccuracyStanding = 125,        -- perfect center when completely still
+	inaccuracyCrouchBonus = 100,     -- (already 0)
+	inaccuracyScopedBonus = 0,     -- using scope doesn't further change base 0
+	inaccuracyBothBonus = 0,
+	inaccuracyAir = 150,           -- jumping = very inaccurate
+	gunSpringSpeed = 20, gunSpringDamper = 0.4, recoilSpringSpeed = 15, recoilSpringDamper = 4,
+	recoilKick = Vector3.new(4, -3, 4),
+	recoilBase = Vector3.new(15, -0, 10),
+	recoilPattern = { {-30, 30} }, -- value doesnt seem to make a difference for sniper only
+	recoilResetDelay = 0.1,
+	recoilDampeners = { crouch=1.0, scope=1.0, both=1.0, none=1.0 },
+
+	fireMode = "semi",
+	fireCooldown = 2,
+
+	bobbing = {
+		speed = 1.15,
+		amount = 0.112,
+		transition = 5,
+		scopedAmount = 0.02,
+	},
+
+	ads = {
+		enabled = true,
+		fov = 20, -- tighter FOV for a sniper scope
+		respectToggleFlag = true,
+		scopeOverlayPath = "PlayerGui.Scopes.ScopeOverlay", -- make sure you have this GUI
+		hidePartsOnScope = { -- hide irons/large front sights etc
+			"Sniper.DefaultSniper.IronsFront",
+		},
+	},
+
+	ammoGuiPath = "PlayerGui.Ammo.SniperAmmo",
+	mobileGuiPath = "PlayerGui.MobileGui",
+
+	animSpeeds = {
+		Idle = 1,
+		Fire = 0.6,	CharFire = 0.6,
+		Pullout = 0.7,  CharPullout = 0.7,
+		Reload  = 0.5, CharReload = 0.5,
+		ScopeIn = 2.3, CharScope = 2.3, 
+		ScopeIdle = 1.0, ScopedFire = 0.6,
+		Inspect = 0.25,
+	},
+	
+	-- Key sniper behavior flags:
+	special = {
+		sniper = true,
+		movingInaccuracyHuge = true,  -- add huge spread when moving (handled in GunCore)
+		-- If you want a *hard* requirement: only fire when perfectly still:
+
+	},
+	
+	skins = {
+		Default = {
+			-- can omit this completely if base config is already default
+		},
+
+		Laser = {
+			weaponViewmodel = RS.Viewmodels.Snipers.Laser.LaserSniper_Viewmodel_Blue,
+
+			getAnimations = function(vm)
+				-- example: Laser viewmodel has different hierarchy
+				local base = vm:WaitForChild("Sniper")
+				local pack = base:WaitForChild("SniperAnims")
+				return {
+					Idle=pack.Idle, Fire=pack.Fire, Pullout=pack.Pullout, Reload=pack.Reload,
+					Inspect=pack.Inspect, ScopeIn=pack.ScopeIn, ScopeIdle=pack.ScopeIdle, ScopedFire=pack.Fire
+				}
+			end,
+
+			keyframeSfx = { SummonLaserBall="LaserBallSummon", InsertBall="InsertBall",  ButtonPressed="Button"},
+
+			getBarrelWorldPos = function(vm) return vm.Sniper.BigSniper.Barrel.Position end,
+			playMuzzle = function(vm)
+				local r = vm.Sniper.BigSniper.Sniper
+				if r:FindFirstChild("MuzzleFlash1") then r.MuzzleFlash1.ParticleEmitter:Emit(1) end
+				if r:FindFirstChild("MuzzleFlash2") then r.MuzzleFlash2.ParticleEmitter:Emit(1) end
+				if r:FindFirstChild("MuzzleFlash3") then r.MuzzleFlash3.ParticleEmitter:Emit(1) end
+				if r:FindFirstChild("MuzzleFlash4") then r.MuzzleFlash4.ParticleEmitter:Emit(1) end
+
+			end,
+
+			localBulletColor = Color3.fromRGB(46, 182, 255),
+
+			animSpeeds = {
+				Idle = 1,
+				Fire = 0.6,	CharFire = 0.6,
+				Pullout = 0.7,  CharPullout = 0.7,
+				Reload  = 0.5, CharReload = 0.5,
+				ScopeIn = 2.3, CharScope = 2.3, 
+				ScopeIdle = 1.0, ScopedFire = 0.6,
+				Inspect = 0.25,
+			},
+
+			variants = {
+				Blue = {
+					weaponViewmodel = RS.Viewmodels.Snipers.Laser.LaserSniper_Viewmodel_Blue,
+					localBulletColor = Color3.fromRGB(13, 105, 172),
+
+				},
+				Red = {
+					weaponViewmodel = RS.Viewmodels.Snipers.Laser.LaserSniper_Viewmodel_Red,
+					localBulletColor = Color3.fromRGB(255, 0, 0),
+
+				},
+				Purple = {
+					weaponViewmodel = RS.Viewmodels.Snipers.Laser.LaserSniper_Viewmodel_Purple,
+					localBulletColor = Color3.fromRGB(113, 24, 202),
+
+				},
+			},
+		},
+	},
+}
+
+function Configs.Get(gunName)
+	local base = Configs[gunName]
+	if not base then return nil end
+
+	local skin = resolveSkinName(gunName)
+	local variant = resolveVariantName(gunName, skin)
+
+	local cfg = deepCopy(base)
+
+	-- apply skin
+	if cfg.skins and cfg.skins[skin] then
+		deepMerge(cfg, cfg.skins[skin])
+
+		-- apply variant (after skin)
+		if cfg.variants and variant and cfg.variants[variant] then
+			deepMerge(cfg, cfg.variants[variant])
+		end
+	end
+
+	cfg.skins = nil
+	cfg.variants = nil
+	return cfg
+end
+
+return Configs
+
