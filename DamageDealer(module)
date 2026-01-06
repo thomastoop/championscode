@@ -1,0 +1,197 @@
+-- DamageHandler ModuleScript
+local DamageHandler = {}
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local hit = game:GetService("ReplicatedStorage"):WaitForChild("Hit")
+local hs = game:GetService("ReplicatedStorage"):WaitForChild("Headshot")
+local createDmgIndicator = game.ReplicatedStorage.CreateDamageIndicator
+local killEvent = game:GetService("ReplicatedStorage"):WaitForChild("KillNotification")
+local ServerAddKillLeaderstats = game:GetService("ReplicatedStorage"):WaitForChild("Queueing/Gameplay"):WaitForChild("ServerAddKillLeaderstats")
+local MoveElevator = game:GetService("ReplicatedStorage"):WaitForChild("MoveElevator")
+local deathAnimationsFolder = game:GetService("ReplicatedStorage"):WaitForChild("DeathAnimations")
+local backDeathAnimation = deathAnimationsFolder:WaitForChild("BackDeathAnimation")
+local backDeathIdle = deathAnimationsFolder:WaitForChild("BackDeathIdle")
+local frontDeathAnimation = deathAnimationsFolder:WaitForChild("FrontDeathAnimation")
+local frontDeathIdle = deathAnimationsFolder:WaitForChild("FrontDeathIdle")
+local ResetBot = game:GetService("ReplicatedStorage"):WaitForChild("ResetBot")
+local addKill = game:WaitForChild("ReplicatedStorage"):WaitForChild("AddKill")
+
+-- Helper function to safely check if player can damage target
+local function canDamage(humanoid, attackerPlayer)
+	-- Always allow damage to bots
+	if humanoid.Parent.Name == "Range Bot" then
+		return true
+	end
+
+	-- Get victim player and validate team structure
+	local victimPlayer = Players:GetPlayerFromCharacter(humanoid.Parent)
+	if not victimPlayer then return false end
+	if not victimPlayer:FindFirstChild("GameTeam") then return false end
+	if not attackerPlayer:FindFirstChild("GameTeam") then return false end
+
+	-- Check if teams are different
+	return victimPlayer.GameTeam.playerTeam.Value ~= attackerPlayer.GameTeam.playerTeam.Value or (victimPlayer.GameTeam.playerTeam.Value == "Deathmatch" and attackerPlayer.GameTeam.playerTeam.Value == "Deathmatch")
+end
+
+local function findHumanoid(part)
+	local ancestor = part
+	while ancestor and ancestor ~= game do
+		local humanoid = ancestor:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			return humanoid, ancestor
+		end
+		ancestor = ancestor.Parent
+	end
+	return nil
+end
+
+function DamageHandler.handleDamage(player, hitPart, weaponName, baseDamage, headshotDamage, hasFalloff, falloffDistance, falloffBaseDamage, falloffHeadshotDamage, distance)
+	if not hitPart then return end
+	--player.PlayerGui.HitPartGui.HitPart.Text = tostring(hitPart)
+	-- Find humanoid in hierarchy
+	local humanoid, characterModel = findHumanoid(hitPart)
+	if not humanoid or humanoid.Health <= 0 or characterModel:FindFirstChildOfClass("ForceField") then
+		handleNonCharacterHits(player, hitPart, weaponName)
+		return
+	end
+	if Players:GetPlayerFromCharacter(humanoid.Parent) then
+		if Players:GetPlayerFromCharacter(humanoid.Parent).GameTeam.playerTeam then
+			if Players:GetPlayerFromCharacter(humanoid.Parent).GameTeam.playerTeam.Value == "None" or Players:GetPlayerFromCharacter(humanoid.Parent).GameTeam.playerTeam.Value == "ShootingRange" then
+				return
+			end
+		end
+	end
+	if player.GeneralInfo.SyringeActivated.Value then
+		baseDamage *= 1.25
+		headshotDamage *= 1.25
+	else
+		baseDamage = baseDamage
+		headshotDamage = headshotDamage
+	end
+	
+	-- Validate humanoid and damage conditions
+	if humanoid and humanoid.Health > 0 then
+		local isBot = (humanoid.Parent.Name == "Range Bot")
+		local isGameplayBot = string.match(humanoid.Parent.Name, "[BOT]")
+		local isEnemy = not isBot and canDamage(humanoid, player)
+
+		if isBot or isEnemy or isGameplayBot then
+			-- Set the creator attribute
+			local creator = humanoid:FindFirstChild("creator") or Instance.new("ObjectValue")
+			creator.Name = "creator"
+			creator.Value = player
+			creator.Parent = humanoid
+
+			-- Calculate damage with falloff
+			local damage = baseDamage
+			local headshot = false
+			
+			-- Check for headshot
+			if hitPart.Name == "Head" or hitPart.Parent.Name == "Hair" or hitPart.Parent.Name == "PlayerArmorHelmet" or hitPart.Parent.Name == "LebronHead" or weaponName == "Grenade" then
+				if hasFalloff and distance > falloffDistance then
+					damage = falloffHeadshotDamage
+				else
+					damage = headshotDamage
+				end
+				headshot = true
+			else
+				if hasFalloff and distance > falloffDistance then
+					damage = falloffBaseDamage
+				else
+					damage = baseDamage
+				end
+			end
+
+			-- Handle kill event and death animations
+			if humanoid.Health <= damage then
+				if isBot and not Players:GetPlayerFromCharacter(humanoid.Parent) then
+					ResetBot:Fire(humanoid, humanoid.Parent.PrimaryPart.CFrame)
+				end
+				
+				local victimName
+				-- Fire kill notification
+				if Players:GetPlayerFromCharacter(humanoid.Parent) then
+					victimName = Players:GetPlayerFromCharacter(humanoid.Parent)
+					ServerAddKillLeaderstats:Fire(player, victimName, weaponName)
+
+				elseif isBot or isGameplayBot then
+					victimName = "Range Bot"
+				end
+				killEvent:FireClient(player, victimName, weaponName)
+				
+				-- Play death animation
+				local killerCharacter = player.Character
+				local victimCharacter = humanoid.Parent
+				local killerLookVector = killerCharacter.PrimaryPart.CFrame.LookVector
+				local toVictimVector = victimCharacter.PrimaryPart.CFrame.LookVector
+
+				local dotProduct = killerLookVector:Dot(toVictimVector)
+				local isFront = dotProduct > 0
+
+				local deathAnimTrack, deathIdleTrack
+				if isFront then
+					deathAnimTrack = humanoid:LoadAnimation(backDeathAnimation)
+					deathIdleTrack = humanoid:LoadAnimation(backDeathIdle)
+				else
+					deathAnimTrack = humanoid:LoadAnimation(frontDeathAnimation)
+					deathIdleTrack = humanoid:LoadAnimation(frontDeathIdle)
+				end
+
+				deathIdleTrack.Looped = true
+				deathAnimTrack:Play()
+				deathAnimTrack.Stopped:Connect(function()
+					deathIdleTrack:Play()
+				end)
+
+			end
+
+			-- Fire hit events
+			if headshot then
+				hs:FireClient(player, humanoid, humanoid.Parent, weaponName)
+			else
+				hit:FireClient(player, humanoid, humanoid.Parent)
+			end
+
+			-- Show damage indicator
+			createDmgIndicator:FireClient(player, humanoid.Parent, damage, headshot, weaponName)
+
+			-- Apply damage
+			humanoid:TakeDamage(damage)
+		end
+	end
+	if not humanoid then
+		handleNonCharacterHits(player, hitPart, weaponName)
+	end
+end
+
+function handleNonCharacterHits(player, hitPart, weaponName)
+	if hitPart.Parent.Name == "HeadTargets" or hitPart:FindFirstAncestor("HeadTargets") then
+		hs:FireClient(player, hitPart, hitPart, weaponName)
+		local xRange = {-3181.964, -3141.222}
+		local yRange = {-49.377, -31.071}
+		local zRange = {-161.594, -88.759}
+		
+		if hitPart.Parent.Parent.Name == "HeadWithHelmet" then
+			hitPart.Parent.Parent.PrimaryPart.CFrame = CFrame.new(
+				math.random(xRange[1], xRange[2]),
+				math.random(yRange[1], yRange[2]),
+				math.random(zRange[1], zRange[2])
+			) * CFrame.Angles(0, math.rad(-90), 0)
+		else
+			hitPart.CFrame = CFrame.new(
+				math.random(xRange[1], xRange[2]),
+				math.random(yRange[1], yRange[2]),
+				math.random(zRange[1], zRange[2])
+			) * CFrame.Angles(0, math.rad(-90), 0)
+		end
+	elseif string.match(hitPart.Parent.Name, "ToTargetPractice") then
+		MoveElevator:FireClient(player, "TargetPractice")
+	elseif string.match(hitPart.Parent.Name, "ToStationaryBots") then
+		MoveElevator:FireClient(player, "StationaryBots")
+	elseif string.match(hitPart.Parent.Name, "ToMovingBots") then
+		MoveElevator:FireClient(player, "MovingBots")
+	end
+end
+
+return DamageHandler
