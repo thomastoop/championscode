@@ -1,0 +1,60 @@
+local TweenService = game:GetService("TweenService")
+local SniperShootRemote = game.ReplicatedStorage:WaitForChild("WeaponActions"):WaitForChild("SniperShootRemote")
+local bulletHole = game.ReplicatedStorage:WaitForChild("BulletHole")
+local hole1 = game.ServerStorage:WaitForChild("Hole")
+local debris = game:GetService("Debris")
+local bulletBeamEvent = game.ReplicatedStorage:WaitForChild("BulletBeams"):WaitForChild("BulletBeamGun")
+local SniperGlareEvent = game:GetService("ReplicatedStorage"):WaitForChild("Queueing/Gameplay"):WaitForChild("SniperGlare")
+
+local function tweenProperty(object, property, endValue, duration)
+	local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+	local tween = TweenService:Create(object, tweenInfo, {[property] = endValue})
+	tween:Play()
+end
+
+SniperShootRemote.OnServerEvent:Connect(function(player, beam1Size, beam1CFrame, beam2Size, beam2CFrame)
+	local beamInfo = {
+		beam1Size = beam1Size,
+		beam1CFrame = beam1CFrame,
+		beam2Size = beam2Size,
+		beam2CFrame = beam2CFrame
+	}
+
+	for _, otherPlayer in game.Players:GetPlayers() do
+		if otherPlayer ~= player then
+			SniperShootRemote:FireClient(otherPlayer, beamInfo)
+		end
+	end
+end)
+
+bulletBeamEvent.OnServerEvent:Connect(function(player, gunBarrelPos, hitPos, aimDirection, distance)
+	for _, otherPlayer in game.Players:GetPlayers() do
+		if otherPlayer ~= player then
+			bulletBeamEvent:FireClient(otherPlayer, gunBarrelPos, hitPos, aimDirection, distance)
+		end
+	end
+end)
+
+SniperGlareEvent.OnServerEvent:Connect(function(player, GlareGui, enable)
+	if GlareGui then
+		if GlareGui:IsA("BillboardGui") then
+			if enable then
+				GlareGui.Enabled = true
+			else
+				GlareGui.Enabled = false
+			end
+		end
+	end
+end)
+
+local function dump(instance, indent)
+	indent = indent or ""
+	for _, child in ipairs(instance:GetChildren()) do
+		print(indent .. child.Name .. " (" .. child.ClassName .. ")")
+		dump(child, indent .. "  ")
+	end
+end
+
+bulletHole.OnServerEvent:Connect(function(player, resultInst, resultNor, resultPos)
+	bulletHole:FireAllClients(player, resultInst, resultNor, resultPos)
+end)
