@@ -1,0 +1,1187 @@
+local Players = game:GetService("Players")
+local uis = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local player = game.Players.LocalPlayer
+local soundService = game:GetService("SoundService")
+local TweenService = game:GetService("TweenService")
+local character = player.Character or player.CharacterAdded:wait()
+local humanoid = game:GetService("Players").LocalPlayer.Character:WaitForChild("Humanoid")
+local HumanoidRootPart = game:GetService("Players").LocalPlayer.Character:WaitForChild("HumanoidRootPart")
+local player = game.Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local DestroyViewmodels = game:GetService("ReplicatedStorage"):WaitForChild("Viewmodels"):WaitForChild("DestroyViewmodels")
+local nextRound = game:WaitForChild("ReplicatedStorage"):WaitForChild("NextRound")
+local EquipWeaponEvent = game:GetService("ReplicatedStorage"):WaitForChild("WeaponActions"):WaitForChild("EquipWeapon")
+local ReloadWeaponEvent = game:GetService("ReplicatedStorage"):WaitForChild("WeaponActions"):WaitForChild("ReloadWeapon")
+local ShootingWeaponEvent = game:GetService("ReplicatedStorage"):WaitForChild("WeaponActions"):WaitForChild("ShootingWeapon")
+
+local EquippedTool = Instance.new("StringValue")
+EquippedTool.Parent = player
+EquippedTool.Name = "EquippedTool"
+EquippedTool.Value = "None"
+
+local shiftPresssed = false
+
+local CrouchAnimation = script.CrouchAnimation
+local CrouchTrack = humanoid:LoadAnimation(CrouchAnimation)
+local CrouchIdleAnimation = script:WaitForChild("CrouchIdle")
+local CrouchIdleTrack = humanoid:LoadAnimation(CrouchIdleAnimation)
+
+local SprintAnimation = script:WaitForChild("SprintAnimation")
+local SprintAnimationPrimary = script:WaitForChild("SprintAnimationPrimary")
+local SprintTrack = humanoid:LoadAnimation(SprintAnimation)
+local PrimaryWeaponSprintTrack = humanoid:LoadAnimation(SprintAnimationPrimary)
+local IdleSprintAnimation = script:WaitForChild("SprintIdle")
+local IdleSprintTrack = humanoid:LoadAnimation(IdleSprintAnimation)
+
+local SprintButton = player.PlayerGui:WaitForChild("MobileGui"):WaitForChild("CrouchGui"):WaitForChild("SprintButton")
+
+local CrouchEvent = ReplicatedStorage:WaitForChild("CrouchEvent")
+local ClientCrouch = ReplicatedStorage:WaitForChild("ClientCrouch")
+local SprintEvent = ReplicatedStorage:WaitForChild("SprintEvent")
+local AllowCrouching = ReplicatedStorage:WaitForChild("AllowCrouching")
+local postRoundRE = ReplicatedStorage:WaitForChild("PostRound")
+local MobileGui = player:WaitForChild("PlayerGui"):WaitForChild("MobileGui"):WaitForChild("CrouchGui")
+local disableScoreboard = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("DisableScoreboard")
+local jumpPadEvent = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("JumpPad")
+local SprintChange = ReplicatedStorage:WaitForChild("SprintChange")
+local ChangeScopingState = ReplicatedStorage:FindFirstChild("WeaponActions"):FindFirstChild("ChangeScopingState")
+
+local InSlide = ReplicatedStorage:WaitForChild("InSlide")
+local SlideAnim = script:WaitForChild("SlideA")
+local SlideTrack = humanoid:LoadAnimation(SlideAnim)
+SlideTrack.Looped = true
+SlideTrack.Priority = Enum.AnimationPriority.Action4
+local StopSlide = ReplicatedStorage:WaitForChild("StopSlide")
+
+local dashRemote = ReplicatedStorage:WaitForChild("Queueing/Gameplay"):WaitForChild("Dash")
+local moveDirection = Vector3.zero
+
+local StaminaGUI = player:WaitForChild("PlayerGui"):WaitForChild("Stamina")
+local FullBar = StaminaGUI:WaitForChild("FullBar")
+local PercentSprint = FullBar:WaitForChild("PercentSprint")
+local Stam = FullBar:WaitForChild("Stam")
+local FullBarDash = StaminaGUI:WaitForChild("FullBarDash")
+local PercentDash = FullBarDash:WaitForChild("PercentDash") -- make this a NumberValue just like PercentSprint
+local StamDash = FullBarDash:WaitForChild("Stam")
+
+PercentSprint.Value = 100
+PercentDash.Value = 100
+
+local StamPulse = FullBarDash:WaitForChild("StamPulse")
+
+local dashPulsePlayed = false  -- prevents repeats
+
+local dashMax = 100
+local dashCost = 100          -- makes dash use the **entire bar**
+local dashRegenRate = 20      -- customize recharge speed
+local dashRegenDelay = 2    -- delay before regen starts
+local dashRechargeTimer = 0
+
+local isInJumpPad = false
+local postRound = false
+local previousToolEquipped
+local equippedtool = nil
+local lastcameracf = CFrame.new()
+local swaycf = CFrame.new()
+
+local maxJumps = 2 -- amount of jumps in the air
+local jumpCooldown = 0.1 -- how fast you can jump again while in the air
+local doubleJumpStaminaDrain = 25
+local dashStaminaDrain = 35
+local jumpCount = 0
+local canJump = false
+local StarterPlayer = game:GetService("StarterPlayer")
+local jumpPressed = false
+local inScope = false
+
+local rifleMoveSpeed = 16
+local sniperMoveSpeed = 12
+local smgMoveSpeed = 18
+local shotgunMoveSpeed = 16
+
+local pistolMoveSpeed = 18
+local autoPistolMoveSpeed = 18
+local revolverMoveSpeed = 18
+local meleeMoveSpeed = 22
+
+humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+
+humanoid.StateChanged:Connect(function(oldState, newState)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+
+end)
+
+ChangeScopingState.Event:Connect(function(scopeState)
+	inScope = scopeState
+end)
+
+jumpPadEvent.OnClientEvent:Connect(function(jumpBoost)
+	if jumpBoost then
+		isInJumpPad = true
+		humanoid.WalkSpeed = 52
+	else
+		isInJumpPad = false
+		humanoid.WalkSpeed = humanoid.WalkSpeed
+	end
+end)
+
+local playerDied = ReplicatedStorage:WaitForChild("Died")
+
+local CanCrouch = true
+local CanSprint = true
+local CanSlide = true
+local CanDoubleJump = false
+local isSprinting = false
+local currentModel = nil
+local viewmodel = ReplicatedStorage:WaitForChild("Viewmodels"):WaitForChild("Arms_Viewmodel")
+local vmSprintIdle, vmSprint
+
+if uis.TouchEnabled then
+	MobileGui.Enabled = true
+else
+	MobileGui.Enabled = false
+end
+
+ShootingWeaponEvent.Event:Connect(function(isShooting)
+	if isShooting == true then
+		CanSprint = false
+	else
+		CanSprint = true
+	end
+end)
+
+disableScoreboard.OnClientEvent:Connect(function()
+	player.EquippedTool.Value = "None"
+end)
+
+local footstepSound = script.Parent:WaitForChild("HumanoidRootPart"):WaitForChild("Running")
+local function UpdateFootstepSound(id, speed, vol)
+	footstepSound.SoundId = "rbxassetid://"..id
+	footstepSound.PlaybackSpeed = speed
+	footstepSound.Volume = vol
+end
+
+local char = game.Players.LocalPlayer.Character or game.Players.LocalPlayer.CharacterAdded:Wait() 
+char:WaitForChild("Humanoid").JumpPower = 37.376 -- change 0 for different jump power
+
+game:GetService'Players'.LocalPlayer.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Swimming,false)
+
+local CameraInfo = TweenInfo.new(
+	0.3,
+	Enum.EasingStyle.Quint,  
+	Enum.EasingDirection.Out,  
+	0,                
+	false,         
+	0  
+)
+
+local FadeInfo = TweenInfo.new(
+	2,                -- Time
+	Enum.EasingStyle.Quint,  -- EasingStyle
+	Enum.EasingDirection.Out,  -- EasingDirection
+	0,                 -- RepeatCount (when less than zero the tween will loop indefinitely)
+	false,             -- Reverses (tween will reverse once reaching its goal)
+	0                  -- DelayTime
+)
+
+
+local CrouchedGoal = {CameraOffset = Vector3.new(0,-1.2,0)}
+local UncrouchedGoal = {CameraOffset = Vector3.new(0,0,0)}
+local SprintGoal = {FieldOfView = 80}
+local NoSprintGoal = {FieldOfView = 70}
+local FadeInGoal = {BackgroundTransparency = 0}
+local FadeOutGoal = {BackgroundTransparency = 1}
+
+local CrouchedTween = TweenService:Create(humanoid, CameraInfo, CrouchedGoal)
+local UncrouchedTween = TweenService:Create(humanoid, CameraInfo, UncrouchedGoal)
+local SprintFOVTween = TweenService:Create(Camera, CameraInfo, SprintGoal)
+local NoSprintFOVTween = TweenService:Create(Camera, CameraInfo, NoSprintGoal)
+local FadeInTween = TweenService:Create(Stam, FadeInfo, FadeInGoal)
+local FadeOutTween = TweenService:Create(Stam, FadeInfo, FadeOutGoal)
+
+local inCrouch = false
+local inSprint = false
+local originalWalkSpeed = humanoid.WalkSpeed
+local sprintSpeedMultiplier = 1.30
+local staminaDrainRate = 36
+local staminaRegenRate = 27
+local regenDelay = 1
+local timeSinceSprint = 0
+local fadeOutStarted = false
+
+
+local function updateStaminaGUI()
+	local percent = PercentSprint.Value / 100
+	Stam.Size = UDim2.new(percent, 0, 1, 0)
+	--Stam.Position = UDim2.new((1 - percent) / 2, 0, 0, 0)
+end
+
+local function updateDashStaminaGUI()
+	local percent = PercentDash.Value / dashMax
+	StamDash.Size = UDim2.new(percent, 0, 1, 0)
+end
+
+
+local function tweenStaminaTo(newValue, tweenTime, percent)
+	local startValue = percent.Value
+	local goal = {}
+	goal.Value = newValue
+
+	local info = TweenInfo.new(
+		tweenTime or 0.25, -- duration (you can tweak this for speed)
+		Enum.EasingStyle.Quad, -- smooth in/out curve
+		Enum.EasingDirection.Out
+	)
+
+	local tween = TweenService:Create(percent, info, goal)
+	tween:Play()
+
+	-- Update GUI in real-time during the tween
+	local connection
+	connection = tween:GetPropertyChangedSignal("PlaybackState"):Connect(function()
+		if tween.PlaybackState == Enum.PlaybackState.Completed then
+			connection:Disconnect()
+		end
+	end)
+
+	return tween
+end
+
+local function playDashPulse()
+	if not StamPulse then return end
+	-- Reset before playing
+	StamPulse.Size = UDim2.new(1, 0, 1, 0)
+	StamPulse.Position = UDim2.new(0.603, 0, 0.5, 0)
+	StamPulse.BackgroundTransparency = 0.7
+	StamPulse.Visible = true
+	
+	
+	local tweenSizeInfo = TweenInfo.new(
+		0.31,
+		Enum.EasingStyle.Sine,
+		Enum.EasingDirection.Out
+	)
+	
+	local tweenTransparencyInfo = TweenInfo.new(
+		0.42,
+		Enum.EasingStyle.Sine,
+		Enum.EasingDirection.Out
+	)
+
+	local tweenSize = TweenService:Create(StamPulse, tweenSizeInfo, {
+		Size = UDim2.new(1.07, 0, 3.086, 0)
+	})
+	
+	local tweenTransparency = TweenService:Create(StamPulse, tweenTransparencyInfo, {
+	
+		BackgroundTransparency = 1
+	})
+
+	tweenSize:Play()
+
+	tweenSize.Completed:Connect(function()
+		tweenTransparency:Play()
+
+	end)
+	
+	tweenTransparency.Completed:Connect(function()
+		StamPulse.Visible = false
+		StamPulse.Size = UDim2.new(1, 0, 1, 0)
+	end)
+	
+end
+
+
+local function loadSlot(weapon)
+	if weapon then
+		if Camera:FindFirstChild(weapon.Name) then return end
+		local newWeapon = weapon:Clone()
+		newWeapon.Parent = Camera
+		currentModel = newWeapon
+		for _, part in currentModel.HandCosmetics:GetDescendants() do
+			if part:IsA("MeshPart") or part:IsA("BasePart") or part:IsA("Part") or part:IsA("UnionOperation") then
+				part.Transparency = 1
+			end
+		end
+
+		if player.Skins.HandSkin.Value == "Lebron" then
+			for _, part in currentModel.HandCosmetics.Lebron:GetDescendants() do
+				if part:IsA("MeshPart") or part:IsA("BasePart") or part:IsA("Part") or part:IsA("UnionOperation") then
+					part.Transparency = 0
+				end
+			end
+			currentModel.LeftArm.Color = Color3.fromRGB(105, 64, 40)
+			currentModel.RightArm.Color = Color3.fromRGB(105, 64, 40)
+		else
+			currentModel.LeftArm.Color = Color3.fromRGB(255, 255, 255)
+			currentModel.RightArm.Color = Color3.fromRGB(255, 255, 255)
+		end
+
+
+		local function loadAnimationSafe(humanoid, animation)
+			if humanoid and animation then
+				return humanoid:LoadAnimation(animation)
+			end
+		end
+
+		vmSprintIdle = loadAnimationSafe(currentModel:WaitForChild("Humanoid"), newWeapon.Animations.SprintIdle)
+		vmSprintIdle.Looped = true
+		vmSprint = loadAnimationSafe(currentModel:WaitForChild("Humanoid"), newWeapon.Animations.Sprint)
+		vmSprint.Looped = true
+		if humanoid.Health > 0 then
+			vmSprintIdle:Play()
+
+		end
+	end
+end
+
+local function hideViewModel()
+	if currentModel then
+		currentModel:Destroy()
+		currentModel = nil
+	end
+end
+
+playerDied.OnClientEvent:Connect(function()
+	if player.EquippedTool then
+		player.EquippedTool.Value = "None"
+	end
+end)
+
+
+local function StopSprint()
+	SprintButton.Image = "rbxassetid://70428973241633"
+	inSprint = false
+	isSprinting = false
+	NoSprintFOVTween:Play()
+	SprintChange:Fire(false)
+	SprintTrack:Stop()
+	PrimaryWeaponSprintTrack:Stop()
+	IdleSprintTrack:Stop()
+	--SprintEvent:FireServer(false)
+	timeSinceSprint = 0
+end
+
+SprintChange.Event:Connect(function(sprint, shooting)
+	if sprint == false then
+		if isSprinting then
+			SprintButton.Image = "rbxassetid://70428973241633"
+			inSprint = false
+			if shooting then
+				NoSprintFOVTween:Play()
+			end
+			isSprinting = false
+			SprintChange:Fire(false)
+			SprintTrack:Stop()
+			PrimaryWeaponSprintTrack:Stop()
+			IdleSprintTrack:Stop()
+			--SprintEvent:FireServer(false)
+			timeSinceSprint = 0
+		end
+	end
+end)
+
+postRoundRE.OnClientEvent:Connect(function(postRoundStatus)
+	if postRoundStatus then
+		CanSlide = false
+		task.delay(2.3, function()
+			postRound = postRoundStatus
+			CanSprint = false
+			if inSprint then
+				StopSprint()
+				hideViewModel()
+
+			end
+		end)
+	else
+		postRound = postRoundStatus
+		CanCrouch = true
+		CanSlide = true
+		CanSprint = true
+	end
+end)
+
+ReloadWeaponEvent.Event:Connect(function(inReload)
+	if inReload then
+		CanSprint = false
+	else
+		CanSprint = true
+	end
+end)
+
+local function Sprint()
+	if not inCrouch and PercentSprint.Value > 0 and CanSprint and humanoid.Health > 0 and humanoid.MoveDirection.Magnitude > 0 and not inScope then
+		if not inSprint then
+			SprintButton.Image = "rbxassetid://134055095447388"
+
+			FadeInTween:Play()
+			inSprint = true
+			isSprinting = true
+			SprintFOVTween:Play()
+			SprintChange:Fire(true)
+			equippedtool = nil
+			for _, tool in ipairs(char:GetChildren()) do
+				if tool:IsA("Tool") and tool.Parent == char then
+					equippedtool = tool
+					break
+				end
+			end
+			--humanoid:UnequipTools()
+			if humanoid.MoveDirection.Magnitude > 0 then
+				if equippedtool and equippedtool:GetAttribute("Category") == "Primary" then
+					PrimaryWeaponSprintTrack:Play()
+					PrimaryWeaponSprintTrack:AdjustSpeed(1.2)
+				else
+					SprintTrack:Play()
+					SprintTrack:AdjustSpeed(1.2)
+				end
+			end
+
+			--SprintEvent:FireServer(true)
+			if player.Character:WaitForChild("Head").LocalTransparencyModifier == 1 then
+				--loadSlot(viewmodel)
+			end
+		else
+			StopSprint()
+		end
+	end
+end
+
+local function Crouch()
+	if inCrouch == false and humanoid.Health > 0 then
+		if uis.TouchEnabled then
+			MobileGui:WaitForChild("CrouchButton").Image = "rbxassetid://113865444400381"
+		end
+		inCrouch = true
+		CrouchedTween:Play()
+		--humanoid.WalkSpeed = humanoid.WalkSpeed / 2
+
+		CrouchTrack:Play()
+		HumanoidRootPart.CanCollide = false
+
+		CrouchEvent:FireServer(true)
+		ClientCrouch:Fire(true)
+
+	elseif humanoid.Health > 0 then
+		if uis.TouchEnabled then
+			MobileGui:WaitForChild("CrouchButton").Image = "rbxassetid://115452025013670"
+		end
+		inCrouch = false
+		UncrouchedTween:Play()
+		--humanoid.WalkSpeed = humanoid.WalkSpeed * 2
+		CrouchTrack:Stop()
+		CrouchIdleTrack:Stop()
+		HumanoidRootPart.CanCollide = true
+
+		CrouchEvent:FireServer(false)
+		ClientCrouch:Fire(false)
+
+	end
+
+end
+
+local function IsPlayerMoving()
+	if inCrouch then
+		if not isInJumpPad then
+			if player.EquippedTool.Value == "Rifle" then
+				humanoid.WalkSpeed = rifleMoveSpeed/2
+			elseif player.EquippedTool.Value == "Sniper" then
+				humanoid.WalkSpeed = sniperMoveSpeed/2
+			elseif player.EquippedTool.Value == "SMG" then
+				humanoid.WalkSpeed = smgMoveSpeed/2
+			elseif player.EquippedTool.Value == "Shotgun" then
+				humanoid.WalkSpeed = shotgunMoveSpeed/2
+			elseif player.EquippedTool.Value == "Pistol" then
+				humanoid.WalkSpeed = pistolMoveSpeed/2
+			elseif player.EquippedTool.Value == "AutoPistol" then
+				humanoid.WalkSpeed = autoPistolMoveSpeed/2
+			elseif player.EquippedTool.Value == "Revolver" then
+				humanoid.WalkSpeed = revolverMoveSpeed/2
+			elseif player.EquippedTool.Value == "Melee" then
+				humanoid.WalkSpeed = meleeMoveSpeed/2
+			else
+				if player.PlayerGui:WaitForChild("Inventory").Enabled or player.PlayerGui:WaitForChild("Shop").Enabled or player.PlayerGui:WaitForChild("Bonuses").Enabled or player.PlayerGui:WaitForChild("RestoreWinstreak").Enabled then
+					humanoid.WalkSpeed = 0
+				else
+					humanoid.WalkSpeed = 8
+				end
+			end
+		end
+		if humanoid.MoveDirection.Magnitude == 0 then
+			if not CrouchIdleTrack.IsPlaying then
+				CrouchTrack:Stop()
+				CrouchIdleTrack:Play()
+			end
+		else
+			if not CrouchTrack.IsPlaying then
+				CrouchIdleTrack:Stop()
+				CrouchTrack:Play()
+			end
+		end
+	else
+		if inSprint then
+			if not isInJumpPad then
+				if player.EquippedTool.Value == "Rifle" then
+					humanoid.WalkSpeed = rifleMoveSpeed * sprintSpeedMultiplier
+				elseif player.EquippedTool.Value == "Sniper" then
+					humanoid.WalkSpeed = sniperMoveSpeed * sprintSpeedMultiplier
+				elseif player.EquippedTool.Value == "SMG" then
+					humanoid.WalkSpeed = smgMoveSpeed * sprintSpeedMultiplier
+				elseif player.EquippedTool.Value == "Shotgun" then
+					humanoid.WalkSpeed = shotgunMoveSpeed * sprintSpeedMultiplier
+				elseif player.EquippedTool.Value == "Pistol" then
+					humanoid.WalkSpeed = pistolMoveSpeed * sprintSpeedMultiplier
+				elseif player.EquippedTool.Value == "AutoPistol" then
+					humanoid.WalkSpeed = autoPistolMoveSpeed * sprintSpeedMultiplier
+				elseif player.EquippedTool.Value == "Revolver" then
+					humanoid.WalkSpeed = revolverMoveSpeed * sprintSpeedMultiplier
+				elseif player.EquippedTool.Value == "Melee" then
+					humanoid.WalkSpeed = meleeMoveSpeed * sprintSpeedMultiplier
+				else
+					if player.PlayerGui:WaitForChild("Inventory").Enabled or player.PlayerGui:WaitForChild("Shop").Enabled or player.PlayerGui:WaitForChild("Bonuses").Enabled or player.PlayerGui:WaitForChild("RestoreWinstreak").Enabled then
+						humanoid.WalkSpeed = 0
+					else
+						humanoid.WalkSpeed = 16 * sprintSpeedMultiplier
+					end
+				end
+			end
+			
+			if humanoid.MoveDirection.Magnitude == 0 then
+				if SprintTrack.IsPlaying then
+					SprintTrack:Stop()
+					PrimaryWeaponSprintTrack:Stop()
+					IdleSprintTrack:Play()
+				end
+			else
+				IdleSprintTrack:Stop()
+				if equippedtool and equippedtool:GetAttribute("Category") == "Primary" then
+					if not PrimaryWeaponSprintTrack.IsPlaying then
+						PrimaryWeaponSprintTrack:Play()
+						PrimaryWeaponSprintTrack:AdjustSpeed(1.2)
+					end
+				elseif not SprintTrack.IsPlaying then
+					SprintTrack:Play()
+					SprintTrack:AdjustSpeed(1.2)
+				end
+			end
+		else
+			if not isInJumpPad then
+				if player.EquippedTool.Value == "Rifle" then
+					humanoid.WalkSpeed = rifleMoveSpeed
+				elseif player.EquippedTool.Value == "Sniper" then
+					humanoid.WalkSpeed = sniperMoveSpeed
+				elseif player.EquippedTool.Value == "SMG" then
+					humanoid.WalkSpeed = smgMoveSpeed
+				elseif player.EquippedTool.Value == "Shotgun" then
+					humanoid.WalkSpeed = shotgunMoveSpeed
+				elseif player.EquippedTool.Value == "Pistol" then
+					humanoid.WalkSpeed = pistolMoveSpeed
+				elseif player.EquippedTool.Value == "AutoPistol" then
+					humanoid.WalkSpeed = autoPistolMoveSpeed
+				elseif player.EquippedTool.Value == "Revolver" then
+					humanoid.WalkSpeed = revolverMoveSpeed
+				elseif player.EquippedTool.Value == "Melee" then
+					humanoid.WalkSpeed = meleeMoveSpeed
+				else
+					if player.PlayerGui:WaitForChild("Inventory").Enabled or player.PlayerGui:WaitForChild("Shop").Enabled or player.PlayerGui:WaitForChild("Bonuses").Enabled or player.PlayerGui:WaitForChild("RestoreWinstreak").Enabled then
+						humanoid.WalkSpeed = 0
+					else
+						humanoid.WalkSpeed = 16
+					end
+				end
+			end
+		end
+
+	end
+end
+
+StopSlide.Event:Connect(function()
+	SlideTrack:Stop(0.5)
+end)
+
+local function updateStamina(dt)
+	if inSprint then
+		if humanoid.MoveDirection.Magnitude > 0 then
+			PercentSprint.Value = PercentSprint.Value - staminaDrainRate * dt
+			if PercentSprint.Value <= 0 then
+				StopSprint()
+
+				if equippedtool and not char:FindFirstChild(tostring(equippedtool)) then
+					humanoid:EquipTool(equippedtool)
+					EquipWeaponEvent:Fire(true, equippedtool)
+				end
+				hideViewModel()
+			end
+			-- Cancel any ongoing fade out when sprinting
+			if FadeOutTween and FadeOutTween.PlaybackState == Enum.PlaybackState.Playing then
+				FadeOutTween:Cancel()
+			end
+			-- Ensure stamina bar is visible when sprinting
+			Stam.BackgroundTransparency = 0
+			fadeOutStarted = false
+		end
+
+	else
+		timeSinceSprint = timeSinceSprint + dt
+		if timeSinceSprint >= regenDelay then
+			PercentSprint.Value = math.min(PercentSprint.Value + staminaRegenRate * dt, 100)
+		end
+		-- Only fade out when stamina is exactly 100 and not sprinting
+		if math.floor(PercentSprint.Value) == 100 then
+			if not FadeOutTween or FadeOutTween.PlaybackState ~= Enum.PlaybackState.Playing then
+				--FadeOutTween:Play()
+			end
+		else
+			-- Cancel fade out if stamina drops below 100
+			if FadeOutTween and FadeOutTween.PlaybackState == Enum.PlaybackState.Playing then
+				FadeOutTween:Cancel()
+			end
+			-- Ensure stamina bar is visible when not at full capacity
+			Stam.BackgroundTransparency = 0
+			fadeOutStarted = false
+		end
+	end
+	updateStaminaGUI()
+end
+
+AllowCrouching.OnClientEvent:Connect(function(allow)
+	if allow then
+		CanSprint = true
+		CanCrouch = true
+		if uis.TouchEnabled then
+			MobileGui.Enabled = true
+		end
+	else
+		CanSprint = false
+		if uis.TouchEnabled then
+			MobileGui.Enabled = false
+		end
+		CanCrouch = false
+		if inCrouch then
+			inCrouch = false
+			UncrouchedTween:Play()
+			--humanoid.WalkSpeed = humanoid.WalkSpeed * 2
+			CrouchTrack:Stop()
+			CrouchIdleTrack:Stop()
+			HumanoidRootPart.CanCollide = true
+
+			CrouchEvent:FireServer(false)
+			ClientCrouch:Fire(false)
+		end
+		if inSprint then
+			StopSprint()
+		end
+	end
+end)
+
+EquipWeaponEvent.Event:Connect(function()
+	if inSprint then
+		StopSprint()
+		hideViewModel()
+	end
+end)
+
+SprintButton.Activated:Connect(function()
+	if humanoid.Health > 0 then
+		if inSprint then
+			StopSprint()	
+			if equippedtool and not char:FindFirstChild(tostring(equippedtool)) then
+
+				humanoid:EquipTool(equippedtool)
+				EquipWeaponEvent:Fire(true, equippedtool)
+			end
+
+			hideViewModel()
+		else
+			Sprint()
+		end
+	end
+end)
+
+MobileGui:WaitForChild("CrouchButton").Activated:Connect(function()
+	if not inSprint and humanoid.Health > 0 then
+		Crouch()
+	end
+end)
+
+local debounceTime = 1
+local trailTime = 0.45
+local velocityDuration = 0.1
+local dashPower = 100
+
+local debounceTable = {}
+
+local function Dash(player, direction)
+	local character = player.Character
+	if not character then return end
+
+	local hrp = character:FindFirstChild("HumanoidRootPart")
+	local humanoid = character:FindFirstChild("Humanoid")
+	if not hrp or not humanoid or humanoid.Health <= 0 then return end
+	
+	task.spawn(function()
+		debounceTable[player] = true
+
+		local dashDir = direction or hrp.CFrame.LookVector
+		if dashDir.Magnitude < 0.1 then
+			dashDir = hrp.CFrame.LookVector
+		end
+		dashDir = dashDir.Unit
+
+		local linearVelocity = Instance.new("LinearVelocity")
+		linearVelocity.Attachment0 = hrp.RootAttachment
+		linearVelocity.MaxForce = 100000
+		linearVelocity.RelativeTo = Enum.ActuatorRelativeTo.World
+		linearVelocity.VectorVelocity = dashDir * dashPower
+		linearVelocity.Parent = hrp
+
+		task.wait(velocityDuration)
+		linearVelocity:Destroy()
+
+		task.wait(debounceTime - velocityDuration)
+		debounceTable[player] = nil
+	end)
+
+end
+
+
+uis.InputBegan:Connect(function(input, Chat)
+	if Chat then return end
+	if input.KeyCode == Enum.KeyCode.W then
+		shiftPresssed = true
+	end
+	if input.KeyCode == Enum.KeyCode.E or input.KeyCode == Enum.KeyCode.ButtonB then
+		if player.Character and player.Character:FindFirstChild("Humanoid") then
+			--and player.EquippedTool.Value == "Melee"
+			if PercentDash.Value >= dashCost then
+				if debounceTable[player] then return end
+
+				local dir = player.Character.Humanoid.MoveDirection
+				
+				if dir.Magnitude < 0.1 then
+					dir = workspace.CurrentCamera.CFrame.LookVector
+				end
+
+				-- Use dash stamina instead
+				local targetValue = math.max(0, PercentDash.Value - dashCost)
+
+				tweenStaminaTo(targetValue, 0.20, PercentDash)
+
+				Dash(player, dir)
+				dashRemote:FireServer(dir)
+
+				updateDashStaminaGUI()
+				dashRechargeTimer = 0
+
+			else return end
+
+		end
+	end
+	if input.KeyCode == Enum.KeyCode.Space then
+		jumpPressed = true
+	end
+	if input.KeyCode == Enum.KeyCode.LeftShift then 
+		if player.GeneralInfo.toggleSprint.Value then
+			if inSprint then
+				StopSprint()
+				if equippedtool and not char:FindFirstChild(tostring(equippedtool)) then
+
+					humanoid:EquipTool(equippedtool)
+					EquipWeaponEvent:Fire(true, equippedtool)
+
+				end
+				hideViewModel()
+			else
+				Sprint()
+			end
+		else
+			if not inSprint then
+				Sprint()
+			end
+		end
+	end
+	if input.KeyCode == Enum.KeyCode.LeftControl then
+		if CanCrouch then
+			if player.GeneralInfo.toggleCrouch.Value then
+				Crouch()
+			else
+				inCrouch = true
+				CrouchedTween:Play()
+				--humanoid.WalkSpeed = humanoid.WalkSpeed / 2
+
+				CrouchTrack:Play()
+				HumanoidRootPart.CanCollide = false
+
+				CrouchEvent:FireServer(true)
+				ClientCrouch:Fire(true)
+
+			end
+		end
+	end
+end)
+
+uis.InputEnded:Connect(function(input, Chat)
+	if Chat then return end
+	if input.KeyCode == Enum.KeyCode.W then
+		shiftPresssed = false
+	end
+	if input.KeyCode == Enum.KeyCode.Space then
+		jumpPressed = false
+	end
+	if input.KeyCode == Enum.KeyCode.LeftShift then 
+		if not player.GeneralInfo.toggleSprint.Value then
+			if inSprint then
+				StopSprint()
+				if equippedtool and not char:FindFirstChild(tostring(equippedtool)) then
+
+					humanoid:EquipTool(equippedtool)
+					EquipWeaponEvent:Fire(true, equippedtool)
+
+				end
+				hideViewModel()
+			end
+		end
+	end
+	if input.KeyCode == Enum.KeyCode.LeftControl then
+		if CanCrouch then
+			if not player.GeneralInfo.toggleCrouch.Value then
+				inCrouch = false
+				UncrouchedTween:Play()
+				--humanoid.WalkSpeed = humanoid.WalkSpeed * 2
+				CrouchTrack:Stop()
+				CrouchIdleTrack:Stop()
+				HumanoidRootPart.CanCollide = true
+
+				CrouchEvent:FireServer(false)
+				ClientCrouch:Fire(false)
+
+			end
+		end
+	end
+end)
+
+InSlide.Event:Connect(function()
+	if inSprint then
+		StopSprint()
+		if equippedtool and not char:FindFirstChild(tostring(equippedtool)) and CanSlide then
+
+			humanoid:EquipTool(equippedtool)
+			EquipWeaponEvent:Fire(true, equippedtool)
+
+		end
+
+		hideViewModel()
+		SlideTrack:Play()
+	end
+end)
+
+-- DOUBLE JUMP
+
+local function onStateChanged(oldState, newState)
+	if newState == Enum.HumanoidStateType.Landed then
+		jumpCount = 0
+		canJump = false
+	elseif newState == Enum.HumanoidStateType.Freefall then
+		task.wait(jumpCooldown)
+		canJump = true
+	elseif newState == Enum.HumanoidStateType.Jumping then
+		canJump = false
+		jumpCount = jumpCount + 1
+	end
+end
+
+humanoid.StateChanged:Connect(onStateChanged)
+
+local function calculateVelocityForHeight(height: number): number
+	-- Equation to find the Y velocity required to reach a specific height derived from basic kinematic equations
+	return math.sqrt(2 * workspace.Gravity * height)
+end
+
+
+local function setVerticalVelocity(part: BasePart, velocity: number)
+	part.AssemblyLinearVelocity = Vector3.new(part.AssemblyLinearVelocity.X, velocity, part.AssemblyLinearVelocity.Z)
+end
+
+uis.JumpRequest:Connect(function()
+	if not jumpPressed or CanDoubleJump == false then return end -- prevents holding jump
+	jumpPressed = false -- wait for release before next jump
+	
+	--and player.EquippedTool.Value == "Melee"
+	if canJump and jumpCount < maxJumps  then
+		if jumpCount == 1 then
+			if PercentSprint.Value >= doubleJumpStaminaDrain then
+				humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+
+				local targetValue = math.max(0, PercentSprint.Value - doubleJumpStaminaDrain)
+				tweenStaminaTo(targetValue, 0.135, PercentSprint) -- smooth drain over 0.25 seconds
+
+				updateStaminaGUI()
+				
+				timeSinceSprint = 0
+
+			else
+				return
+			end
+		end
+		--local jumpVelocity = calculateVelocityForHeight(StarterPlayer.CharacterJumpHeight)
+		--setVerticalVelocity(character.HumanoidRootPart, jumpVelocity)
+	end
+end)
+
+-- SOUNDS
+
+-- Create sound variables
+local id
+local volume
+local playbackSpeed
+
+-- Create material variables
+local floorMaterial
+local material
+
+-- Get the HumanoidRootPart and wait for the server audio
+local root = character:WaitForChild("HumanoidRootPart")
+local serverSound = root:WaitForChild("CurrentSound")
+
+for _, sound in soundService:GetChildren() do
+	if string.match(sound.Name, player.Name) then
+		sound:Destroy()
+	end
+end
+-- Create sound instance
+local currentSound = Instance.new("Sound", soundService)
+currentSound.Name = player.Name.."CurrentSound"
+currentSound.RollOffMaxDistance = 500 -- When should the sound stop being heard? (in studs)
+
+
+-- fetch the ID list
+local IDList = require(script.Parent.Footsteps:FindFirstChildWhichIsA("ModuleScript"))
+
+-- Delete default running sound
+if character.HumanoidRootPart:FindFirstChild("Running") then
+	character.HumanoidRootPart:FindFirstChild("Running"):Destroy()
+end
+
+-- Get the current floor material.
+local function getFloorMaterial()
+	floorMaterial = humanoid.FloorMaterial
+	material = string.split(tostring(floorMaterial), "Enum.Material.")[2]
+
+	return material
+end
+
+-- Get the correct sound from our sound list.
+local function getSoundProperties()
+	for name, data in pairs(IDList) do
+		if name == material then
+			id = data.id
+			volume = data.volume / 2.5
+			if inCrouch then
+				volume = 0
+			end
+			--playbackSpeed = (humanoid.WalkSpeed / 16) * data.speed
+			playbackSpeed = data.speed
+			break
+		end
+	end
+end
+
+-- update the sound data
+local function update()
+	currentSound.SoundId = id
+	currentSound.Volume = volume
+	if inCrouch then
+		currentSound.Volume = 0
+	end
+	currentSound.PlaybackSpeed = playbackSpeed
+end
+
+local function update_volume()
+	if not character then
+		return
+	end
+
+	local maxDistance = 100
+	local minVolume = 0
+	local maxVolume = volume
+
+	local cameraPosition = game.Workspace.CurrentCamera.CFrame.Position
+	local characterPosition = character.HumanoidRootPart.Position
+	local distance = (cameraPosition - characterPosition).Magnitude
+
+	local newVolume = math.clamp(volume - (distance / maxDistance), minVolume, maxVolume)
+	currentSound.Volume = newVolume
+	if inCrouch then
+		maxVolume = 0
+		currentSound.Volume = 0
+	end
+end
+
+-- Get initial data for client
+getFloorMaterial()
+getSoundProperties()
+update()
+
+-- Update the previous floor material and current floor material
+humanoid:GetPropertyChangedSignal("FloorMaterial"):Connect(function()
+	getFloorMaterial()
+	getSoundProperties()
+	update()
+
+	if humanoid.MoveDirection.Magnitude > 0 then
+		currentSound.Playing = true
+	end
+end)
+
+
+-- check if the player is moving and not climbing
+humanoid.Running:Connect(function(speed)
+	if humanoid.MoveDirection.Magnitude > 0 and speed > 0 and humanoid:GetState() ~= Enum.HumanoidStateType.Climbing then
+		getSoundProperties()
+		update()
+		currentSound.Playing = true
+		currentSound.Looped = true
+	else
+		currentSound:Stop()
+	end
+end)
+
+serverSound.Changed:Connect(function(Volume)
+	if Volume ~= 0 then
+		serverSound.Volume = 0
+	end
+end)
+
+-- Small bug fix where the sound would start playing after the player joined
+player.CharacterAdded:Connect(function()
+	task.wait(1)
+	if currentSound.IsPlaying then
+		currentSound:Stop()
+	end
+end)
+
+local getCameraDistance = coroutine.create(function()
+	while task.wait() do
+		update_volume()
+	end
+end)
+
+DestroyViewmodels.OnClientEvent:Connect(function()
+	hideViewModel()
+end)
+
+nextRound.OnClientEvent:Connect(function()
+	hideViewModel()
+end)
+
+coroutine.resume(getCameraDistance)
+
+game:GetService("RunService").RenderStepped:Connect(function(dt)
+	IsPlayerMoving()
+	updateStamina(dt)
+	updateDashStaminaGUI(dt)
+
+	dashRechargeTimer = dashRechargeTimer + dt
+	if dashRechargeTimer >= dashRegenDelay then
+		PercentDash.Value = math.min(dashMax, PercentDash.Value + dashRegenRate * dt)
+		-- Check for full recharge
+		if PercentDash.Value >= dashMax then
+			if not dashPulsePlayed then
+				dashPulsePlayed = true
+
+				playDashPulse()
+			end
+		else
+			dashPulsePlayed = false -- reset so it plays again next time
+		end
+
+	end
+
+
+	if isSprinting and currentModel and currentModel.PrimaryPart then
+		local moveSpeed = (player.Character.PrimaryPart.Velocity * Vector3.new(1, 0, 1)).Magnitude
+
+		local rot = Camera.CFrame:ToObjectSpace(lastcameracf)
+		local x, y, z = rot:ToOrientation()
+
+		swaycf = swaycf:Lerp(CFrame.Angles(math.sin(x) * 0.7, math.sin(y) * 0.7, 0), 0.042)
+		lastcameracf = Camera.CFrame
+		currentModel:SetPrimaryPartCFrame(Camera.CFrame * swaycf)
+		if moveSpeed > 0.01 then
+			if not vmSprint.IsPlaying then
+				vmSprint:Play()
+			end
+			if vmSprintIdle.IsPlaying then
+				vmSprintIdle:Stop()
+			end
+		else
+			if not vmSprintIdle.IsPlaying then
+				vmSprintIdle:Play()
+			end
+			if vmSprint.IsPlaying then
+				vmSprint:Stop()
+			end
+		end
+
+	end
+	if isSprinting and humanoid.MoveDirection.Magnitude <= 0 then
+		StopSprint()
+		hideViewModel()
+		if equippedtool and not char:FindFirstChild(tostring(equippedtool)) then
+
+			humanoid:EquipTool(equippedtool)
+			EquipWeaponEvent:Fire(true, equippedtool)
+		end
+
+	end
+end)
+
+--[==[
+game:GetService("RunService").RenderStepped:Connect(function()
+	IsPlayerMoving()
+	if Humanoid then
+		if inCrouch then 
+			UpdateFootstepSound("9064714296", 1, 0)
+		else
+			if Humanoid.FloorMaterial == Enum.Material.Grass then
+				UpdateFootstepSound("9064714296", 1.3, 1)
+			elseif Humanoid.FloorMaterial == Enum.Material.Wood or Humanoid.FloorMaterial == Enum.Material.Cardboard then
+				UpdateFootstepSound("9065052688", 1.3, 1)
+			elseif Humanoid.FloorMaterial == Enum.Material.Metal then
+				UpdateFootstepSound("9064974448", 1.3, 1)
+			else 
+				UpdateFootstepSound("95352102053988", 1.3, 1)
+			end
+		end
+	
+	end
+end)
+
+]==]--
+
+
+--[[
+
+RunService.Heartbeat:Connect(function()
+	local velocity = HumanoidRootPart.Velocity
+	if velocity.Magnitude < 50 then return end -- only care about fast movement
+
+	local dir = velocity.Unit
+	local rayOrigin = HumanoidRootPart.Position
+	local raycastParams = RaycastParams.new()
+	raycastParams.FilterDescendantsInstances = {character}
+	raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+
+	local result = workspace:Raycast(rayOrigin, dir * 3, raycastParams) -- 3 studs ahead
+	if result and result.Instance then
+		-- Player is about to hit a wall head-on
+		HumanoidRootPart.Velocity = Vector3.zero
+		HumanoidRootPart.RotVelocity = Vector3.zero
+	end
+end)
+]]
